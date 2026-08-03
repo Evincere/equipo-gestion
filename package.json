@@ -1,0 +1,19 @@
+{
+  "name": "equipo-gestion",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión de Atenciones - Ministerio Público de la Defensa (Mendoza)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "node build-bundle.js"
+  },
+  "keywords": [
+    "defensoria",
+    "atenciones",
+    "sqlite",
+    "aero"
+  ],
+  "author": "Sergio M. Pereyra",
+  "license": "ISC"
+}
