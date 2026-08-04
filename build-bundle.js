@@ -21,14 +21,39 @@ const bundleContent = `/* ======================================================
 
     function fixMojibake(str) {
         if (!str) return '';
+        // Intentar decodificación nativa si fue leido erróneamente como UTF-8
         try {
-            const decoded = Buffer ? Buffer.from(str, 'latin1').toString('utf8') : str;
-            if (!decoded.includes('')) return decoded;
-        } catch(e) {}
+            return decodeURIComponent(escape(str));
+        } catch (e) {}
+        
         return str
-            .replace(/Ã‘/g, 'Ñ').replace(/Ã’/g, 'Ñ').replace(/Ã±/g, 'ñ')
-            .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
-            .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/NÂ°/g, 'N°').replace(/Â°/g, '°');
+            .replace(/Ã‘/g, 'Ñ').replace(/Ã’/g, 'Ó').replace(/Ã“/g, 'Ó').replace(/Ã±/g, 'ñ')
+            .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í').replace(/Ã/g, 'Í')
+            .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ãš/g, 'Ú').replace(/NÂ°/g, 'N°').replace(/Â°/g, '°');
+    }
+
+    function parseDate(dateStr) {
+        if (!dateStr) return 0;
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            let year = parseInt(parts[2], 10);
+            if (year < 100) year += 2000;
+            return new Date(year, parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)).getTime();
+        }
+        return 0;
+    }
+
+    function normalizeDateStr(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            let day = parts[0].padStart(2, '0');
+            let month = parts[1].padStart(2, '0');
+            let year = parts[2];
+            if (year.length === 2) year = '20' + year;
+            return \`\${day}/\${month}/\${year}\`;
+        }
+        return dateStr;
     }
 
     // 1. Value Object DNI
@@ -148,9 +173,8 @@ const bundleContent = `/* ======================================================
     // 6. Casos de Uso
     class GetAttendanceSummaryUseCase {
         execute(attendances) {
-            const todayStr = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Mendoza' });
-            const todayStrFallback = new Date().toLocaleDateString('es-AR');
-            const todayAttendances = attendances.filter(a => a.fecha === todayStr || a.fecha === todayStrFallback);
+            const todayStr = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
+            const todayAttendances = attendances.filter(a => normalizeDateStr(a.fecha) === todayStr);
             
             const operatorBreakdown = {};
             todayAttendances.forEach(a => {
@@ -193,7 +217,14 @@ const bundleContent = `/* ======================================================
                 return matchesQuery && matchesDefensoria && matchesResultado;
             });
 
-            filtered.sort((a, b) => b.id - a.id);
+            // Ordenar por fecha (descendente) y luego por ID
+            filtered.sort((a, b) => {
+                const dateB = parseDate(b.fecha);
+                const dateA = parseDate(a.fecha);
+                if (dateB !== dateA) return dateB - dateA;
+                return b.id - a.id;
+            });
+            
             return filtered.map(entity => AttendanceDTO.fromEntity(entity));
         }
     }
