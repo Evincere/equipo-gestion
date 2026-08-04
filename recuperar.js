@@ -65,7 +65,7 @@ for (const r of records.reverse()) {
         '04/08/2026', 'Atención Personal', r.dni, r.apellidos, r.nombres, '', '', r.motivo,
         r.defensoria, r.resultado, '', r.atendido_por, '', '', r.tarea_pendiente || 0, r.detalle_pendiente || ''
     );
-    csvAppend += \`\\n"04/08/2026","Atención Personal","\${r.dni}","\${r.apellidos}","\${r.nombres}","","","\${r.motivo}","\${r.defensoria}","\${r.resultado}","","\${r.atendido_por}","",""\`;
+    csvAppend += `\n"04/08/2026","Atención Personal","${r.dni}","${r.apellidos}","${r.nombres}","","","${r.motivo}","${r.defensoria}","${r.resultado}","","${r.atendido_por}","",""`;
 }
 db.exec('COMMIT');
 
