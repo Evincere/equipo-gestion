@@ -1004,6 +1004,8 @@
         async openNewModal() {
             await this.calculateProximoTurno();
             if (this.newDniInput) this.newDniInput.value = '';
+            const elFecha = document.getElementById('newFecha');
+            if (elFecha) elFecha.value = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
             if (this.newTareaPendiente) this.newTareaPendiente.checked = false;
             if (this.newDetallePendiente) this.newDetallePendiente.value = '';
             if (this.dniStatusBadge) {
