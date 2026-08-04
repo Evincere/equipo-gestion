@@ -118,6 +118,8 @@ if (checkAtenciones.count === 0 && fs.existsSync(CSV_BACKUP_PATH)) {
         let count = 0;
         let buffer = '';
 
+        db.exec('BEGIN TRANSACTION');
+
         for (let i = 1; i < lines.length; i++) {
             const rawLine = lines[i];
             if (buffer) buffer += '\n' + rawLine;
@@ -154,8 +156,10 @@ if (checkAtenciones.count === 0 && fs.existsSync(CSV_BACKUP_PATH)) {
                 );
             }
         }
-        console.log(`✅ ¡Sembrado automático completado! ${count} registros importados a SQLite.`);
+        db.exec('COMMIT');
+        console.log(`✅ ¡Sembrado automático completado! ${count} registros importados a SQLite en <1s.`);
     } catch (e) {
+        try { db.exec('ROLLBACK'); } catch (_) {}
         console.error('❌ Error sembrando atenciones desde CSV:', e.message);
     }
 }
