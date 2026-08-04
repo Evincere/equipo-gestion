@@ -1255,6 +1255,8 @@
                     `<button class="btn btn-secondary btn-complete-task" data-id="${dto.id}" title="Marcar tarea como cumplida" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; color: #4ADE80; border-color: rgba(74, 222, 128, 0.4);"><i class="ri-check-double-line"></i> Cumplir</button>`
                     : `<button class="btn btn-secondary btn-toggle-pending" data-id="${dto.id}" title="Marcar con tarea pendiente" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #FBBF24; opacity: 0.6;"><i class="ri-time-line"></i></button>`;
 
+                const editBtn = `<button class="btn btn-secondary btn-edit-record" data-id="${dto.id}" title="Editar registro" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); margin-left: 0.25rem;"><i class="ri-edit-line"></i></button>`;
+
                 html += `
                     <tr class="${rowClass}" data-id="${dto.id}" style="${rowStyle}">
                         <td>${dto.fecha || 's/f'}</td>
@@ -1266,13 +1268,12 @@
                         <td><span class="badge ${dto.defensoriaBadgeClass}">${dto.defensoriaName}</span></td>
                         <td>${statusHtml}</td>
                         <td>${dto.atendidoPor}</td>
-                        <td onclick="event.stopPropagation();">${actionBtn}</td>
+                        <td onclick="event.stopPropagation();">${actionBtn}${editBtn}</td>
                     </tr>
                 `;
             });
             this.tableBody.innerHTML = html;
 
-            // Bind Eventos Cumplimiento Tarea
             this.tableBody.querySelectorAll('.btn-complete-task').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
@@ -1286,6 +1287,15 @@
                     e.stopPropagation();
                     const id = Number(btn.getAttribute('data-id'));
                     await this.toggleTaskStatus(id, true);
+                });
+            });
+
+            this.tableBody.querySelectorAll('.btn-edit-record').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = Number(btn.getAttribute('data-id'));
+                    const dto = this.currentDTOs.find(d => d.id === id);
+                    if (dto) this.openEditModal(dto);
                 });
             });
 
@@ -1333,6 +1343,9 @@
                             <p style="font-size: 0.85rem; color: #00B4D8; margin-top: 0.2rem;">DNI: ${dto.dniFormatted} | Celular: ${dto.celular || 'No posee'}</p>
                         </div>
                         <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <button id="btnModalEditRecord" class="btn" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38BDF8; color: #38BDF8; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Editar este registro">
+                                <i class="ri-edit-line"></i> Editar
+                            </button>
                             <button id="btnModalToggleTask" class="btn" style="${toggleTaskBtnColor} font-size:0.85rem; padding:0.4rem 0.8rem;">
                                 ${toggleTaskBtnText}
                             </button>
@@ -1357,6 +1370,14 @@
                 </div>
             `;
 
+            const btnModalEditRecord = document.getElementById('btnModalEditRecord');
+            if (btnModalEditRecord) {
+                btnModalEditRecord.addEventListener('click', () => {
+                    this.detailModal.classList.remove('active');
+                    this.openEditModal(dto);
+                });
+            }
+
             const btnModalToggleTask = document.getElementById('btnModalToggleTask');
             if (btnModalToggleTask) {
                 btnModalToggleTask.addEventListener('click', async () => {
@@ -1367,11 +1388,11 @@
 
             const btnModalDeleteRecord = document.getElementById('btnModalDeleteRecord');
             if (btnModalDeleteRecord) {
-                btnModalDeleteRecord.addEventListener('click', async () => {
-                    if (confirm('¿Confirmas que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+                btnModalDeleteRecord.addEventListener('click', () => {
+                    showConfirm('Eliminar Atención', '¿Confirmas que deseas eliminar este registro? Esta acción no se puede deshacer.', async () => {
                         await this.deleteRecord(dto.id);
                         this.detailModal.classList.remove('active');
-                    }
+                    });
                 });
             }
 
@@ -1381,8 +1402,10 @@
         async deleteRecord(id) {
             try {
                 await fetch(getApiUrl('/api/atenciones?id=' + id), { method: 'DELETE' });
+                showToast('Atención N° ' + id + ' eliminada correctamente.', 'info');
             } catch (e) {
                 console.warn('Error al eliminar registro:', e.message);
+                showToast('Error al eliminar registro.', 'error');
             }
             this.rawEntities = this.rawEntities.filter(e => e.id !== id);
             this.updateView();
@@ -1393,13 +1416,16 @@
 
             let motivoFinal = document.getElementById('newMotivo').value;
             if (this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA' && this.newFamilySubmotivoSelect) {
-                motivoFinal = `[${this.newFamilySubmotivoSelect.value}] ${motivoFinal}`.trim();
+                if (!motivoFinal.startsWith('[')) {
+                    motivoFinal = ('[' + this.newFamilySubmotivoSelect.value + '] ' + motivoFinal).trim();
+                }
             }
 
             const isTaskPending = this.newTareaPendiente ? this.newTareaPendiente.checked : false;
             const taskDetail = this.newDetallePendiente ? this.newDetallePendiente.value : '';
 
             const formData = {
+                id: this.editingRecordId || undefined,
                 fecha: document.getElementById('newFecha').value,
                 actividad: document.getElementById('newActividad').value,
                 dni: document.getElementById('newDni').value,
@@ -1417,15 +1443,24 @@
                 operatorId: this.currentUser ? this.currentUser.id : 0
             };
 
-            const newDTO = await this.createAttendanceUseCase.execute(formData);
+            if (this.editingRecordId) {
+                const entityToUpdate = new Attendance(formData);
+                entityToUpdate.id = this.editingRecordId;
+                await this.repository.update(entityToUpdate);
+                showToast('¡Atención N° ' + this.editingRecordId + ' actualizada correctamente!', 'success');
+            } else {
+                await this.createAttendanceUseCase.execute(formData);
+                showToast('¡Atención registrada correctamente!', 'success');
+            }
+
             this.rawEntities = await this.repository.getAll();
             await this.calculateProximoTurno();
             this.currentPage = 1;
             this.updateView();
 
+            this.editingRecordId = null;
             this.newRecordModal.classList.remove('active');
             this.newRecordForm.reset();
-            alert(`¡Atención registrada por ${this.currentUser ? this.currentUser.nombreCompleto : 'Operador'} guardada!`);
         }
     }
 
