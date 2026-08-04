@@ -879,6 +879,21 @@
             this.rawEntities = await this.repository.getAll();
             this.showDashboardSection();
             this.updateView();
+            this.startAutoSyncPolling();
+        }
+
+        startAutoSyncPolling() {
+            if (this.autoSyncInterval) clearInterval(this.autoSyncInterval);
+            this.autoSyncInterval = setInterval(async () => {
+                try {
+                    await this.loadCodefensorasRoster();
+                    const latestData = await this.repository.getAll();
+                    if (latestData && latestData.length !== this.rawEntities.length) {
+                        this.rawEntities = latestData;
+                        this.updateView();
+                    }
+                } catch(e) {}
+            }, 8000);
         }
 
         logoutUser() {
