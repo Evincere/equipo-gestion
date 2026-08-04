@@ -24,7 +24,7 @@ export class Attendance {
         escritos
     }) {
         this.id = id || Date.now();
-        this.fecha = fecha || new Date().toLocaleDateString('es-AR');
+        this.fecha = fecha || 'S/F';
         this.actividad = actividad || 'Atención Personal';
         this.dni = new DNI(dni);
         this.apellidos = (apellidos || 'SIN REGISTRO').toUpperCase();

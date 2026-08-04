@@ -115,7 +115,7 @@ const bundleContent = `/* ======================================================
     class Attendance {
         constructor({ id, fecha, actividad, dni, apellidos, nombres, celular, expte, motivo, defensoria, resultado, observaciones, atendidoPor, derivadoA, escritos, tarea_pendiente, tareaPendiente, detalle_pendiente, detallePendiente, tarea_cumplida_at, tareaCumplidaAt }) {
             this.id = Number(id) || Date.now();
-            this.fecha = fecha || new Date().toLocaleDateString('es-AR');
+            this.fecha = fecha || 'S/F';
             this.actividad = fixMojibake(actividad) || 'Atención Personal';
             this.dni = new DNI(dni);
             this.apellidos = fixMojibake(apellidos || 'SIN REGISTRO').toUpperCase();

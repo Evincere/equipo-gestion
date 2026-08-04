@@ -86,6 +86,80 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS idx_atenciones_pendiente ON atenciones(tarea_pendiente);
 `);
 
+// Sembrado automático de atenciones desde atenciones.csv si la tabla está vacía
+const checkAtenciones = db.prepare('SELECT COUNT(*) as count FROM atenciones').get();
+if (checkAtenciones.count === 0 && fs.existsSync(CSV_BACKUP_PATH)) {
+    console.log('📦 Sembrando atenciones iniciales desde atenciones.csv...');
+    try {
+        const csvContent = fs.readFileSync(CSV_BACKUP_PATH, 'utf8');
+        const lines = csvContent.split(/\r\n|\n/);
+        
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) { result.push(current); current = ''; }
+                else current += char;
+            }
+            result.push(current);
+            return result;
+        }
+
+        const insertStmt = db.prepare(`
+            INSERT INTO atenciones (
+                fecha, actividad, dni, apellidos, nombres, celular, expte, motivo,
+                defensoria, resultado, observaciones, atendido_por, derivado_a, escritos
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        let count = 0;
+        let buffer = '';
+
+        for (let i = 1; i < lines.length; i++) {
+            const rawLine = lines[i];
+            if (buffer) buffer += '\n' + rawLine;
+            else buffer = rawLine;
+
+            const quoteCount = (buffer.match(/"/g) || []).length;
+            if (quoteCount % 2 !== 0) continue;
+
+            const lineToParse = buffer.trim();
+            buffer = '';
+
+            if (!lineToParse) continue;
+
+            const cols = parseCSVLine(lineToParse);
+            if (cols.length < 4) continue;
+
+            if (cols[0] || cols[2] || cols[3] || cols[7]) {
+                count++;
+                insertStmt.run(
+                    cols[0] ? cols[0].trim() : 'S/F',
+                    cols[1] ? cols[1].trim() : 'Atención Personal',
+                    cols[2] ? cols[2].trim() : '',
+                    cols[3] ? cols[3].trim().toUpperCase() : 'SIN REGISTRO',
+                    cols[4] ? cols[4].trim().toUpperCase() : '',
+                    cols[5] ? cols[5].trim() : '',
+                    cols[6] ? cols[6].trim() : '',
+                    cols[7] ? cols[7].trim() : '',
+                    cols[8] ? cols[8].trim() : 'Otro',
+                    cols[9] ? cols[9].trim() : 'Resuelve',
+                    cols[10] ? cols[10].trim() : '',
+                    cols[11] ? cols[11].trim() : 'Secretaría',
+                    cols[12] ? cols[12].trim() : '',
+                    cols[13] ? cols[13].trim() : ''
+                );
+            }
+        }
+        console.log(`✅ ¡Sembrado automático completado! ${count} registros importados a SQLite.`);
+    } catch (e) {
+        console.error('❌ Error sembrando atenciones desde CSV:', e.message);
+    }
+}
+
 // Sembrado inicial de Co-Defensoras y Usuarios si están vacías
 const checkCodefensoras = db.prepare('SELECT COUNT(*) as count FROM codefensoras_estado').get();
 if (checkCodefensoras.count === 0) {
