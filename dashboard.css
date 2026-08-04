@@ -434,6 +434,7 @@ body {
 .stat-card.stat-gold::before { background: var(--mpd-gold); }
 
 .stat-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); }
+#cardTotalAtenciones:hover #operatorTooltip { display: block !important; }
 
 .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
 .stat-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary); }
