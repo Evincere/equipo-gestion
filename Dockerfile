@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:24-alpine
 
 # Directorio de trabajo
 WORKDIR /app
@@ -16,5 +16,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV NODE_ENV=production
 
-# Comando de inicio del servidor
-CMD ["node", "server.js"]
+# Comando de inicio del servidor con soporte nativo de SQLite
+CMD ["node", "--experimental-sqlite", "server.js"]
