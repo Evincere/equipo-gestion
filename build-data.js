@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const csvPath = path.join(__dirname, 'atenciones.csv');
+const csvPath = path.join(__dirname, 'data', 'atenciones.csv');
 const dataDir = path.join(__dirname, 'src', 'data');
 const targetPath = path.join(dataDir, 'atencionesData.js');
 

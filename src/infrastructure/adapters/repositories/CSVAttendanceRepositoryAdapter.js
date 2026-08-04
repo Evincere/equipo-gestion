@@ -8,7 +8,7 @@ import { ATENCIONES_CSV_DATA } from '../../../data/atencionesData.js';
  * Esto garantiza funcionamiento fluido tanto vía Servidor Web como abriendo directamente por file://.
  */
 export class CSVAttendanceRepositoryAdapter extends AttendanceRepositoryPort {
-    constructor(csvUrl = 'atenciones.csv') {
+    constructor(csvUrl = 'data/atenciones.csv') {
         super();
         this.csvUrl = csvUrl;
         this.cache = [];

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const csvContent = fs.readFileSync(path.join(__dirname, 'atenciones.csv'), 'utf8');
+const csvContent = fs.readFileSync(path.join(__dirname, 'data', 'atenciones.csv'), 'utf8');
 
 const bundleContent = `/* ==========================================================================
    JUSTICIA & GESTIÓN - BUNDLE AUTÓNOMO CON MÓDULO DE TAREAS PENDIENTES Y CUMPLIMIENTO

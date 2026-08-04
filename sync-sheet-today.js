@@ -4,8 +4,8 @@ const https = require('https');
 const { DatabaseSync } = require('node:sqlite');
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1palZNvG2-2RiIOibQiNcAeXqcdmPGoqK6tW3_01Nj1Y/export?format=csv&gid=41703451';
-const DB_PATH = path.join(__dirname, 'atenciones.db');
-const CSV_PATH = path.join(__dirname, 'atenciones.csv');
+const DB_PATH = path.join(__dirname, 'data', 'atenciones.db');
+const CSV_PATH = path.join(__dirname, 'data', 'atenciones.csv');
 
 function fetchCSV(url) {
     return new Promise((resolve, reject) => {

@@ -5,8 +5,8 @@ const { DatabaseSync } = require('node:sqlite');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'atenciones.db');
-const CSV_BACKUP_PATH = path.join(__dirname, 'atenciones.csv');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'atenciones.db');
+const CSV_BACKUP_PATH = path.join(__dirname, 'data', 'atenciones.csv');
 
 console.log(`\n==================================================`);
 console.log(`🏛️ Conectando a Base de Datos SQLite: ${DB_PATH}`);
@@ -85,6 +85,16 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS idx_atenciones_apellidos ON atenciones(apellidos);
     CREATE INDEX IF NOT EXISTS idx_atenciones_pendiente ON atenciones(tarea_pendiente);
 `);
+
+// Restaurar atenciones.csv original si el volumen está vacío
+const ORIGINAL_CSV_PATH = path.join(__dirname, 'atenciones.csv');
+if (!fs.existsSync(CSV_BACKUP_PATH) && fs.existsSync(ORIGINAL_CSV_PATH)) {
+    console.log('🔄 Volumen vacío detectado: Copiando atenciones.csv original al volumen persistente...');
+    if (!fs.existsSync(path.join(__dirname, 'data'))) {
+        fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+    }
+    fs.copyFileSync(ORIGINAL_CSV_PATH, CSV_BACKUP_PATH);
+}
 
 // Sembrado automático de atenciones desde atenciones.csv si la tabla está vacía
 const checkAtenciones = db.prepare('SELECT COUNT(*) as count FROM atenciones').get();
