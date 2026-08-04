@@ -237,6 +237,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/atenciones') {
         if (req.method === 'GET') return handleGetAtenciones(req, res, parsedUrl);
         if (req.method === 'POST') return handlePostAtencion(req, res);
+        if (req.method === 'PUT') return handlePutAtencion(req, res);
         if (req.method === 'DELETE') return handleDeleteAtencion(req, res, parsedUrl);
     }
 
@@ -452,6 +453,74 @@ function handlePostAtencion(req, res) {
 
             res.writeHead(201, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true, id: result.lastInsertRowid }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
+function handlePutAtencion(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            if (!data.id) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Se requiere ID del registro a actualizar.' }));
+                return;
+            }
+
+            const stmt = db.prepare(`
+                UPDATE atenciones SET
+                    fecha = ?,
+                    actividad = ?,
+                    dni = ?,
+                    apellidos = ?,
+                    nombres = ?,
+                    celular = ?,
+                    expte = ?,
+                    motivo = ?,
+                    defensoria = ?,
+                    resultado = ?,
+                    observaciones = ?,
+                    atendido_por = ?,
+                    derivado_a = ?,
+                    escritos = ?,
+                    tarea_pendiente = ?,
+                    detalle_pendiente = ?
+                WHERE id = ?
+            `);
+
+            const atendidoPorFinal = data.atendidoPor || 'Secretaría';
+            const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
+            const detallePendiente = data.detallePendiente || '';
+
+            stmt.run(
+                data.fecha || '',
+                data.actividad || 'Atención Personal',
+                data.dni || '',
+                (data.apellidos || '').toUpperCase(),
+                (data.nombres || '').toUpperCase(),
+                data.celular || '',
+                data.expte || '',
+                data.motivo || '',
+                data.defensoria || 'Otro',
+                data.resultado || 'Resuelve',
+                data.observaciones || '',
+                atendidoPorFinal,
+                data.derivadoA || '',
+                data.escritos || '',
+                esPendiente,
+                detallePendiente,
+                Number(data.id)
+            );
+
+            logAudit(data.operatorId || 0, atendidoPorFinal, 'EDITAR_ATENCION', `Atención N° ${data.id} actualizada para ${data.apellidos} ${data.nombres}`);
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, message: 'Registro actualizado correctamente' }));
         } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: err.message }));
