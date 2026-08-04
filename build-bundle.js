@@ -148,11 +148,23 @@ const bundleContent = `/* ======================================================
     // 6. Casos de Uso
     class GetAttendanceSummaryUseCase {
         execute(attendances) {
+            const todayStr = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Mendoza' });
+            const todayStrFallback = new Date().toLocaleDateString('es-AR');
+            const todayAttendances = attendances.filter(a => a.fecha === todayStr || a.fecha === todayStrFallback);
+            
+            const operatorBreakdown = {};
+            todayAttendances.forEach(a => {
+                const operator = a.atendidoPor || 'Secretaría';
+                operatorBreakdown[operator] = (operatorBreakdown[operator] || 0) + 1;
+            });
+
             return {
                 total: attendances.length,
                 derivacionesTecnica: attendances.filter(a => a.isDerivacionTecnica()).length,
                 escritosCount: attendances.filter(a => a.hasEscritos()).length,
-                pendientesCount: attendances.filter(a => a.tareaPendiente).length
+                pendientesCount: attendances.filter(a => a.tareaPendiente).length,
+                totalToday: todayAttendances.length,
+                operatorBreakdown
             };
         }
     }
@@ -384,6 +396,10 @@ const bundleContent = `/* ======================================================
             this.filterDefensoria = document.getElementById('filterDefensoria');
             this.filterResultado = document.getElementById('filterResultado');
             this.kpiTotal = document.getElementById('kpiTotal');
+            this.kpiHoy = document.getElementById('kpiHoy');
+            this.cardTotalAtenciones = document.getElementById('cardTotalAtenciones');
+            this.operatorTooltip = document.getElementById('operatorTooltip');
+            this.operatorBreakdownList = document.getElementById('operatorBreakdownList');
             this.kpiTecnica = document.getElementById('kpiTecnica');
             this.kpiEscritos = document.getElementById('kpiEscritos');
             this.kpiPendientes = document.getElementById('kpiPendientes');
@@ -560,6 +576,15 @@ const bundleContent = `/* ======================================================
                             this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
                         }
                     }
+                });
+            }
+
+            if (this.cardTotalAtenciones && this.operatorTooltip) {
+                this.cardTotalAtenciones.addEventListener('mouseenter', () => {
+                    this.operatorTooltip.style.display = 'block';
+                });
+                this.cardTotalAtenciones.addEventListener('mouseleave', () => {
+                    this.operatorTooltip.style.display = 'none';
                 });
             }
 
@@ -984,6 +1009,20 @@ const bundleContent = `/* ======================================================
             const summary = this.getSummaryUseCase.execute(filteredEntities);
 
             this.kpiTotal.textContent = summary.total.toLocaleString();
+            if (this.kpiHoy) this.kpiHoy.textContent = summary.totalToday.toLocaleString();
+            
+            if (this.operatorBreakdownList) {
+                let html = '';
+                if (Object.keys(summary.operatorBreakdown).length === 0) {
+                    html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin atenciones hoy</span>';
+                } else {
+                    for (const [operator, count] of Object.entries(summary.operatorBreakdown)) {
+                        html += \`<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">\${operator}</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">\${count}</span></div>\`;
+                    }
+                }
+                this.operatorBreakdownList.innerHTML = html;
+            }
+
             this.kpiTecnica.textContent = summary.derivacionesTecnica.toLocaleString();
             this.kpiEscritos.textContent = summary.escritosCount.toLocaleString();
             if (this.kpiPendientes) this.kpiPendientes.textContent = summary.pendientesCount.toLocaleString();

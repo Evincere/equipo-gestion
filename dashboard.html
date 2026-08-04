@@ -104,12 +104,22 @@
 
                     <!-- Tarjetas KPI / Estadísticas (4 Tarjetas) -->
                     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));">
-                        <div class="stat-card stat-red">
+                        <div class="stat-card stat-red" style="position: relative;" id="cardTotalAtenciones">
                             <div class="stat-header">
                                 <span class="stat-label">Total Atenciones</span>
                                 <div class="stat-icon"><i class="ri-user-voice-line"></i></div>
                             </div>
-                            <div class="stat-value" id="kpiTotal">...</div>
+                            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+                                <div class="stat-value" id="kpiTotal">...</div>
+                                <div style="font-size: 0.9rem; color: #94A3B8; font-weight: 600;">| Hoy: <span id="kpiHoy" style="color: #FFF;">...</span></div>
+                            </div>
+                            <!-- Tooltip oculto para la discriminación por operador -->
+                            <div id="operatorTooltip" style="display: none; position: absolute; top: 100%; left: 0; background: rgba(15, 22, 36, 0.95); border: 1px solid var(--mpd-red); border-radius: 8px; padding: 1rem; width: 100%; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); backdrop-filter: blur(10px); margin-top: 0.5rem;">
+                                <h5 style="color: #FFF; font-size: 0.85rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.25rem;">Discriminación por Operador (Hoy)</h5>
+                                <div id="operatorBreakdownList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 150px; overflow-y: auto;">
+                                    <span style="color: #94A3B8; font-size: 0.8rem;">Cargando...</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="stat-card stat-gold" style="border-top: 3px solid #F59E0B;">
