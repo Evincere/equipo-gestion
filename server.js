@@ -281,6 +281,14 @@ const server = http.createServer((req, res) => {
         return handleAdminGetAuditoria(req, res);
     }
 
+    if (pathname === '/api/usuarios/heartbeat' && req.method === 'POST') {
+        return handlePostHeartbeat(req, res);
+    }
+
+    if (pathname === '/api/usuarios/online' && req.method === 'GET') {
+        return handleGetOnlineUsers(req, res);
+    }
+
     // Servidor Estático
     let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'dashboard.html' : pathname);
     filePath = path.normalize(filePath);
@@ -733,6 +741,50 @@ function handleGetProximoTurno(req, res) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: err.message }));
     }
+}
+
+// Gestión de Operarios Conectados en Tiempo Real
+const activeSessions = new Map();
+
+function cleanStaleSessions() {
+    const now = Date.now();
+    for (const [username, session] of activeSessions.entries()) {
+        if (now - session.lastSeen > 25000) { // Inactivo por más de 25 segundos
+            activeSessions.delete(username);
+        }
+    }
+}
+
+function handlePostHeartbeat(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            if (data.username) {
+                const initials = data.avatarInitials || (data.nombreCompleto ? data.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'OP');
+                activeSessions.set(data.username, {
+                    username: data.username,
+                    nombreCompleto: data.nombreCompleto || data.username,
+                    rol: data.rol || 'OPERADOR',
+                    avatarInitials: initials,
+                    lastSeen: Date.now()
+                });
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+        } catch (e) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+    });
+}
+
+function handleGetOnlineUsers(req, res) {
+    cleanStaleSessions();
+    const users = Array.from(activeSessions.values());
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+    res.end(JSON.stringify({ success: true, count: users.length, data: users }));
 }
 
 server.listen(PORT, () => {

@@ -558,6 +558,12 @@ const bundleContent = `/* ======================================================
             this.familySubmotivoGroup = document.getElementById('familySubmotivoGroup');
             this.newFamilySubmotivoSelect = document.getElementById('newFamilySubmotivo');
             this.newAtendidoPorInput = document.getElementById('newAtendidoPor');
+
+            this.btnOnlineUsers = document.getElementById('btnOnlineUsers');
+            this.onlineUsersPopover = document.getElementById('onlineUsersPopover');
+            this.onlineUsersCountText = document.getElementById('onlineUsersCountText');
+            this.onlineUsersBadgeCount = document.getElementById('onlineUsersBadgeCount');
+            this.onlineUsersList = document.getElementById('onlineUsersList');
         }
 
         async init() {
@@ -578,6 +584,19 @@ const bundleContent = `/* ======================================================
         }
 
         bindEvents() {
+            if (this.btnOnlineUsers && this.onlineUsersPopover) {
+                this.btnOnlineUsers.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isVisible = this.onlineUsersPopover.style.display === 'block';
+                    this.onlineUsersPopover.style.display = isVisible ? 'none' : 'block';
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (this.onlineUsersPopover && !this.onlineUsersPopover.contains(e.target) && e.target !== this.btnOnlineUsers) {
+                        this.onlineUsersPopover.style.display = 'none';
+                    }
+                });
+            }
             if (this.loginUserSelect && this.loginPassword) {
                 this.loginUserSelect.addEventListener('change', () => {
                     if (this.loginUserSelect.value === 'spereyra') {
@@ -889,8 +908,10 @@ const bundleContent = `/* ======================================================
 
         startAutoSyncPolling() {
             if (this.autoSyncInterval) clearInterval(this.autoSyncInterval);
+            this.sendHeartbeatAndFetchOnlineUsers();
             this.autoSyncInterval = setInterval(async () => {
                 try {
+                    await this.sendHeartbeatAndFetchOnlineUsers();
                     await this.loadCodefensorasRoster();
                     const latestData = await this.repository.getAll();
                     if (latestData && latestData.length !== this.rawEntities.length) {
@@ -899,6 +920,60 @@ const bundleContent = `/* ======================================================
                     }
                 } catch(e) {}
             }, 8000);
+        }
+
+        async sendHeartbeatAndFetchOnlineUsers() {
+            if (!this.currentUser) return;
+            try {
+                await fetch(getApiUrl('/api/usuarios/heartbeat'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: this.currentUser.username,
+                        nombreCompleto: this.currentUser.nombreCompleto,
+                        rol: this.currentUser.rol,
+                        avatarInitials: this.currentUser.avatarInitials
+                    })
+                });
+
+                const res = await fetch(getApiUrl('/api/usuarios/online'));
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.data)) {
+                        this.renderOnlineUsers(data.data);
+                    }
+                }
+            } catch(e) {}
+        }
+
+        renderOnlineUsers(users) {
+            const count = users.length;
+            if (this.onlineUsersCountText) {
+                this.onlineUsersCountText.textContent = count + ' ' + (count === 1 ? 'Conectado' : 'Conectados');
+            }
+            if (this.onlineUsersBadgeCount) {
+                this.onlineUsersBadgeCount.textContent = count + ' En línea';
+            }
+            if (!this.onlineUsersList) return;
+
+            let html = '';
+            users.forEach(u => {
+                const isCurrent = this.currentUser && this.currentUser.username === u.username;
+                const roleBadgeClass = u.rol === 'ADMINISTRADOR' ? 'badge-familia' : 'badge-otro';
+                html += '<div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">' +
+                    '<div style="display: flex; align-items: center; gap: 0.6rem;">' +
+                        '<div style="position: relative;">' +
+                            '<div class="avatar" style="width: 30px; height: 30px; font-size: 0.75rem; font-weight: 700;">' + (u.avatarInitials || 'OP') + '</div>' +
+                            '<span style="position: absolute; bottom: -1px; right: -1px; width: 9px; height: 9px; border-radius: 50%; background: #4ADE80; border: 2px solid #0F172A;"></span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<span style="display: block; font-size: 0.82rem; font-weight: 600; color: #FFF;">' + u.nombreCompleto + (isCurrent ? ' <small style="color: #38BDF8;">(Tú)</small>' : '') + '</span>' +
+                            '<span class="badge ' + roleBadgeClass + '" style="font-size: 0.65rem; padding: 0.1rem 0.35rem;">' + u.rol + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            });
+            this.onlineUsersList.innerHTML = html;
         }
 
         logoutUser() {
