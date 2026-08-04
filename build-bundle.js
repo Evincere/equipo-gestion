@@ -319,6 +319,41 @@ const bundleContent = `/* ======================================================
             return entity;
         }
 
+        async update(entity) {
+            try {
+                await fetch(getApiUrl(this.apiUrl), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: entity.id,
+                        fecha: entity.fecha,
+                        actividad: entity.actividad,
+                        dni: entity.dni.raw,
+                        apellidos: entity.apellidos,
+                        nombres: entity.nombres,
+                        celular: entity.celular,
+                        expte: entity.expte,
+                        motivo: entity.motivo,
+                        defensoria: entity.defensoriaCategory.name,
+                        resultado: entity.resultado,
+                        observaciones: entity.observaciones,
+                        atendidoPor: entity.atendidoPor,
+                        derivadoA: entity.derivadoA,
+                        escritos: entity.escritos,
+                        tareaPendiente: entity.tareaPendiente,
+                        detallePendiente: entity.detallePendiente
+                    })
+                });
+            } catch(e) {
+                console.warn('Error enviando actualización a API:', e.message);
+            }
+            const idx = this.cache.findIndex(e => e.id === entity.id);
+            if (idx !== -1) {
+                this.cache[idx] = entity;
+            }
+            return entity;
+        }
+
         _getFallbackRecords() {
             if (this.cache.length > 0) return this.cache;
             const lines = EMBEDDED_CSV.split(/\\r\\n|\\n/);
@@ -1001,16 +1036,27 @@ const bundleContent = `/* ======================================================
             if (presentes.length > 0) {
                 this.proximaDefensoriaTurno = presentes[0].nombre;
                 if (this.turnIndicatorBadge) {
-                    this.turnIndicatorBadge.textContent = \`Próximo Turno: Dra. \${presentes[0].nombre}\`;
+                    this.turnIndicatorBadge.textContent = 'Próximo Turno: Dra. ' + presentes[0].nombre;
                 }
             }
         }
 
         async openNewModal() {
+            this.editingRecordId = null;
+            const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
+            if (modalTitle) modalTitle.textContent = 'Registrar Nueva Atención';
+            const submitBtn = this.newRecordForm ? this.newRecordForm.querySelector('button[type="submit"]') : null;
+            if (submitBtn) submitBtn.innerHTML = '<i class="ri-save-line"></i> Guardar Registro';
+
+            if (this.newRecordForm) this.newRecordForm.reset();
+
             await this.calculateProximoTurno();
             if (this.newDniInput) this.newDniInput.value = '';
             const elFecha = document.getElementById('newFecha');
             if (elFecha) elFecha.value = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
+            const elMotivo = document.getElementById('newMotivo');
+            if (elMotivo) elMotivo.value = 'Espontánea';
+
             if (this.newTareaPendiente) this.newTareaPendiente.checked = false;
             if (this.newDetallePendiente) this.newDetallePendiente.value = '';
             if (this.dniStatusBadge) {
@@ -1021,13 +1067,57 @@ const bundleContent = `/* ======================================================
 
             if (this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA') {
                 if (this.newAtendidoPorInput && this.proximaDefensoriaTurno) {
-                    this.newAtendidoPorInput.value = \`Dra. \${this.proximaDefensoriaTurno}\`;
+                    this.newAtendidoPorInput.value = 'Dra. ' + this.proximaDefensoriaTurno;
                 }
             } else {
                 if (this.newAtendidoPorInput && this.currentUser) {
                     this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
                 }
             }
+            this.newRecordModal.classList.add('active');
+        }
+
+        openEditModal(dto) {
+            const entity = this.rawEntities.find(e => e.id === dto.id);
+            if (!entity) return;
+
+            this.editingRecordId = dto.id;
+            const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
+            if (modalTitle) modalTitle.textContent = '✏️ Editar Atención N° ' + dto.id;
+            const submitBtn = this.newRecordForm ? this.newRecordForm.querySelector('button[type="submit"]') : null;
+            if (submitBtn) submitBtn.innerHTML = '<i class="ri-save-line"></i> Guardar Cambios';
+
+            if (this.newDniInput) this.newDniInput.value = entity.dni.raw;
+            if (this.newApellidosInput) this.newApellidosInput.value = entity.apellidos;
+            if (this.newNombresInput) this.newNombresInput.value = entity.nombres;
+            if (this.newCelularInput) this.newCelularInput.value = entity.celular;
+
+            const elFecha = document.getElementById('newFecha');
+            if (elFecha) elFecha.value = entity.fecha;
+
+            const elActividad = document.getElementById('newActividad');
+            if (elActividad) elActividad.value = entity.actividad;
+
+            const elExpte = document.getElementById('newExpte');
+            if (elExpte) elExpte.value = entity.expte;
+
+            const elDefensoria = document.getElementById('newDefensoria');
+            if (elDefensoria) elDefensoria.value = entity.defensoriaCategory.name;
+
+            const elMotivo = document.getElementById('newMotivo');
+            if (elMotivo) elMotivo.value = entity.motivo;
+
+            const elResultado = document.getElementById('newResultado');
+            if (elResultado) elResultado.value = entity.resultado;
+
+            const elObs = document.getElementById('newObservaciones');
+            if (elObs) elObs.value = entity.observaciones;
+
+            if (this.newAtendidoPorInput) this.newAtendidoPorInput.value = entity.atendidoPor;
+
+            if (this.newTareaPendiente) this.newTareaPendiente.checked = entity.tareaPendiente;
+            if (this.newDetallePendiente) this.newDetallePendiente.value = entity.detallePendiente || '';
+
             this.newRecordModal.classList.add('active');
         }
 
