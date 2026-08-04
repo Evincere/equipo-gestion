@@ -233,6 +233,7 @@ const server = http.createServer((req, res) => {
     if (pathname === '/api/atenciones') {
         if (req.method === 'GET') return handleGetAtenciones(req, res, parsedUrl);
         if (req.method === 'POST') return handlePostAtencion(req, res);
+        if (req.method === 'DELETE') return handleDeleteAtencion(req, res, parsedUrl);
     }
 
     if (pathname === '/api/atenciones/tarea-estado' && req.method === 'POST') {
@@ -444,6 +445,28 @@ function handlePostAtencion(req, res) {
             res.end(JSON.stringify({ success: false, error: err.message }));
         }
     });
+}
+
+function handleDeleteAtencion(req, res, parsedUrl) {
+    try {
+        const id = parsedUrl.searchParams.get('id');
+        if (!id) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'ID es requerido' }));
+            return;
+        }
+
+        const stmt = db.prepare('DELETE FROM atenciones WHERE id = ?');
+        stmt.run(id);
+
+        logAudit(0, 'OPERADOR', 'ELIMINAR_ATENCION', `Atención ID ${id} eliminada`);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, message: 'Atención eliminada correctamente' }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
 }
 
 function handlePostCambiarEstadoTarea(req, res) {

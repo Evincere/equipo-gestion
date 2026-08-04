@@ -1182,9 +1182,14 @@ const bundleContent = `/* ======================================================
                             <h3 style="font-size: 1.3rem; color: #FFF;">\${dto.fullName}</h3>
                             <p style="font-size: 0.85rem; color: #00B4D8; margin-top: 0.2rem;">DNI: \${dto.dniFormatted} | Celular: \${dto.celular || 'No posee'}</p>
                         </div>
-                        <button id="btnModalToggleTask" class="btn" style="\${toggleTaskBtnColor} font-size:0.85rem; padding:0.4rem 0.8rem;">
-                            \${toggleTaskBtnText}
-                        </button>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <button id="btnModalToggleTask" class="btn" style="\${toggleTaskBtnColor} font-size:0.85rem; padding:0.4rem 0.8rem;">
+                                \${toggleTaskBtnText}
+                            </button>
+                            <button id="btnModalDeleteRecord" class="btn" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #F87171; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Eliminar este registro">
+                                <i class="ri-delete-bin-line"></i> Eliminar
+                            </button>
+                        </div>
                     </div>
 
                     \${isPending ? \`<div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #F59E0B; padding: 0.75rem 1rem; border-radius: 6px;"><strong style="color: #FBBF24; display:block; margin-bottom: 0.2rem;"><i class="ri-time-line"></i> Tarea Pendiente de Resolución:</strong><p style="color: #FFF; font-size: 0.9rem;">\${dto.detallePendiente || 'Trámite pendiente de seguimiento'}</p></div>\` : ''}
@@ -1210,7 +1215,27 @@ const bundleContent = `/* ======================================================
                 });
             }
 
+            const btnModalDeleteRecord = document.getElementById('btnModalDeleteRecord');
+            if (btnModalDeleteRecord) {
+                btnModalDeleteRecord.addEventListener('click', async () => {
+                    if (confirm('¿Confirmas que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+                        await this.deleteRecord(dto.id);
+                        this.detailModal.classList.remove('active');
+                    }
+                });
+            }
+
             this.detailModal.classList.add('active');
+        }
+
+        async deleteRecord(id) {
+            try {
+                await fetch(getApiUrl('/api/atenciones?id=' + id), { method: 'DELETE' });
+            } catch (e) {
+                console.warn('Error al eliminar registro:', e.message);
+            }
+            this.rawEntities = this.rawEntities.filter(e => e.id !== id);
+            this.updateView();
         }
 
         async handleFormSubmit(e) {
