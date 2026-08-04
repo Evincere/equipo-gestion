@@ -489,6 +489,69 @@ body {
 .badge-ejecucion { background: rgba(238, 92, 138, 0.15); color: #FB7185; border: 1px solid rgba(238, 92, 138, 0.3); }
 .badge-otro { background: rgba(148, 163, 184, 0.15); color: #CBD5E1; border: 1px solid rgba(148, 163, 184, 0.3); }
 
+/* TOAST NOTIFICATION SYSTEM */
+#toastContainer {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 10005;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+}
+
+.toast-notification {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.25rem;
+    border-radius: 8px;
+    background: rgba(15, 22, 36, 0.95);
+    border: 1px solid var(--content-border);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: all 0.3s ease;
+    max-width: 380px;
+}
+
+.toast-notification.toast-success {
+    border-color: rgba(74, 222, 128, 0.4);
+    box-shadow: 0 4px 20px rgba(74, 222, 128, 0.15);
+}
+.toast-notification.toast-success .toast-icon { color: #4ADE80; }
+
+.toast-notification.toast-error {
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
+}
+.toast-notification.toast-error .toast-icon { color: #EF4444; }
+
+.toast-notification.toast-info {
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 4px 20px rgba(56, 189, 248, 0.15);
+}
+.toast-notification.toast-info .toast-icon { color: #38BDF8; }
+
+.toast-notification.toast-hiding {
+    animation: toastFadeOut 0.3s forwards;
+}
+
+@keyframes toastSlideIn {
+    from { opacity: 0; transform: translateX(50px) scale(0.95); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes toastFadeOut {
+    from { opacity: 1; transform: translateX(0) scale(1); }
+    to { opacity: 0; transform: translateX(50px) scale(0.95); }
+}
+
 /* MODALES AERO */
 .modal-overlay {
     position: fixed;

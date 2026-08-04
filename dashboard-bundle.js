@@ -27,6 +27,69 @@
             .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ãš/g, 'Ú').replace(/NÂ°/g, 'N°').replace(/Â°/g, '°');
     }
 
+    function showToast(message, type = 'success', duration = 3500) {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification toast-' + type;
+
+        let iconClass = 'ri-checkbox-circle-fill';
+        if (type === 'error') iconClass = 'ri-error-warning-fill';
+        if (type === 'info') iconClass = 'ri-information-fill';
+
+        toast.innerHTML = '<i class="' + iconClass + ' toast-icon" style="font-size: 1.25rem;"></i><span>' + message + '</span>';
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('toast-hiding');
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        }, duration);
+    }
+
+    function showConfirm(title, message, onConfirm) {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmModalTitle');
+        const msgEl = document.getElementById('confirmModalMessage');
+        const btnCancel = document.getElementById('btnConfirmCancel');
+        const btnOk = document.getElementById('btnConfirmOk');
+
+        if (!modal || !titleEl || !msgEl || !btnCancel || !btnOk) {
+            if (confirm(message || title)) onConfirm();
+            return;
+        }
+
+        titleEl.textContent = title || '¿Confirmar Acción?';
+        msgEl.textContent = message || '¿Estás seguro de realizar esta acción?';
+
+        modal.classList.add('active');
+
+        const handleOk = () => {
+            modal.classList.remove('active');
+            cleanup();
+            if (typeof onConfirm === 'function') onConfirm();
+        };
+
+        const handleCancel = () => {
+            modal.classList.remove('active');
+            cleanup();
+        };
+
+        const cleanup = () => {
+            btnOk.removeEventListener('click', handleOk);
+            btnCancel.removeEventListener('click', handleCancel);
+        };
+
+        btnOk.addEventListener('click', handleOk);
+        btnCancel.addEventListener('click', handleCancel);
+    }
+
     function parseDate(dateStr) {
         if (!dateStr) return 0;
         const parts = dateStr.split('/');
