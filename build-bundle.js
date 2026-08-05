@@ -73,6 +73,7 @@ const bundleContent = `/* ======================================================
         titleEl.textContent = title || '¿Confirmar Acción?';
         msgEl.textContent = message || '¿Estás seguro de realizar esta acción?';
 
+        modal.style.zIndex = '100000';
         modal.classList.add('active');
 
         const handleOk = () => {
