@@ -254,10 +254,10 @@
     class SearchAttendancesUseCase {
         execute(attendances, { query = '', defensoria = '', resultado = '' }) {
             const q = query.toLowerCase().trim();
-            const qCleanDni = q.replace(/./g, '');
+            const qCleanDni = q.split('.').join('');
             const filtered = attendances.filter(item => {
                 const matchesQuery = !q ||
-                    item.dni.raw.toLowerCase().replace(/./g, '').includes(qCleanDni) ||
+                    item.dni.clean.includes(qCleanDni) ||
                     item.apellidos.toLowerCase().includes(q) ||
                     item.nombres.toLowerCase().includes(q) ||
                     item.expte.toLowerCase().includes(q) ||
