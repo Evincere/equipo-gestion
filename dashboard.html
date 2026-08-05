@@ -129,9 +129,13 @@
                                 <span class="stat-label">Total Atenciones</span>
                                 <div class="stat-icon"><i class="ri-user-voice-line"></i></div>
                             </div>
-                            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
-                                <div class="stat-value" id="kpiTotal">...</div>
-                                <div style="font-size: 0.9rem; color: #94A3B8; font-weight: 600;">| Hoy: <span id="kpiHoy" style="color: #FFF;">...</span></div>
+                            <div class="stat-value" id="kpiTotal" style="font-size: 1.8rem; font-weight: 700; color: #FFF;">...</div>
+                            <div style="display: flex; gap: 0.5rem; font-size: 0.76rem; color: #94A3B8; margin-top: 0.35rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <span>Mes: <strong id="kpiMes" style="color: #38BDF8;">...</strong></span>
+                                <span>•</span>
+                                <span>Sem: <strong id="kpiSemana" style="color: #FBBF24;">...</strong></span>
+                                <span>•</span>
+                                <span>Hoy: <strong id="kpiHoy" style="color: #4ADE80;">...</strong></span>
                             </div>
                             <!-- Tooltip oculto para la discriminación por operador -->
                             <div id="operatorTooltip" style="display: none; position: absolute; top: 100%; left: 0; background: rgba(15, 22, 36, 0.95); border: 1px solid var(--mpd-red); border-radius: 8px; padding: 1rem; width: 100%; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); backdrop-filter: blur(10px); margin-top: 0.5rem;">

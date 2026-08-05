@@ -237,21 +237,50 @@ const bundleContent = `/* ======================================================
     // 6. Casos de Uso
     class GetAttendanceSummaryUseCase {
         execute(attendances) {
-            const todayStr = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
-            const todayAttendances = attendances.filter(a => normalizeDateStr(a.fecha) === todayStr);
+            const now = new Date();
+            const todayStr = normalizeDateStr(now.toLocaleDateString('es-AR'));
             
+            const currentDay = now.getDay();
+            const distanceToMonday = (currentDay === 0 ? 6 : currentDay - 1);
+            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday);
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            startOfMonth.setHours(0, 0, 0, 0);
+
+            let totalToday = 0;
+            let totalWeek = 0;
+            let totalMonth = 0;
             const operatorBreakdown = {};
-            todayAttendances.forEach(a => {
-                const operator = a.atendidoPor || 'Secretaría';
-                operatorBreakdown[operator] = (operatorBreakdown[operator] || 0) + 1;
+
+            attendances.forEach(a => {
+                const isToday = normalizeDateStr(a.fecha) === todayStr;
+                if (isToday) {
+                    totalToday++;
+                    const operator = a.atendidoPor || 'Secretaría';
+                    operatorBreakdown[operator] = (operatorBreakdown[operator] || 0) + 1;
+                }
+
+                const ts = parseDate(a.fecha);
+                if (ts > 0) {
+                    const dateObj = new Date(ts);
+                    if (dateObj >= startOfWeek) {
+                        totalWeek++;
+                    }
+                    if (dateObj >= startOfMonth && dateObj.getFullYear() === now.getFullYear() && dateObj.getMonth() === now.getMonth()) {
+                        totalMonth++;
+                    }
+                }
             });
 
             return {
                 total: attendances.length,
+                totalMonth,
+                totalWeek,
+                totalToday,
                 derivacionesTecnica: attendances.filter(a => a.isDerivacionTecnica()).length,
                 escritosCount: attendances.filter(a => a.hasEscritos()).length,
                 pendientesCount: attendances.filter(a => a.tareaPendiente).length,
-                totalToday: todayAttendances.length,
                 operatorBreakdown
             };
         }
@@ -527,6 +556,8 @@ const bundleContent = `/* ======================================================
             this.filterDefensoria = document.getElementById('filterDefensoria');
             this.filterResultado = document.getElementById('filterResultado');
             this.kpiTotal = document.getElementById('kpiTotal');
+            this.kpiMes = document.getElementById('kpiMes');
+            this.kpiSemana = document.getElementById('kpiSemana');
             this.kpiHoy = document.getElementById('kpiHoy');
             this.cardTotalAtenciones = document.getElementById('cardTotalAtenciones');
             this.operatorTooltip = document.getElementById('operatorTooltip');
@@ -1388,6 +1419,8 @@ const bundleContent = `/* ======================================================
             const summary = this.getSummaryUseCase.execute(filteredEntities);
 
             this.kpiTotal.textContent = summary.total.toLocaleString();
+            if (this.kpiMes) this.kpiMes.textContent = summary.totalMonth.toLocaleString();
+            if (this.kpiSemana) this.kpiSemana.textContent = summary.totalWeek.toLocaleString();
             if (this.kpiHoy) this.kpiHoy.textContent = summary.totalToday.toLocaleString();
             
             if (this.operatorBreakdownList) {

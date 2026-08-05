@@ -361,7 +361,7 @@ function handleGetAtenciones(req, res, parsedUrl) {
             sql += ` AND tarea_pendiente = 1`;
         }
 
-        sql += ` ORDER BY id DESC LIMIT 1000`;
+        sql += ` ORDER BY id DESC`;
 
         const stmt = db.prepare(sql);
         const rows = stmt.all(...params);
