@@ -1567,9 +1567,6 @@
             if (this.newDetallePendiente) this.newDetallePendiente.value = entity.detallePendiente || '';
 
             this.newRecordModal.classList.add('active');
-        }e = entity.detallePendiente || '';
-
-            this.newRecordModal.classList.add('active');
         }
 
         updateView() {
