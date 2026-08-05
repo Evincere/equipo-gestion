@@ -243,9 +243,13 @@
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             startOfMonth.setHours(0, 0, 0, 0);
 
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            startOfYear.setHours(0, 0, 0, 0);
+
             let totalToday = 0;
             let totalWeek = 0;
             let totalMonth = 0;
+            let totalYear = 0;
             const operatorBreakdown = {};
 
             attendances.forEach(a => {
@@ -265,11 +269,15 @@
                     if (dateObj >= startOfMonth && dateObj.getFullYear() === now.getFullYear() && dateObj.getMonth() === now.getMonth()) {
                         totalMonth++;
                     }
+                    if (dateObj >= startOfYear && dateObj.getFullYear() === now.getFullYear()) {
+                        totalYear++;
+                    }
                 }
             });
 
             return {
                 total: attendances.length,
+                totalYear,
                 totalMonth,
                 totalWeek,
                 totalToday,
@@ -1413,7 +1421,7 @@
             const filteredEntities = this.rawEntities.filter(e => this.currentDTOs.some(d => d.id === e.id));
             const summary = this.getSummaryUseCase.execute(filteredEntities);
 
-            this.kpiTotal.textContent = summary.total.toLocaleString();
+            this.kpiTotal.textContent = summary.totalYear.toLocaleString();
             if (this.kpiMes) this.kpiMes.textContent = summary.totalMonth.toLocaleString();
             if (this.kpiSemana) this.kpiSemana.textContent = summary.totalWeek.toLocaleString();
             if (this.kpiHoy) this.kpiHoy.textContent = summary.totalToday.toLocaleString();
