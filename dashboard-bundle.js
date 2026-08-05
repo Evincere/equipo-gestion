@@ -628,10 +628,14 @@
             this.onlineUsersCountText = document.getElementById('onlineUsersCountText');
             this.onlineUsersBadgeCount = document.getElementById('onlineUsersBadgeCount');
             this.onlineUsersList = document.getElementById('onlineUsersList');
+            
+            this.currentDateText = document.getElementById('currentDateText');
+            this.currentTimeText = document.getElementById('currentTimeText');
         }
 
         async init() {
             this.bindEvents();
+            this.startClock();
 
             const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
             if (savedSession) {
@@ -839,6 +843,22 @@
                     }
                 });
             });
+        }
+
+        startClock() {
+            if (!this.currentDateText || !this.currentTimeText) return;
+            
+            const updateClock = () => {
+                const now = new Date();
+                const day = now.getDate();
+                const month = now.toLocaleDateString('es-AR', { month: 'long' });
+                const year = now.getFullYear();
+                this.currentDateText.textContent = `San Rafael, ${day} de ${month} de ${year}`;
+                this.currentTimeText.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            };
+            
+            updateClock();
+            setInterval(updateClock, 1000);
         }
 
         async performDniLookup() {
