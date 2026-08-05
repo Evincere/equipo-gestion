@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
+const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
@@ -461,6 +462,27 @@ function handlePostAtencion(req, res) {
 
             logAudit(data.operatorId || 0, atendidoPorFinal, 'CREAR_ATENCION', `Atención creada para ${data.apellidos} ${data.nombres} ${esPendiente ? '[CON TAREA PENDIENTE]' : ''}`);
 
+            const newRecord = {
+                id: Number(result.lastInsertRowid),
+                fecha: data.fecha || new Date().toLocaleDateString('es-AR'),
+                actividad: data.actividad || 'Atención Personal',
+                dni: data.dni || '',
+                apellidos: (data.apellidos || '').toUpperCase(),
+                nombres: (data.nombres || '').toUpperCase(),
+                celular: data.celular || '',
+                expte: data.expte || '',
+                motivo: data.motivo || '',
+                defensoria: data.defensoria || 'Otro',
+                resultado: data.resultado || 'Resuelve',
+                observaciones: data.observaciones || '',
+                atendido_por: atendidoPorFinal,
+                derivado_a: data.derivadoA || '',
+                escritos: data.escritos || '',
+                tarea_pendiente: esPendiente,
+                detalle_pendiente: detallePendiente
+            };
+            broadcast('RECORD_CREATED', { record: newRecord, operator: atendidoPorFinal });
+
             res.writeHead(201, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true, id: result.lastInsertRowid }));
         } catch (err) {
@@ -552,6 +574,8 @@ function handleDeleteAtencion(req, res, parsedUrl) {
 
         logAudit(0, 'OPERADOR', 'ELIMINAR_ATENCION', `Atención ID ${id} eliminada`);
 
+        broadcast('RECORD_DELETED', { id: Number(id) });
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
         res.end(JSON.stringify({ success: true, message: 'Atención eliminada correctamente' }));
     } catch (err) {
@@ -605,6 +629,27 @@ function handlePutAtencion(req, res) {
 
             logAudit(0, 'OPERADOR', 'EDITAR_ATENCION', `Atención ID ${data.id} editada correctamente`);
 
+            const updatedRecord = {
+                id: Number(data.id),
+                fecha: data.fecha || 'S/F',
+                actividad: data.actividad || 'Atención Personal',
+                dni: data.dni || '',
+                apellidos: (data.apellidos || '').toUpperCase(),
+                nombres: (data.nombres || '').toUpperCase(),
+                celular: data.celular || '',
+                expte: data.expte || '',
+                motivo: data.motivo || '',
+                defensoria: data.defensoria || 'Otro',
+                resultado: data.resultado || 'Resuelve',
+                observaciones: data.observaciones || '',
+                atendido_por: data.atendidoPor || 'Secretaría',
+                derivado_a: data.derivadoA || '',
+                escritos: data.escritos || '',
+                tarea_pendiente: esPendiente,
+                detalle_pendiente: data.detallePendiente || ''
+            };
+            broadcast('RECORD_UPDATED', { record: updatedRecord });
+
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true, message: 'Atención actualizada correctamente' }));
         } catch (err) {
@@ -627,6 +672,8 @@ function handlePostCambiarEstadoTarea(req, res) {
             stmt.run(esPendiente, cumplidaAt, id);
 
             logAudit(0, operatorName || 'OPERADOR', 'CUMPLIR_TAREA', `Tarea ID ${id} marcada como ${esPendiente ? 'PENDIENTE' : 'CUMPLIDA'}`);
+
+            broadcast('RECORD_UPDATED', { record: { id: Number(id), tarea_pendiente: esPendiente, tarea_cumplida_at: cumplidaAt } });
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true, id, tareaPendiente: esPendiente }));
@@ -789,6 +836,8 @@ function handlePostEstadoCodefensora(req, res) {
 
             logAudit(0, data.operatorName || 'OPERADOR', 'CAMBIO_PRESENTISMO', `Co-Defensora ${data.nombre} marcada como ${data.isPresente ? 'Presente' : 'Ausente'}`);
 
+            broadcast('PRESENCE_UPDATED', { nombre: data.nombre, isPresente: data.isPresente, motivoAusencia: data.motivoAusencia });
+
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true }));
         } catch (err) {
@@ -866,8 +915,52 @@ function handleGetOnlineUsers(req, res) {
     res.end(JSON.stringify({ success: true, count: users.length, data: users }));
 }
 
+// WebSocket Real-time Server Setup
+const wss = new WebSocketServer({ server });
+
+function broadcast(type, payload) {
+    const msg = JSON.stringify({ type, payload });
+    wss.clients.forEach(client => {
+        if (client.readyState === 1) { // OPEN
+            client.send(msg);
+        }
+    });
+}
+
+function broadcastOnlineUsers() {
+    cleanStaleSessions();
+    const users = Array.from(activeSessions.values());
+    broadcast('ONLINE_USERS_UPDATED', { count: users.length, data: users });
+}
+
+wss.on('connection', (ws) => {
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.type === 'IDENTIFY' && data.user && data.user.username) {
+                ws.username = data.user.username;
+                const initials = data.user.avatarInitials || (data.user.nombreCompleto ? data.user.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'OP');
+                activeSessions.set(data.user.username, {
+                    username: data.user.username,
+                    nombreCompleto: data.user.nombreCompleto || data.user.username,
+                    rol: data.user.rol || 'OPERADOR',
+                    avatarInitials: initials,
+                    lastSeen: Date.now()
+                });
+                broadcastOnlineUsers();
+            }
+        } catch (e) {}
+    });
+
+    ws.on('close', () => {
+        if (ws.username) {
+            broadcastOnlineUsers();
+        }
+    });
+});
+
 server.listen(PORT, () => {
     console.log(`\n==================================================`);
-    console.log(`🚀 Servidor REST API + Tareas Pendientes Activo: http://localhost:${PORT}/dashboard.html`);
+    console.log(`🚀 Servidor REST API + WebSocket Realtime Activo: http://localhost:${PORT}/dashboard.html`);
     console.log(`==================================================\n`);
 });

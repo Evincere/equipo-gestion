@@ -15,5 +15,8 @@
     "aero"
   ],
   "author": "Sergio M. Pereyra",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.21.2"
+  }
 }

@@ -928,7 +928,84 @@ const bundleContent = `/* ======================================================
             this.rawEntities = await this.repository.getAll();
             this.showDashboardSection();
             this.updateView();
+            this.initWebSocketConnection();
             this.startAutoSyncPolling();
+        }
+
+        initWebSocketConnection() {
+            if (this.socket) {
+                try { this.socket.close(); } catch(e) {}
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            let wsUrl = '';
+            if (window.location.protocol === 'file:') {
+                wsUrl = 'ws://localhost:3000';
+            } else {
+                wsUrl = \`\${protocol}//\${window.location.host}\`;
+            }
+
+            try {
+                this.socket = new WebSocket(wsUrl);
+
+                this.socket.onopen = () => {
+                    if (this.currentUser) {
+                        this.socket.send(JSON.stringify({
+                            type: 'IDENTIFY',
+                            user: {
+                                username: this.currentUser.username,
+                                nombreCompleto: this.currentUser.nombreCompleto,
+                                rol: this.currentUser.rol,
+                                avatarInitials: this.currentUser.avatarInitials
+                            }
+                        }));
+                    }
+                };
+
+                this.socket.onmessage = async (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        await this.handleRealtimeEvent(msg);
+                    } catch (e) {}
+                };
+
+                this.socket.onclose = () => {
+                    setTimeout(() => {
+                        if (this.currentUser) this.initWebSocketConnection();
+                    }, 3000);
+                };
+
+                this.socket.onerror = (err) => {};
+            } catch (e) {}
+        }
+
+        async handleRealtimeEvent(msg) {
+            if (!msg || !msg.type) return;
+            const { type, payload } = msg;
+
+            if (type === 'RECORD_CREATED') {
+                showToast(\`ℹ️ \${payload.operator || 'Un operador'} registró una nueva atención\`, 'info');
+                this.rawEntities = await this.repository.getAll();
+                this.updateView();
+            } else if (type === 'RECORD_UPDATED') {
+                this.rawEntities = await this.repository.getAll();
+                this.updateView();
+            } else if (type === 'RECORD_DELETED') {
+                if (payload && payload.id) {
+                    this.rawEntities = this.rawEntities.filter(e => e.id !== payload.id);
+                    this.updateView();
+                }
+            } else if (type === 'PRESENCE_UPDATED') {
+                await this.loadCodefensorasRoster();
+                await this.calculateProximoTurno();
+                if (payload && payload.nombre) {
+                    showToast(\`👥 Cambio de presentismo: \${payload.nombre} marcado como \${payload.isPresente ? 'Presente' : 'Ausente'}\`, 'info');
+                }
+            } else if (type === 'ONLINE_USERS_UPDATED') {
+                if (payload && Array.isArray(payload.data)) {
+                    this.renderOnlineUsers(payload.data);
+                }
+            }
         }
 
         startAutoSyncPolling() {
