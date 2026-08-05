@@ -73,10 +73,27 @@ db.exec(`
     );
 `);
 
-// Migración suave para agregar columnas de tareas pendientes
+// Migración suave para agregar columnas de tareas pendientes y co-defensoría de familia por canal
 try { db.exec('ALTER TABLE atenciones ADD COLUMN tarea_pendiente INTEGER DEFAULT 0;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN detalle_pendiente TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN tarea_cumplida_at DATETIME;'); } catch (e) {}
+try { db.exec('ALTER TABLE atenciones ADD COLUMN modo_derivacion_familia TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE atenciones ADD COLUMN codefensora_asignada TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE atenciones ADD COLUMN fecha_vencimiento_contestacion TEXT;'); } catch (e) {}
+
+// Nueva estructura de rotación de turnos por canal independiente
+db.exec(`
+    CREATE TABLE IF NOT EXISTS rotacion_turnos_canales (
+        canal TEXT PRIMARY KEY,
+        last_index INTEGER DEFAULT -1
+    );
+`);
+
+db.exec(`
+    INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('ASESORAMIENTO_GENERAL', -1);
+    INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('CAUSA_NUEVA', -1);
+    INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('CONTESTACION_DEMANDA', -1);
+`);
 
 // Índices
 db.exec(`
@@ -85,6 +102,7 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS idx_atenciones_defensoria ON atenciones(defensoria);
     CREATE INDEX IF NOT EXISTS idx_atenciones_apellidos ON atenciones(apellidos);
     CREATE INDEX IF NOT EXISTS idx_atenciones_pendiente ON atenciones(tarea_pendiente);
+    CREATE INDEX IF NOT EXISTS idx_atenciones_codefensora ON atenciones(codefensora_asignada);
 `);
 
 // Restaurar atenciones.csv original si el volumen está vacío
@@ -260,6 +278,10 @@ const server = http.createServer((req, res) => {
         if (req.method === 'GET') return handleGetCiudadanoHistorial(req, res, parsedUrl);
     }
 
+    if (pathname === '/api/atenciones/historial-familia') {
+        if (req.method === 'GET') return handleGetHistorialFamilia(req, res, parsedUrl);
+    }
+
     if (pathname === '/api/familia/codefensoras') {
         if (req.method === 'GET') return handleGetCodefensoras(req, res);
     }
@@ -269,7 +291,7 @@ const server = http.createServer((req, res) => {
     }
 
     if (pathname === '/api/familia/proximo-turno') {
-        if (req.method === 'GET') return handleGetProximoTurno(req, res);
+        if (req.method === 'GET') return handleGetProximoTurno(req, res, parsedUrl);
     }
 
     if (pathname === '/api/auth/login' && req.method === 'POST') {
@@ -417,6 +439,80 @@ function handleGetCiudadanoHistorial(req, res, parsedUrl) {
     }
 }
 
+function advanceTurnoCanal(canalKey) {
+    const canalMap = {
+        'Asesoramiento General': 'ASESORAMIENTO_GENERAL',
+        'Causa Nueva': 'CAUSA_NUEVA',
+        'Contestación de Demanda': 'CONTESTACION_DEMANDA',
+        'ASESORAMIENTO_GENERAL': 'ASESORAMIENTO_GENERAL',
+        'CAUSA_NUEVA': 'CAUSA_NUEVA',
+        'CONTESTACION_DEMANDA': 'CONTESTACION_DEMANDA'
+    };
+    const key = canalMap[canalKey];
+    if (!key) return;
+
+    const presentes = db.prepare('SELECT nombre FROM codefensoras_estado WHERE is_presente = 1 ORDER BY id ASC').all();
+    if (presentes.length === 0) return;
+
+    const rotState = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(key);
+    let lastIndex = rotState ? rotState.last_index : -1;
+    const nextIndex = (lastIndex + 1) % presentes.length;
+    db.prepare('UPDATE rotacion_turnos_canales SET last_index = ? WHERE canal = ?').run(nextIndex, key);
+}
+
+function handleGetHistorialFamilia(req, res, parsedUrl) {
+    try {
+        const dniRaw = parsedUrl.searchParams.get('dni') || '';
+        const expteRaw = parsedUrl.searchParams.get('expte') || '';
+        const cleanDni = dniRaw.replace(/[^\d]/g, '').trim();
+        const cleanExpte = expteRaw.trim();
+
+        if (!cleanDni && !cleanExpte) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'DNI o Expediente no proporcionado' }));
+            return;
+        }
+
+        let sql = `SELECT * FROM atenciones WHERE defensoria = 'CO-DEF. FAMILIA' AND (`;
+        const params = [];
+        const conditions = [];
+
+        if (cleanDni) {
+            conditions.push(`(dni LIKE ? OR REPLACE(dni, '.', '') = ?)`);
+            params.push(`%${cleanDni}%`, cleanDni);
+        }
+        if (cleanExpte) {
+            conditions.push(`(expte LIKE ?)`);
+            params.push(`%${cleanExpte}%`);
+        }
+
+        sql += conditions.join(' OR ') + `) ORDER BY id DESC LIMIT 5`;
+
+        const stmt = db.prepare(sql);
+        const rows = stmt.all(...params);
+
+        if (rows.length > 0) {
+            const lastWithCodefensora = rows.find(r => r.codefensora_asignada || (r.atendido_por && r.atendido_por.startsWith('Dra.')));
+            const suggestedCodefensora = lastWithCodefensora ? (lastWithCodefensora.codefensora_asignada || lastWithCodefensora.atendido_por) : '';
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({
+                success: true,
+                found: true,
+                suggestedCodefensora: suggestedCodefensora.replace(/^Dra\.\s*/i, ''),
+                latestRecord: rows[0],
+                history: rows
+            }));
+        } else {
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, found: false }));
+        }
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
 function handlePostAtencion(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
@@ -428,13 +524,16 @@ function handlePostAtencion(req, res) {
                 INSERT INTO atenciones (
                     fecha, actividad, dni, apellidos, nombres, celular, expte, motivo,
                     defensoria, resultado, observaciones, atendido_por, derivado_a, escritos,
-                    tarea_pendiente, detalle_pendiente
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    tarea_pendiente, detalle_pendiente, modo_derivacion_familia, codefensora_asignada, fecha_vencimiento_contestacion
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
             const detallePendiente = data.detallePendiente || '';
+            const modoFamilia = data.modoDerivacionFamilia || '';
+            const codefensora = data.codefensoraAsignada || '';
+            const vencimiento = data.fechaVencimientoContestacion || '';
 
             const result = stmt.run(
                 data.fecha || new Date().toLocaleDateString('es-AR'),
@@ -452,8 +551,15 @@ function handlePostAtencion(req, res) {
                 data.derivadoA || '',
                 data.escritos || '',
                 esPendiente,
-                detallePendiente
+                detallePendiente,
+                modoFamilia,
+                codefensora,
+                vencimiento
             );
+
+            if (data.defensoria === 'CO-DEF. FAMILIA' && modoFamilia && modoFamilia !== 'Causa en Trámite') {
+                advanceTurnoCanal(modoFamilia);
+            }
 
             try {
                 const csvLine = `\n"${data.fecha || ''}","${data.actividad || ''}","${data.dni || ''}","${data.apellidos || ''}","${data.nombres || ''}","${data.celular || ''}","${data.expte || ''}","${data.motivo || ''}","${data.defensoria || ''}","${data.resultado || ''}","${data.observaciones || ''}","${atendidoPorFinal}","${data.derivadoA || ''}","${data.escritos || ''}"`;
@@ -479,7 +585,10 @@ function handlePostAtencion(req, res) {
                 derivado_a: data.derivadoA || '',
                 escritos: data.escritos || '',
                 tarea_pendiente: esPendiente,
-                detalle_pendiente: detallePendiente
+                detalle_pendiente: detallePendiente,
+                modo_derivacion_familia: modoFamilia,
+                codefensora_asignada: codefensora,
+                fecha_vencimiento_contestacion: vencimiento
             };
             broadcast('RECORD_CREATED', { record: newRecord, operator: atendidoPorFinal });
 
@@ -521,16 +630,22 @@ function handlePutAtencion(req, res) {
                     derivado_a = ?,
                     escritos = ?,
                     tarea_pendiente = ?,
-                    detalle_pendiente = ?
+                    detalle_pendiente = ?,
+                    modo_derivacion_familia = ?,
+                    codefensora_asignada = ?,
+                    fecha_vencimiento_contestacion = ?
                 WHERE id = ?
             `);
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
             const detallePendiente = data.detallePendiente || '';
+            const modoFamilia = data.modoDerivacionFamilia || '';
+            const codefensora = data.codefensoraAsignada || '';
+            const vencimiento = data.fechaVencimientoContestacion || '';
 
             stmt.run(
-                data.fecha || '',
+                data.fecha || 'S/F',
                 data.actividad || 'Atención Personal',
                 data.dni || '',
                 (data.apellidos || '').toUpperCase(),
@@ -546,6 +661,9 @@ function handlePutAtencion(req, res) {
                 data.escritos || '',
                 esPendiente,
                 detallePendiente,
+                modoFamilia,
+                codefensora,
+                vencimiento,
                 Number(data.id)
             );
 
@@ -847,8 +965,19 @@ function handlePostEstadoCodefensora(req, res) {
     });
 }
 
-function handleGetProximoTurno(req, res) {
+function handleGetProximoTurno(req, res, parsedUrl) {
     try {
+        const rawCanal = parsedUrl ? (parsedUrl.searchParams.get('canal') || 'Asesoramiento General') : 'Asesoramiento General';
+        const canalMap = {
+            'Asesoramiento General': 'ASESORAMIENTO_GENERAL',
+            'Causa Nueva': 'CAUSA_NUEVA',
+            'Contestación de Demanda': 'CONTESTACION_DEMANDA',
+            'ASESORAMIENTO_GENERAL': 'ASESORAMIENTO_GENERAL',
+            'CAUSA_NUEVA': 'CAUSA_NUEVA',
+            'CONTESTACION_DEMANDA': 'CONTESTACION_DEMANDA'
+        };
+        const canalKey = canalMap[rawCanal] || 'ASESORAMIENTO_GENERAL';
+
         const presentes = db.prepare('SELECT nombre FROM codefensoras_estado WHERE is_presente = 1 ORDER BY id ASC').all();
         if (presentes.length === 0) {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
@@ -856,15 +985,14 @@ function handleGetProximoTurno(req, res) {
             return;
         }
 
-        const rotState = db.prepare('SELECT last_index FROM rotacion_turnos WHERE id = 1').get();
+        const rotState = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(canalKey);
         let lastIndex = rotState ? rotState.last_index : -1;
         const nextIndex = (lastIndex + 1) % presentes.length;
         const proximaDefensora = presentes[nextIndex].nombre;
 
-        db.prepare('UPDATE rotacion_turnos SET last_index = ? WHERE id = 1').run(nextIndex);
-
+        // Lectura pura sin efectos secundarios en GET
         res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-        res.end(JSON.stringify({ success: true, proximaDefensora, index: nextIndex }));
+        res.end(JSON.stringify({ success: true, proximaDefensora, index: nextIndex, canal: canalKey }));
     } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: err.message }));

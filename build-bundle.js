@@ -177,7 +177,7 @@ const bundleContent = `/* ======================================================
 
     // 4. Entidad Attendance
     class Attendance {
-        constructor({ id, fecha, actividad, dni, apellidos, nombres, celular, expte, motivo, defensoria, resultado, observaciones, atendidoPor, derivadoA, escritos, tarea_pendiente, tareaPendiente, detalle_pendiente, detallePendiente, tarea_cumplida_at, tareaCumplidaAt }) {
+        constructor({ id, fecha, actividad, dni, apellidos, nombres, celular, expte, motivo, defensoria, resultado, observaciones, atendidoPor, atendido_por, derivadoA, escritos, tarea_pendiente, tareaPendiente, detalle_pendiente, detallePendiente, tarea_cumplida_at, tareaCumplidaAt, modo_derivacion_familia, modoDerivacionFamilia, codefensora_asignada, codefensoraAsignada, fecha_vencimiento_contestacion, fechaVencimientoContestacion }) {
             this.id = Number(id) || Date.now();
             this.fecha = fecha || 'S/F';
             this.actividad = fixMojibake(actividad) || 'Atención Personal';
@@ -190,13 +190,17 @@ const bundleContent = `/* ======================================================
             this.defensoriaCategory = new DefensoriaCategory(defensoria);
             this.resultado = fixMojibake(resultado) || 'Resuelve';
             this.observaciones = fixMojibake(observaciones);
-            this.atendidoPor = fixMojibake(atendidoPor) || 'Secretaría';
+            this.atendidoPor = fixMojibake(atendidoPor || atendido_por) || 'Secretaría';
             this.derivadoA = fixMojibake(derivadoA);
             this.escritos = fixMojibake(escritos);
 
             this.tareaPendiente = Boolean(tarea_pendiente || tareaPendiente);
             this.detallePendiente = fixMojibake(detalle_pendiente || detallePendiente || '');
             this.tareaCumplidaAt = tarea_cumplida_at || tareaCumplidaAt || null;
+
+            this.modoDerivacionFamilia = modo_derivacion_familia || modoDerivacionFamilia || '';
+            this.codefensoraAsignada = codefensora_asignada || codefensoraAsignada || '';
+            this.fechaVencimientoContestacion = fecha_vencimiento_contestacion || fechaVencimientoContestacion || '';
         }
         get fullName() { return \`\${this.apellidos} \${this.nombres}\`.trim(); }
         isDerivacionTecnica() {
@@ -229,7 +233,10 @@ const bundleContent = `/* ======================================================
                 hasEscritos: entity.hasEscritos(),
                 tareaPendiente: entity.tareaPendiente,
                 detallePendiente: entity.detallePendiente,
-                tareaCumplidaAt: entity.tareaCumplidaAt
+                tareaCumplidaAt: entity.tareaCumplidaAt,
+                modoDerivacionFamilia: entity.modoDerivacionFamilia,
+                codefensoraAsignada: entity.codefensoraAsignada,
+                fechaVencimientoContestacion: entity.fechaVencimientoContestacion
             };
         }
     }
@@ -619,14 +626,21 @@ const bundleContent = `/* ======================================================
             this.btnCloseNewModal = document.getElementById('btnCloseNewModal');
             this.newRecordForm = document.getElementById('newRecordForm');
             this.btnExportPDF = document.getElementById('btnExportPDF');
-            this.btnCloseApp = document.getElementById('btnCloseApp');
-
-            this.presenceRosterContainer = document.getElementById('presenceRosterContainer');
+                  this.presenceRosterContainer = document.getElementById('presenceRosterContainer');
             this.turnIndicatorBadge = document.getElementById('turnIndicatorBadge');
             this.newDefensoriaSelect = document.getElementById('newDefensoria');
             this.familySubmotivoGroup = document.getElementById('familySubmotivoGroup');
             this.newFamilySubmotivoSelect = document.getElementById('newFamilySubmotivo');
             this.newAtendidoPorInput = document.getElementById('newAtendidoPor');
+
+            this.familyDerivacionGroup = document.getElementById('familyDerivacionGroup');
+            this.newModoDerivacionFamilia = document.getElementById('newModoDerivacionFamilia');
+            this.fechaVencimientoGroup = document.getElementById('fechaVencimientoGroup');
+            this.newFechaVencimientoContestacion = document.getElementById('newFechaVencimientoContestacion');
+            this.codefensoraAsignadaGroup = document.getElementById('codefensoraAsignadaGroup');
+            this.newCodefensoraAsignada = document.getElementById('newCodefensoraAsignada');
+            this.codefensoraHint = document.getElementById('codefensoraHint');
+            this.newExpteInput = document.getElementById('newExpte');
 
             this.btnOnlineUsers = document.getElementById('btnOnlineUsers');
             this.onlineUsersPopover = document.getElementById('onlineUsersPopover');
@@ -757,16 +771,24 @@ const bundleContent = `/* ======================================================
             }
 
             if (this.btnSearchDni) {
-                this.btnSearchDni.addEventListener('click', () => this.performDniLookup());
+                this.btnSearchDni.addEventListener('click', () => {
+                    this.performDniLookup();
+                    this.updateFamiliaAssignmentLogic();
+                });
             }
 
             if (this.newDniInput) {
                 this.newDniInput.addEventListener('input', () => {
-                    const clean = this.newDniInput.value.replace(/[^\\d]/g, '');
+                    const clean = this.newDniInput.value.replace(/[^\d]/g, '');
                     if (clean.length >= 7 && clean.length <= 9) {
                         this.performDniLookup();
+                        this.updateFamiliaAssignmentLogic();
                     }
                 });
+            }
+
+            if (this.newExpteInput) {
+                this.newExpteInput.addEventListener('change', () => this.updateFamiliaAssignmentLogic());
             }
 
             this.searchInput.addEventListener('input', () => {
@@ -786,16 +808,27 @@ const bundleContent = `/* ======================================================
 
             if (this.newDefensoriaSelect) {
                 this.newDefensoriaSelect.addEventListener('change', () => {
-                    if (this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA') {
-                        if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'flex';
-                        if (this.newAtendidoPorInput && this.proximaDefensoriaTurno) {
-                            this.newAtendidoPorInput.value = \`Dra. \${this.proximaDefensoriaTurno}\`;
-                        }
-                    } else {
-                        if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
-                        if (this.newAtendidoPorInput && this.currentUser) {
-                            this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
-                        }
+                    const isFamilia = this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
+                    if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = isFamilia ? 'flex' : 'none';
+                    if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = isFamilia ? 'flex' : 'none';
+                    if (this.newAtendidoPorInput && this.currentUser) {
+                        this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
+                    }
+                    if (isFamilia) {
+                        this.updateFamiliaAssignmentLogic();
+                    }
+                });
+            }
+
+            if (this.newModoDerivacionFamilia) {
+                this.newModoDerivacionFamilia.addEventListener('change', () => {
+                    const modo = this.newModoDerivacionFamilia.value;
+                    if (this.fechaVencimientoGroup) {
+                        this.fechaVencimientoGroup.style.display = (modo === 'Contestación de Demanda') ? 'flex' : 'none';
+                    }
+                    this.updateFamiliaAssignmentLogic();
+                });
+            }         }
                     }
                 });
             }
@@ -1383,17 +1416,17 @@ const bundleContent = `/* ======================================================
             } catch(e) {}
         }
 
-        async calculateProximoTurno() {
+        async calculateProximoTurno(canalKey = 'Asesoramiento General') {
             try {
-                const res = await fetch(getApiUrl('/api/familia/proximo-turno'));
+                const res = await fetch(getApiUrl('/api/familia/proximo-turno?canal=' + encodeURIComponent(canalKey)));
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.success && data.proximaDefensoria) {
+                    if (data.success && data.proximaDefensora) {
                         this.proximaDefensoriaTurno = data.proximaDefensoria;
                         if (this.turnIndicatorBadge) {
-                            this.turnIndicatorBadge.textContent = \`Próximo Turno: Dra. \${data.proximaDefensoria}\`;
+                            this.turnIndicatorBadge.textContent = \`Próximo Turno (\${canalKey}): Dra. \${data.proximaDefensoria}\`;
                         }
-                        return;
+                        return data.proximaDefensoria;
                     }
                 }
             } catch(e) {}
@@ -1403,6 +1436,52 @@ const bundleContent = `/* ======================================================
                 this.proximaDefensoriaTurno = presentes[0].nombre;
                 if (this.turnIndicatorBadge) {
                     this.turnIndicatorBadge.textContent = 'Próximo Turno: Dra. ' + presentes[0].nombre;
+                }
+                return presentes[0].nombre;
+            }
+            return '';
+        }
+
+        async updateFamiliaAssignmentLogic() {
+            if (!this.newDefensoriaSelect || this.newDefensoriaSelect.value !== 'CO-DEF. FAMILIA') return;
+
+            const modo = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : 'Asesoramiento General';
+
+            if (modo === 'Causa en Trámite') {
+                const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^\\d]/g, '') : '';
+                const expteClean = this.newExpteInput ? this.newExpteInput.value.trim() : '';
+
+                if (dniClean || expteClean) {
+                    try {
+                        const res = await fetch(getApiUrl(\`/api/atenciones/historial-familia?dni=\${encodeURIComponent(dniClean)}&expte=\${encodeURIComponent(expteClean)}\`));
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success && data.found && data.suggestedCodefensora) {
+                                if (this.newCodefensoraAsignada) {
+                                    this.newCodefensoraAsignada.value = data.suggestedCodefensora;
+                                }
+                                if (this.codefensoraHint) {
+                                    this.codefensoraHint.style.color = '#4ADE80';
+                                    this.codefensoraHint.textContent = \`✓ Co-Defensora previa vinculada al historial del ciudadano: Dra. \${data.suggestedCodefensora}\`;
+                                }
+                                return;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                if (this.codefensoraHint) {
+                    this.codefensoraHint.style.color = '#FBBF24';
+                    this.codefensoraHint.textContent = '⚠️ Causa en Trámite: Sin antecedente previo. Seleccione la Co-Defensora asignada manualmente.';
+                }
+            } else {
+                const proxima = await this.calculateProximoTurno(modo);
+                if (proxima && this.newCodefensoraAsignada) {
+                    this.newCodefensoraAsignada.value = proxima;
+                }
+                if (this.codefensoraHint) {
+                    this.codefensoraHint.style.color = '#94A3B8';
+                    this.codefensoraHint.textContent = \`Sugerida automáticamente por turno del canal "\${modo}". (Puede modificarla manualmente si es necesario).\`;
                 }
             }
         }
@@ -1416,7 +1495,6 @@ const bundleContent = `/* ======================================================
 
             if (this.newRecordForm) this.newRecordForm.reset();
 
-            await this.calculateProximoTurno();
             if (this.newDniInput) this.newDniInput.value = '';
             const elFecha = document.getElementById('newFecha');
             if (elFecha) elFecha.value = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
@@ -1431,15 +1509,14 @@ const bundleContent = `/* ======================================================
             }
             if (this.citizenHistoryContainer) this.citizenHistoryContainer.style.display = 'none';
 
-            if (this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA') {
-                if (this.newAtendidoPorInput && this.proximaDefensoriaTurno) {
-                    this.newAtendidoPorInput.value = 'Dra. ' + this.proximaDefensoriaTurno;
-                }
-            } else {
-                if (this.newAtendidoPorInput && this.currentUser) {
-                    this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
-                }
+            if (this.newAtendidoPorInput && this.currentUser) {
+                this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
             }
+
+            if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = 'none';
+            if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
+            if (this.fechaVencimientoGroup) this.fechaVencimientoGroup.style.display = 'none';
+
             this.newRecordModal.classList.add('active');
         }
 
@@ -1470,6 +1547,19 @@ const bundleContent = `/* ======================================================
             const elDefensoria = document.getElementById('newDefensoria');
             if (elDefensoria) elDefensoria.value = entity.defensoriaCategory.name;
 
+            const isFamilia = entity.defensoriaCategory.name === 'CO-DEF. FAMILIA';
+            if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = isFamilia ? 'flex' : 'none';
+            if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = isFamilia ? 'flex' : 'none';
+
+            if (isFamilia) {
+                if (this.newModoDerivacionFamilia) this.newModoDerivacionFamilia.value = entity.modoDerivacionFamilia || 'Asesoramiento General';
+                if (this.newCodefensoraAsignada) this.newCodefensoraAsignada.value = entity.codefensoraAsignada || '';
+                if (this.newFechaVencimientoContestacion) this.newFechaVencimientoContestacion.value = entity.fechaVencimientoContestacion || '';
+                if (this.fechaVencimientoGroup) {
+                    this.fechaVencimientoGroup.style.display = (entity.modoDerivacionFamilia === 'Contestación de Demanda') ? 'flex' : 'none';
+                }
+            }
+
             const elMotivo = document.getElementById('newMotivo');
             if (elMotivo) elMotivo.value = entity.motivo;
 
@@ -1483,6 +1573,9 @@ const bundleContent = `/* ======================================================
 
             if (this.newTareaPendiente) this.newTareaPendiente.checked = entity.tareaPendiente;
             if (this.newDetallePendiente) this.newDetallePendiente.value = entity.detallePendiente || '';
+
+            this.newRecordModal.classList.add('active');
+        }e = entity.detallePendiente || '';
 
             this.newRecordModal.classList.add('active');
         }
@@ -1688,7 +1781,10 @@ const bundleContent = `/* ======================================================
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">N° Expte</span><p style="font-weight: 600; color: #00B4D8;">\${dto.expte || 'Sin Expte.'}</p></div>
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge \${dto.defensoriaBadgeClass || 'badge-otro'}">\${dto.defensoriaName || 'General'}</span></p></div>
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">\${dto.resultado}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Atendido Por / Operador</span><p style="font-weight: 600;">\${dto.atendidoPor || dto.atendido_por || 'Secretaría'}</p></div>
+                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">\${dto.atendidoPor || 'Secretaría'}</p></div>
+                        \${dto.codefensoraAsignada ? \`<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. \${dto.codefensoraAsignada.replace(/^Dra\\.\\s*/i, '')}</p></div>\` : ''}
+                        \${dto.modoDerivacionFamilia ? \`<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">\${dto.modoDerivacionFamilia}</p></div>\` : ''}
+                        \${dto.fechaVencimientoContestacion ? \`<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> \${dto.fechaVencimientoContestacion}</p></div>\` : ''}
                     </div>
                     
                     <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">
@@ -1698,7 +1794,7 @@ const bundleContent = `/* ======================================================
                         </div>
                         <div>
                             <span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Observaciones</span>
-                            <p style="font-size: 0.9rem; line-height: 1.5; color: \${dto.observaciones ? '#FFF' : '#64748B'};">\${dto.observaciones || 'Sin observaciones registradas en este evento.'}</p>
+                            <p style="font-size: 0.9rem; line-height: 1.5; color: \${dto.observaciones ? '#FFF' : '#64748B'};\">\${dto.observaciones || 'Sin observaciones registradas en este evento.'}</p>
                         </div>
                     </div>
 
@@ -1761,6 +1857,16 @@ const bundleContent = `/* ======================================================
             const isTaskPending = this.newTareaPendiente ? this.newTareaPendiente.checked : false;
             const taskDetail = this.newDetallePendiente ? this.newDetallePendiente.value : '';
 
+            const isFamilia = this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
+            const modoFamilia = isFamilia && this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : '';
+            const codefensora = isFamilia && this.newCodefensoraAsignada ? this.newCodefensoraAsignada.value : '';
+            const vencimientoContestacion = (isFamilia && modoFamilia === 'Contestación de Demanda' && this.newFechaVencimientoContestacion) ? this.newFechaVencimientoContestacion.value : '';
+
+            if (isFamilia && modoFamilia === 'Contestación de Demanda' && !vencimientoContestacion) {
+                showToast('Por favor ingrese la Fecha de Vencimiento / Plazo para la Contestación de Demanda.', 'error');
+                return;
+            }
+
             const formData = {
                 id: this.editingRecordId || undefined,
                 fecha: document.getElementById('newFecha').value,
@@ -1777,6 +1883,9 @@ const bundleContent = `/* ======================================================
                 atendidoPor: document.getElementById('newAtendidoPor').value,
                 tareaPendiente: isTaskPending,
                 detallePendiente: taskDetail,
+                modoDerivacionFamilia: modoFamilia,
+                codefensoraAsignada: codefensora,
+                fechaVencimientoContestacion: vencimientoContestacion,
                 operatorId: this.currentUser ? this.currentUser.id : 0
             };
 

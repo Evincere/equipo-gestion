@@ -500,9 +500,43 @@
                         </select>
                     </div>
                     
+                    <!-- Sección Co-Defensoría de Familia -->
+                    <div class="form-group full-width" id="familyDerivacionGroup" style="display: none; background: rgba(198, 63, 149, 0.08); border: 1px solid rgba(198, 63, 149, 0.3); padding: 1rem; border-radius: 8px; flex-direction: column; gap: 0.75rem;">
+                        <h5 style="color: #EC4899; margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="ri-scales-3-line"></i> Distribución y Derivación Co-Defensoría de Familia
+                        </h5>
+
+                        <div class="form-group full-width">
+                            <label style="color: #F472B6;">Modo / Causa de Derivación (Canal Independiente)</label>
+                            <select id="newModoDerivacionFamilia" class="form-control" style="border-color: #DB2777; font-weight: 600;">
+                                <option value="Asesoramiento General">Asesoramiento General (Rotación Canal 1)</option>
+                                <option value="Causa Nueva">Causa Nueva - Entrevista/Iniciación (Rotación Canal 2)</option>
+                                <option value="Contestación de Demanda">Contestación de Demanda (Rotación Canal 3 - Con Plazo)</option>
+                                <option value="Causa en Trámite">Causa en Trámite (Derivación Directa / Antecedente)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width" id="fechaVencimientoGroup" style="display: none;">
+                            <label style="color: #F87171;"><i class="ri-calendar-event-line"></i> Fecha de Vencimiento / Plazo de Contestación (Obligatorio)</label>
+                            <input type="date" id="newFechaVencimientoContestacion" class="form-control" style="border-color: #EF4444; background: rgba(239, 68, 68, 0.1); color: #FFF; font-weight: 600;">
+                        </div>
+
+                        <div class="form-group full-width" id="codefensoraAsignadaGroup">
+                            <label style="color: #C63F95;"><i class="ri-user-star-line"></i> Co-Defensora Asignada Receptora</label>
+                            <select id="newCodefensoraAsignada" class="form-control" style="font-weight: 600;">
+                                <option value="">Seleccione o espere sugerencia automática...</option>
+                                <option value="Andrea Lombard">Dra. Andrea Lombard</option>
+                                <option value="Claudia Perruzzi">Dra. Claudia Perruzzi</option>
+                                <option value="Luz Perez">Dra. Luz Perez</option>
+                                <option value="Mariela Fokszek">Dra. Mariela Fokszek</option>
+                            </select>
+                            <span id="codefensoraHint" style="font-size: 0.75rem; color: #94A3B8; margin-top: 0.25rem;"></span>
+                        </div>
+                    </div>
+
                     <!-- Supuestos Especiales Co-Defensoría de Familia -->
                     <div class="form-group full-width" id="familySubmotivoGroup">
-                        <label style="color: #C63F95;"><i class="ri-heart-pulse-line"></i> Supuesto Especial de Co-Defensoría de Familia</label>
+                        <label style="color: #C63F95;"><i class="ri-heart-pulse-line"></i> Supuesto Especial / Materia</label>
                         <select id="newFamilySubmotivo" class="form-control">
                             <option value="Mediación">Mediación</option>
                             <option value="Prohibición de Acercamiento / Exclusión">Prohibición de Acercamiento / Exclusión</option>
@@ -554,7 +588,7 @@
                     </div>
 
                     <div class="form-group full-width">
-                        <label>Atendido Por / Operador Responsable</label>
+                        <label>Operador de Mesa que Atiende (Mesa de Entrada)</label>
                         <input type="text" id="newAtendidoPor" class="form-control" value="Sergio M. Pereyra" readonly style="background: rgba(255,255,255,0.05); color: #C9B07A; font-weight: 600;">
                     </div>
 
