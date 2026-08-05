@@ -814,7 +814,7 @@ const bundleContent = `/* ======================================================
                 const taskBadge = item.tarea_pendiente || item.tareaPendiente ? '<span style="color:#FBBF24; font-size:0.75rem; font-weight:700;"> ⚠️ Tarea Pendiente</span>' : '';
 
                 cardsHtml += \`
-                    <div style="background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;">
+                    <div class="history-card" data-history-id="\${item.id}" style="cursor: pointer; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; transition: background 0.2s ease;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
                             <span style="color: #00B4D8;"><i class="ri-calendar-line"></i> \${fecha} | \${defensoria}</span>
                             <span style="color: #F472B6;">\${item.resultado || 'Resuelve'} \${taskBadge}</span>
@@ -836,6 +836,20 @@ const bundleContent = `/* ======================================================
                     </div>
                 </div>
             \`;
+            
+            const cards = this.citizenHistoryContainer.querySelectorAll('.history-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => card.style.background = 'rgba(51, 65, 85, 0.9)');
+                card.addEventListener('mouseleave', () => card.style.background = 'rgba(30, 41, 59, 0.9)');
+                card.addEventListener('click', () => {
+                    const id = Number(card.getAttribute('data-history-id'));
+                    const dto = historyList.find(i => i.id === id);
+                    if (dto) {
+                        this.openDetailModal(dto);
+                    }
+                });
+            });
+
             this.citizenHistoryContainer.style.display = 'block';
         }
 
@@ -1492,6 +1506,7 @@ const bundleContent = `/* ======================================================
                 });
             }
 
+            this.detailModal.style.zIndex = '99999';
             this.detailModal.classList.add('active');
         }
 
