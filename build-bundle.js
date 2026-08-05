@@ -1674,12 +1674,26 @@ const bundleContent = `/* ======================================================
                         <td>\${dto.fecha || 's/f'}</td>
                         <td>
                             <span class="citizen-name">\${dto.fullName}</span>
+                    \`<button class="btn btn-secondary btn-complete-task" data-id="\${dto.id}" title="Marcar tarea como cumplida" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; color: #4ADE80; border-color: rgba(74, 222, 128, 0.4);"><i class="ri-check-double-line"></i> Cumplir</button>\`
+                    : \`<button class="btn btn-secondary btn-toggle-pending" data-id="\${dto.id}" title="Marcar con tarea pendiente" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #FBBF24; opacity: 0.6;"><i class="ri-time-line"></i></button>\`;
+
+                const editBtn = \`<button class="btn btn-secondary btn-edit-record" data-id="\${dto.id}" title="Editar registro" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); margin-left: 0.25rem;"><i class="ri-edit-line"></i></button>\`;
+
+                html += \`
+                    <tr class="\${rowClass}" data-id="\${dto.id}" style="\${rowStyle}">
+                        <td>\${dto.fecha || 's/f'}</td>
+                        <td>
+                            <span class="citizen-name">\${dto.fullName}</span>
                             <span class="citizen-dni">\${dto.dniFormatted}</span>
                         </td>
                         <td><span class="expte-number">\${dto.expte || dto.motivo || 'Atención General'}</span></td>
                         <td><span class="badge \${dto.defensoriaBadgeClass}">\${dto.defensoriaName}</span></td>
                         <td>\${statusHtml}</td>
-                        <td>\${dto.atendidoPor}</td>
+                        <td>
+                            \${dto.codefensoraAsignada 
+                                ? \`<span style="color:#F472B6; font-weight:600;">\${dto.codefensoraAsignada}</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: \${dto.atendidoPor}</span>\` 
+                                : dto.atendidoPor}
+                        </td>
                         <td onclick="event.stopPropagation();">\${actionBtn}\${editBtn}</td>
                     </tr>
                 \`;
