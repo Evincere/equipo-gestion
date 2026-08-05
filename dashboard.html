@@ -146,12 +146,26 @@
                             </div>
                         </div>
 
-                        <div class="stat-card stat-gold" style="border-top: 3px solid #F59E0B;">
+                        <div class="stat-card stat-gold" style="border-top: 3px solid #F59E0B; position: relative; overflow: visible !important; cursor: pointer;" id="cardTareasPendientes" title="Haga clic para filtrar tareas pendientes | Pasa el mouse para ver desglose por operador">
                             <div class="stat-header">
                                 <span class="stat-label">Tareas Pendientes</span>
                                 <div class="stat-icon" style="color: #F59E0B;"><i class="ri-time-line"></i></div>
                             </div>
                             <div class="stat-value" id="kpiPendientes" style="color: #FBBF24;">...</div>
+                            <div style="display: flex; gap: 0.5rem; font-size: 0.76rem; color: #94A3B8; margin-top: 0.35rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <span>Hoy: <strong id="kpiPendientesHoy" style="color: #4ADE80;">...</strong></span>
+                                <span>•</span>
+                                <span>Sem: <strong id="kpiPendientesSemana" style="color: #FBBF24;">...</strong></span>
+                                <span>•</span>
+                                <span>Ant: <strong id="kpiPendientesAntiguas" style="color: #F87171;">...</strong></span>
+                            </div>
+                            <!-- Tooltip oculto para la discriminación por operador de tareas pendientes -->
+                            <div id="pendingOperatorTooltip" style="display: none; position: absolute; top: 100%; left: 0; background: rgba(15, 22, 36, 0.95); border: 1px solid #F59E0B; border-radius: 8px; padding: 1rem; width: 100%; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); backdrop-filter: blur(10px); margin-top: 0.5rem;">
+                                <h5 style="color: #FFF; font-size: 0.85rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.25rem;">Pendientes por Operador</h5>
+                                <div id="pendingOperatorBreakdownList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 150px; overflow-y: auto;">
+                                    <span style="color: #94A3B8; font-size: 0.8rem;">Cargando...</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="stat-card stat-magenta">

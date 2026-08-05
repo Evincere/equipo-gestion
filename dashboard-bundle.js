@@ -252,6 +252,11 @@
             let totalYear = 0;
             const operatorBreakdown = {};
 
+            let pendientesHoy = 0;
+            let pendientesSemana = 0;
+            let pendientesAntiguas = 0;
+            const pendingOperatorBreakdown = {};
+
             attendances.forEach(a => {
                 const isToday = normalizeDateStr(a.fecha) === todayStr;
                 if (isToday) {
@@ -273,6 +278,19 @@
                         totalYear++;
                     }
                 }
+
+                if (a.tareaPendiente) {
+                    const op = a.atendidoPor || 'Secretaría';
+                    pendingOperatorBreakdown[op] = (pendingOperatorBreakdown[op] || 0) + 1;
+
+                    if (isToday) {
+                        pendientesHoy++;
+                    } else if (ts > 0 && new Date(ts) >= startOfWeek) {
+                        pendientesSemana++;
+                    } else {
+                        pendientesAntiguas++;
+                    }
+                }
             });
 
             return {
@@ -284,7 +302,11 @@
                 derivacionesTecnica: attendances.filter(a => a.isDerivacionTecnica()).length,
                 escritosCount: attendances.filter(a => a.hasEscritos()).length,
                 pendientesCount: attendances.filter(a => a.tareaPendiente).length,
-                operatorBreakdown
+                pendientesHoy,
+                pendientesSemana,
+                pendientesAntiguas,
+                operatorBreakdown,
+                pendingOperatorBreakdown
             };
         }
     }
@@ -568,6 +590,12 @@
             this.kpiTecnica = document.getElementById('kpiTecnica');
             this.kpiEscritos = document.getElementById('kpiEscritos');
             this.kpiPendientes = document.getElementById('kpiPendientes');
+            this.cardTareasPendientes = document.getElementById('cardTareasPendientes');
+            this.pendingOperatorTooltip = document.getElementById('pendingOperatorTooltip');
+            this.pendingOperatorBreakdownList = document.getElementById('pendingOperatorBreakdownList');
+            this.kpiPendientesHoy = document.getElementById('kpiPendientesHoy');
+            this.kpiPendientesSemana = document.getElementById('kpiPendientesSemana');
+            this.kpiPendientesAntiguas = document.getElementById('kpiPendientesAntiguas');
 
             this.pageSizeSelect = document.getElementById('pageSizeSelect');
             this.btnPrevPage = document.getElementById('btnPrevPage');
@@ -769,6 +797,29 @@
                 });
                 this.cardTotalAtenciones.addEventListener('mouseleave', () => {
                     this.operatorTooltip.style.display = 'none';
+                });
+            }
+
+            if (this.cardTareasPendientes) {
+                if (this.pendingOperatorTooltip) {
+                    this.cardTareasPendientes.addEventListener('mouseenter', () => {
+                        this.pendingOperatorTooltip.style.display = 'block';
+                    });
+                    this.cardTareasPendientes.addEventListener('mouseleave', () => {
+                        this.pendingOperatorTooltip.style.display = 'none';
+                    });
+                }
+                this.cardTareasPendientes.addEventListener('click', (e) => {
+                    // Evitar que el click dentro del tooltip cierre o distorsione la acción si fue en un elemento de texto
+                    if (this.filterResultado) {
+                        if (this.filterResultado.value === 'PENDIENTE') {
+                            this.filterResultado.value = '';
+                        } else {
+                            this.filterResultado.value = 'PENDIENTE';
+                        }
+                        this.currentPage = 1;
+                        this.updateView();
+                    }
                 });
             }
 
@@ -1441,6 +1492,21 @@
             this.kpiTecnica.textContent = summary.derivacionesTecnica.toLocaleString();
             this.kpiEscritos.textContent = summary.escritosCount.toLocaleString();
             if (this.kpiPendientes) this.kpiPendientes.textContent = summary.pendientesCount.toLocaleString();
+            if (this.kpiPendientesHoy) this.kpiPendientesHoy.textContent = summary.pendientesHoy.toLocaleString();
+            if (this.kpiPendientesSemana) this.kpiPendientesSemana.textContent = summary.pendientesSemana.toLocaleString();
+            if (this.kpiPendientesAntiguas) this.kpiPendientesAntiguas.textContent = summary.pendientesAntiguas.toLocaleString();
+
+            if (this.pendingOperatorBreakdownList) {
+                let html = '';
+                if (Object.keys(summary.pendingOperatorBreakdown).length === 0) {
+                    html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin tareas pendientes</span>';
+                } else {
+                    for (const [operator, count] of Object.entries(summary.pendingOperatorBreakdown)) {
+                        html += `<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">${operator}</span> <span style="background: rgba(245,158,11,0.2); padding: 0.1rem 0.4rem; border-radius: 4px; color: #FBBF24;">${count}</span></div>`;
+                    }
+                }
+                this.pendingOperatorBreakdownList.innerHTML = html;
+            }
 
             this.renderPaginatedTable();
         }
