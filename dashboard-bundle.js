@@ -738,6 +738,16 @@
             if (this.btnCloseNewModal) this.btnCloseNewModal.addEventListener('click', () => this.newRecordModal.classList.remove('active'));
             if (this.newRecordForm) this.newRecordForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
             if (this.btnExportPDF) this.btnExportPDF.addEventListener('click', (e) => { e.preventDefault(); window.print(); });
+
+            // Close modals when clicking outside (on the overlay)
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    // Only close if they actually clicked the overlay background, not the modal content
+                    if (e.target === overlay) {
+                        overlay.classList.remove('active');
+                    }
+                });
+            });
         }
 
         async performDniLookup() {
@@ -1466,11 +1476,22 @@
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Fecha</span><p style="font-weight: 600;">${dto.fecha}</p></div>
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Actividad</span><p style="font-weight: 600;">${dto.actividad}</p></div>
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">N° Expte</span><p style="font-weight: 600; color: #00B4D8;">${dto.expte || 'Sin Expte.'}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge ${dto.defensoriaBadgeClass}">${dto.defensoriaName}</span></p></div>
+                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge ${dto.defensoriaBadgeClass || 'badge-otro'}">${dto.defensoriaName || 'General'}</span></p></div>
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">${dto.resultado}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Atendido Por / Operador</span><p style="font-weight: 600;">${dto.atendidoPor}</p></div>
+                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Atendido Por / Operador</span><p style="font-weight: 600;">${dto.atendidoPor || dto.atendido_por || 'Secretaría'}</p></div>
                     </div>
-                    ${dto.observaciones ? `<div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;"><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Observaciones</span><p style="font-size: 0.9rem; line-height: 1.5;">${dto.observaciones}</p></div>` : ''}
+                    
+                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">
+                        <div style="margin-bottom: 0.75rem;">
+                            <span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Motivo / Trámite</span>
+                            <p style="font-size: 0.95rem; font-weight: 600; color: #E2E8F0;">${dto.motivo || 'Sin motivo registrado.'}</p>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Observaciones</span>
+                            <p style="font-size: 0.9rem; line-height: 1.5; color: ${dto.observaciones ? '#FFF' : '#64748B'};">${dto.observaciones || 'Sin observaciones registradas en este evento.'}</p>
+                        </div>
+                    </div>
+
                     ${dto.escritos ? `<div style="background: rgba(168, 10, 10, 0.15); padding: 1rem; border-radius: 6px; border: 1px solid rgba(168, 10, 10, 0.3);"><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Escritos Judiciales</span><p style="font-size: 0.9rem; font-weight: 500;">${dto.escritos}</p></div>` : ''}
                 </div>
             `;
