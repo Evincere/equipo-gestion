@@ -3,8 +3,9 @@ FROM node:24-alpine
 # Directorio de trabajo
 WORKDIR /app
 
-# Copiar configuración de dependencias
+# Copiar configuración de dependencias e instalarlas
 COPY package*.json ./
+RUN npm install --omit=dev
 
 # Copiar el resto del código de la aplicación y base de datos
 COPY . .
