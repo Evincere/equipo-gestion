@@ -828,9 +828,6 @@ const bundleContent = `/* ======================================================
                     }
                     this.updateFamiliaAssignmentLogic();
                 });
-            }         }
-                    }
-                });
             }
 
             if (this.cardTotalAtenciones && this.operatorTooltip) {
