@@ -303,6 +303,8 @@ const bundleContent = `/* ======================================================
                         pendientesAntiguas++;
                     }
                 }
+            });
+
             const tecnicaBreakdown = {
                 eti: 0,
                 psico_social: 0,
