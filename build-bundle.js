@@ -312,7 +312,7 @@ const bundleContent = `/* ======================================================
 
             attendances.forEach(a => {
                 if (a.isDerivacionTecnica()) {
-                    const fullText = `${a.resultado} ${a.derivadoA} ${a.motivo} ${a.observaciones}`.toLowerCase();
+                    const fullText = (a.resultado + ' ' + a.derivadoA + ' ' + a.motivo + ' ' + a.observaciones).toLowerCase();
                     if (fullText.includes('eti') || fullText.includes('protección') || fullText.includes('proteccion')) {
                         tecnicaBreakdown.eti++;
                     } else if (fullText.includes('psicolog') || fullText.includes('social') || fullText.includes('gabinete') || fullText.includes('técnica') || fullText.includes('tecnica')) {
@@ -370,7 +370,7 @@ const bundleContent = `/* ======================================================
                 if (soloTecnica) {
                     matchesTecnica = item.isDerivacionTecnica();
                     if (matchesTecnica && tecnicaCategory) {
-                        const fullText = `${item.resultado} ${item.derivadoA} ${item.motivo} ${item.observaciones}`.toLowerCase();
+                        const fullText = (item.resultado + ' ' + item.derivadoA + ' ' + item.motivo + ' ' + item.observaciones).toLowerCase();
                         if (tecnicaCategory === 'eti') {
                             matchesTecnica = fullText.includes('eti') || fullText.includes('protección') || fullText.includes('proteccion');
                         } else if (tecnicaCategory === 'psico_social') {
