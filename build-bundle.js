@@ -840,6 +840,17 @@ const bundleContent = `/* ======================================================
                 });
             }
 
+            if (this.newFamilySubmotivoSelect) {
+                this.newFamilySubmotivoSelect.addEventListener('change', () => {
+                    if (this.newFamilySubmotivoSelect.value === 'Guarda Judicial / Tutela / Adopción') {
+                        if (this.newModoDerivacionFamilia) {
+                            this.newModoDerivacionFamilia.value = 'Guarda Judicial / Tutela / Adopción';
+                        }
+                        this.updateFamiliaAssignmentLogic();
+                    }
+                });
+            }
+
             if (this.cardTotalAtenciones && this.operatorTooltip) {
                 this.cardTotalAtenciones.addEventListener('mouseenter', () => {
                     this.operatorTooltip.style.display = 'block';

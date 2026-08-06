@@ -93,6 +93,7 @@ db.exec(`
     INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('ASESORAMIENTO_GENERAL', -1);
     INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('CAUSA_NUEVA', -1);
     INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('CONTESTACION_DEMANDA', -1);
+    INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('ADOPCION', -1);
 `);
 
 // Índices
@@ -444,6 +445,9 @@ function advanceTurnoCanal(canalKey) {
         'Asesoramiento General': 'ASESORAMIENTO_GENERAL',
         'Causa Nueva': 'CAUSA_NUEVA',
         'Contestación de Demanda': 'CONTESTACION_DEMANDA',
+        'Guarda Judicial / Tutela / Adopción': 'ADOPCION',
+        'Adopción': 'ADOPCION',
+        'ADOPCION': 'ADOPCION',
         'ASESORAMIENTO_GENERAL': 'ASESORAMIENTO_GENERAL',
         'CAUSA_NUEVA': 'CAUSA_NUEVA',
         'CONTESTACION_DEMANDA': 'CONTESTACION_DEMANDA'
@@ -978,6 +982,9 @@ function handleGetProximoTurno(req, res, parsedUrl) {
             'Asesoramiento General': 'ASESORAMIENTO_GENERAL',
             'Causa Nueva': 'CAUSA_NUEVA',
             'Contestación de Demanda': 'CONTESTACION_DEMANDA',
+            'Guarda Judicial / Tutela / Adopción': 'ADOPCION',
+            'Adopción': 'ADOPCION',
+            'ADOPCION': 'ADOPCION',
             'ASESORAMIENTO_GENERAL': 'ASESORAMIENTO_GENERAL',
             'CAUSA_NUEVA': 'CAUSA_NUEVA',
             'CONTESTACION_DEMANDA': 'CONTESTACION_DEMANDA'
