@@ -1853,7 +1853,7 @@ const bundleContent = `/* ======================================================
                         <td><span class="badge \${dto.defensoriaBadgeClass}">\${dto.defensoriaName}</span></td>
                         <td>\${statusHtml}</td>
                         <td>
-                            \${dto.codefensoraAsignada 
+                            \${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada 
                                 ? \`<span style="color:#F472B6; font-weight:600;">\${dto.codefensoraAsignada}</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: \${dto.atendidoPor}</span>\` 
                                 : dto.atendidoPor}
                         </td>
@@ -1953,9 +1953,9 @@ const bundleContent = `/* ======================================================
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge \${dto.defensoriaBadgeClass || 'badge-otro'}">\${dto.defensoriaName || 'General'}</span></p></div>
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">\${dto.resultado}</p></div>
                         <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">\${dto.atendidoPor || 'Secretaría'}</p></div>
-                        \${dto.codefensoraAsignada ? \`<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. \${dto.codefensoraAsignada.replace(/^Dra\\.\\s*/i, '')}</p></div>\` : ''}
-                        \${dto.modoDerivacionFamilia ? \`<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">\${dto.modoDerivacionFamilia}</p></div>\` : ''}
-                        \${dto.fechaVencimientoContestacion ? \`<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> \${dto.fechaVencimientoContestacion}</p></div>\` : ''}
+                        \${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? \`<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. \${dto.codefensoraAsignada.replace(/^Dra\\.\\s*/i, '')}</p></div>\` : ''}
+                        \${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.modoDerivacionFamilia ? \`<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">\${dto.modoDerivacionFamilia}</p></div>\` : ''}
+                        \${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.fechaVencimientoContestacion ? \`<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> \${dto.fechaVencimientoContestacion}</p></div>\` : ''}
                     </div>
                     
                     <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">
@@ -2028,10 +2028,10 @@ const bundleContent = `/* ======================================================
             const isTaskPending = this.newTareaPendiente ? this.newTareaPendiente.checked : false;
             const taskDetail = this.newDetallePendiente ? this.newDetallePendiente.value : '';
 
-            const isFamilia = this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
-            const modoFamilia = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : '';
-            const codefensora = this.newCodefensoraAsignada ? this.newCodefensoraAsignada.value : '';
-            const vencimientoContestacion = this.newFechaVencimientoContestacion ? this.newFechaVencimientoContestacion.value : '';
+            const isFamilia = this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
+            const modoFamilia = (isFamilia && this.newModoDerivacionFamilia) ? this.newModoDerivacionFamilia.value : '';
+            const codefensora = (isFamilia && this.newCodefensoraAsignada) ? this.newCodefensoraAsignada.value : '';
+            const vencimientoContestacion = (isFamilia && this.newFechaVencimientoContestacion) ? this.newFechaVencimientoContestacion.value : '';
 
             if (isFamilia && modoFamilia === 'Contestación de Demanda' && !vencimientoContestacion) {
                 showToast('Por favor ingrese la Fecha de Vencimiento / Plazo para la Contestación de Demanda.', 'error');

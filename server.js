@@ -534,10 +534,10 @@ function handlePostAtencion(req, res) {
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
-            const detallePendiente = data.detallePendiente || '';
-            const modoFamilia = data.modoDerivacionFamilia || '';
-            const codefensora = data.codefensoraAsignada || '';
-            const vencimiento = data.fechaVencimientoContestacion || '';
+            const isFamilia = data.defensoria === 'CO-DEF. FAMILIA';
+            const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
+            const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
+            const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
 
             const result = stmt.run(
                 data.fecha || new Date().toLocaleDateString('es-AR'),
@@ -649,10 +649,10 @@ function handlePutAtencion(req, res) {
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
-            const detallePendiente = data.detallePendiente || '';
-            const modoFamilia = data.modoDerivacionFamilia || '';
-            const codefensora = data.codefensoraAsignada || '';
-            const vencimiento = data.fechaVencimientoContestacion || '';
+            const isFamilia = data.defensoria === 'CO-DEF. FAMILIA';
+            const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
+            const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
+            const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
 
             stmt.run(
                 data.fecha || 'S/F',
