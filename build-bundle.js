@@ -668,6 +668,7 @@ const bundleContent = `/* ======================================================
             this.btnExportPDF = document.getElementById('btnExportPDF');
                   this.presenceRosterContainer = document.getElementById('presenceRosterContainer');
             this.turnIndicatorBadge = document.getElementById('turnIndicatorBadge');
+            this.turnIndicatorContainer = document.getElementById('turnIndicatorContainer');
             this.newDefensoriaSelect = document.getElementById('newDefensoria');
             this.familySubmotivoGroup = document.getElementById('familySubmotivoGroup');
             this.newFamilySubmotivoSelect = document.getElementById('newFamilySubmotivo');
@@ -1497,12 +1498,29 @@ const bundleContent = `/* ======================================================
                 const res = await fetch(getApiUrl('/api/familia/proximo-turno?canal=' + encodeURIComponent(canalKey)));
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.success && data.proximaDefensora) {
-                        this.proximaDefensoriaTurno = data.proximaDefensora;
-                        if (this.turnIndicatorBadge) {
-                            this.turnIndicatorBadge.textContent = 'Próximo Turno (' + canalKey + '): Dra. ' + data.proximaDefensora;
+                    if (data.success) {
+                        if (data.turnos) {
+                            let badgesHtml = '';
+                            const styles = {
+                                'Ases. General': 'background: rgba(236, 72, 153, 0.2); border: 1px solid #EC4899; color: #F472B6;',
+                                'Causa Nueva': 'background: rgba(56, 189, 248, 0.2); border: 1px solid #38BDF8; color: #38BDF8;',
+                                'Contestación': 'background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;',
+                                'Adopción / Guarda': 'background: rgba(168, 85, 247, 0.2); border: 1px solid #A855F7; color: #C084FC;'
+                            };
+                            for (const [chanLabel, defName] of Object.entries(data.turnos)) {
+                                const st = styles[chanLabel] || 'background: rgba(255,255,255,0.1); color: #FFF;';
+                                badgesHtml += \`<span class="turn-indicator" style="\${st} font-size: 0.74rem; padding: 0.2rem 0.6rem; border-radius: 14px; font-weight: 600;">\${chanLabel}: Dra. \${defName}</span>\`;
+                            }
+                            if (this.turnIndicatorContainer) {
+                                this.turnIndicatorContainer.innerHTML = badgesHtml;
+                            } else if (this.turnIndicatorBadge) {
+                                this.turnIndicatorBadge.innerHTML = badgesHtml;
+                            }
                         }
-                        return data.proximaDefensora;
+                        if (data.proximaDefensora) {
+                            this.proximaDefensoriaTurno = data.proximaDefensora;
+                            return data.proximaDefensora;
+                        }
                     }
                 }
             } catch(e) {}
@@ -1510,9 +1528,6 @@ const bundleContent = `/* ======================================================
             const presentes = this.codefensorasRoster.filter(c => c.isPresente);
             if (presentes.length > 0) {
                 this.proximaDefensoriaTurno = presentes[0].nombre;
-                if (this.turnIndicatorBadge) {
-                    this.turnIndicatorBadge.textContent = 'Próximo Turno: Dra. ' + presentes[0].nombre;
-                }
                 return presentes[0].nombre;
             }
             return '';

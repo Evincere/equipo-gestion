@@ -1003,9 +1003,24 @@ function handleGetProximoTurno(req, res, parsedUrl) {
         const nextIndex = (lastIndex + 1) % presentes.length;
         const proximaDefensora = presentes[nextIndex].nombre;
 
+        const canalesList = [
+            { key: 'ASESORAMIENTO_GENERAL', label: 'Ases. General' },
+            { key: 'CAUSA_NUEVA', label: 'Causa Nueva' },
+            { key: 'CONTESTACION_DEMANDA', label: 'Contestación' },
+            { key: 'ADOPCION', label: 'Adopción / Guarda' }
+        ];
+
+        const turnos = {};
+        canalesList.forEach(c => {
+            const st = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(c.key);
+            let idx = st ? st.last_index : -1;
+            const nxt = (idx + 1) % presentes.length;
+            turnos[c.label] = presentes[nxt].nombre;
+        });
+
         // Lectura pura sin efectos secundarios en GET
         res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-        res.end(JSON.stringify({ success: true, proximaDefensora, index: nextIndex, canal: canalKey }));
+        res.end(JSON.stringify({ success: true, proximaDefensora, index: nextIndex, canal: canalKey, turnos }));
     } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: err.message }));

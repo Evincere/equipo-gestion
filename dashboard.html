@@ -118,9 +118,11 @@
 
                     <!-- Panel de Asistencia / Presentismo Co-Defensoría de Familia -->
                     <div class="presence-panel">
-                        <div class="presence-header">
+                        <div class="presence-header" style="flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between;">
                             <span class="presence-title"><i class="ri-user-follow-line"></i> Presentismo Co-Defensoría de Familia (Turnos Rotativos)</span>
-                            <span class="turn-indicator" id="turnIndicatorBadge">Próximo Turno: Cargar datos...</span>
+                            <div id="turnIndicatorContainer" style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                                <span class="turn-indicator" id="turnIndicatorBadge">Cargando próximos turnos...</span>
+                            </div>
                         </div>
                         <div class="presence-roster" id="presenceRosterContainer">
                             <span style="font-size: 0.8rem; color: #94A3B8;">Cargando estado de asistencia...</span>
