@@ -424,11 +424,11 @@ body {
     border-radius: 8px;
     padding: 1.35rem 1.5rem;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.3s ease;
 }
 
-.stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--mpd-cyan); }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--mpd-cyan); border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
 .stat-card.stat-red::before { background: var(--mpd-red); }
 .stat-card.stat-magenta::before { background: var(--mpd-magenta); }
 .stat-card.stat-gold::before { background: var(--mpd-gold); }

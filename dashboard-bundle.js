@@ -300,25 +300,12 @@
                 }
             });
 
-            const tecnicaBreakdown = {
-                eti: 0,
-                psico_social: 0,
-                asesoria: 0,
-                otras: 0
-            };
+            const tecnicaBreakdown = {};
 
             attendances.forEach(a => {
                 if (a.isDerivacionTecnica()) {
-                    const fullText = (a.resultado + ' ' + a.derivadoA + ' ' + a.motivo + ' ' + a.observaciones).toLowerCase();
-                    if (fullText.includes('eti') || fullText.includes('protección') || fullText.includes('proteccion')) {
-                        tecnicaBreakdown.eti++;
-                    } else if (fullText.includes('psicolog') || fullText.includes('social') || fullText.includes('gabinete') || fullText.includes('técnica') || fullText.includes('tecnica')) {
-                        tecnicaBreakdown.psico_social++;
-                    } else if (fullText.includes('asesor') || fullText.includes('niñez') || fullText.includes('incapac') || fullText.includes('capacidad')) {
-                        tecnicaBreakdown.asesoria++;
-                    } else {
-                        tecnicaBreakdown.otras++;
-                    }
+                    const dest = (a.derivadoA && a.derivadoA.trim()) ? a.derivadoA.trim() : 'Sin Especificar';
+                    tecnicaBreakdown[dest] = (tecnicaBreakdown[dest] || 0) + 1;
                 }
             });
 
@@ -367,14 +354,8 @@
                 if (soloTecnica) {
                     matchesTecnica = item.isDerivacionTecnica();
                     if (matchesTecnica && tecnicaCategory) {
-                        const fullText = (item.resultado + ' ' + item.derivadoA + ' ' + item.motivo + ' ' + item.observaciones).toLowerCase();
-                        if (tecnicaCategory === 'eti') {
-                            matchesTecnica = fullText.includes('eti') || fullText.includes('protección') || fullText.includes('proteccion');
-                        } else if (tecnicaCategory === 'psico_social') {
-                            matchesTecnica = fullText.includes('psicolog') || fullText.includes('social') || fullText.includes('gabinete') || fullText.includes('técnica') || fullText.includes('tecnica');
-                        } else if (tecnicaCategory === 'asesoria') {
-                            matchesTecnica = fullText.includes('asesor') || fullText.includes('niñez') || fullText.includes('incapac') || fullText.includes('capacidad');
-                        }
+                        const dest = (item.derivadoA && item.derivadoA.trim()) ? item.derivadoA.trim() : 'Sin Especificar';
+                        matchesTecnica = (dest === tecnicaCategory);
                     }
                 }
 
@@ -1704,17 +1685,16 @@
             if (this.kpiPendientesAntiguas) this.kpiPendientesAntiguas.textContent = summary.pendientesAntiguas.toLocaleString();
 
             if (this.tecnicaBreakdownList && summary.tecnicaBreakdown) {
-                const labels = {
-                    eti: '🏢 ETI / Protección',
-                    psico_social: '🧠 Psicología / Trabajo Social',
-                    asesoria: '⚖️ Asesoría Niñez / Capacidad',
-                    otras: '📋 Otras Asistencias Técnicas'
-                };
                 let html = '';
-                for (const [key, count] of Object.entries(summary.tecnicaBreakdown)) {
-                    const isSel = (this.activeTecnicaFilter && this.activeTecnicaCategory === key);
-                    const bg = isSel ? 'background: rgba(236, 72, 153, 0.3); border: 1px solid #EC4899;' : 'background: rgba(255,255,255,0.05);';
-                    html += `<div class="tecnica-breakdown-item" data-cat="${key}" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ${bg}"><span>${labels[key]}</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">${count}</span></div>`;
+                const entries = Object.entries(summary.tecnicaBreakdown).sort((a, b) => b[1] - a[1]);
+                if (entries.length === 0) {
+                    html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin derivaciones técnicas</span>';
+                } else {
+                    for (const [profesional, count] of entries) {
+                        const isSel = (this.activeTecnicaFilter && this.activeTecnicaCategory === profesional);
+                        const bg = isSel ? 'background: rgba(236, 72, 153, 0.3); border: 1px solid #EC4899;' : 'background: rgba(255,255,255,0.05);';
+                        html += `<div class="tecnica-breakdown-item" data-cat="${profesional}" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ${bg}"><span style="font-weight: 600;">👤 ${profesional}</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">${count}</span></div>`;
+                    }
                 }
                 this.tecnicaBreakdownList.innerHTML = html;
 
@@ -1787,10 +1767,9 @@
                 if (this.activeTecnicaFilter) {
                     this.tecnicaFilterBadge.style.display = 'flex';
                     let label = 'Filtro: Asistencia Técnica';
-                    if (this.activeTecnicaCategory === 'eti') label = 'Filtro: ETI / Protección';
-                    else if (this.activeTecnicaCategory === 'psico_social') label = 'Filtro: Psicología / Trabajo Social';
-                    else if (this.activeTecnicaCategory === 'asesoria') label = 'Filtro: Asesoría Niñez / Capacidad';
-                    else if (this.activeTecnicaCategory === 'otras') label = 'Filtro: Otras Asist. Técnicas';
+                    if (this.activeTecnicaCategory) {
+                        label = 'Filtro: A. Técnica (' + this.activeTecnicaCategory + ')';
+                    }
                     if (this.tecnicaFilterBadgeText) this.tecnicaFilterBadgeText.textContent = label;
                 } else {
                     this.tecnicaFilterBadge.style.display = 'none';
