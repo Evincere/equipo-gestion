@@ -298,6 +298,26 @@
                         pendientesAntiguas++;
                     }
                 }
+            const tecnicaBreakdown = {
+                eti: 0,
+                psico_social: 0,
+                asesoria: 0,
+                otras: 0
+            };
+
+            attendances.forEach(a => {
+                if (a.isDerivacionTecnica()) {
+                    const fullText = (a.resultado + ' ' + a.derivadoA + ' ' + a.motivo + ' ' + a.observaciones).toLowerCase();
+                    if (fullText.includes('eti') || fullText.includes('protección') || fullText.includes('proteccion')) {
+                        tecnicaBreakdown.eti++;
+                    } else if (fullText.includes('psicolog') || fullText.includes('social') || fullText.includes('gabinete') || fullText.includes('técnica') || fullText.includes('tecnica')) {
+                        tecnicaBreakdown.psico_social++;
+                    } else if (fullText.includes('asesor') || fullText.includes('niñez') || fullText.includes('incapac') || fullText.includes('capacidad')) {
+                        tecnicaBreakdown.asesoria++;
+                    } else {
+                        tecnicaBreakdown.otras++;
+                    }
+                }
             });
 
             return {
@@ -313,13 +333,14 @@
                 pendientesSemana,
                 pendientesAntiguas,
                 operatorBreakdown,
-                pendingOperatorBreakdown
+                pendingOperatorBreakdown,
+                tecnicaBreakdown
             };
         }
     }
 
     class SearchAttendancesUseCase {
-        execute(attendances, { query = '', defensoria = '', resultado = '' }) {
+        execute(attendances, { query = '', defensoria = '', resultado = '', soloTecnica = false, tecnicaCategory = null }) {
             const q = query.toLowerCase().trim();
             const qCleanDni = q.split('.').join('');
             const filtered = attendances.filter(item => {
@@ -340,7 +361,22 @@
                     matchesResultado = item.resultado === resultado;
                 }
 
-                return matchesQuery && matchesDefensoria && matchesResultado;
+                let matchesTecnica = true;
+                if (soloTecnica) {
+                    matchesTecnica = item.isDerivacionTecnica();
+                    if (matchesTecnica && tecnicaCategory) {
+                        const fullText = (item.resultado + ' ' + item.derivadoA + ' ' + item.motivo + ' ' + item.observaciones).toLowerCase();
+                        if (tecnicaCategory === 'eti') {
+                            matchesTecnica = fullText.includes('eti') || fullText.includes('protección') || fullText.includes('proteccion');
+                        } else if (tecnicaCategory === 'psico_social') {
+                            matchesTecnica = fullText.includes('psicolog') || fullText.includes('social') || fullText.includes('gabinete') || fullText.includes('técnica') || fullText.includes('tecnica');
+                        } else if (tecnicaCategory === 'asesoria') {
+                            matchesTecnica = fullText.includes('asesor') || fullText.includes('niñez') || fullText.includes('incapac') || fullText.includes('capacidad');
+                        }
+                    }
+                }
+
+                return matchesQuery && matchesDefensoria && matchesResultado && matchesTecnica;
             });
 
             // Ordenar por fecha (descendente) y luego por ID
@@ -605,6 +641,17 @@
             this.operatorTooltip = document.getElementById('operatorTooltip');
             this.operatorBreakdownList = document.getElementById('operatorBreakdownList');
             this.kpiTecnica = document.getElementById('kpiTecnica');
+            this.cardDerivadasTecnica = document.getElementById('cardDerivadasTecnica');
+            this.btnToggleTecnicaBreakdown = document.getElementById('btnToggleTecnicaBreakdown');
+            this.tecnicaBreakdownPopover = document.getElementById('tecnicaBreakdownPopover');
+            this.tecnicaBreakdownList = document.getElementById('tecnicaBreakdownList');
+            this.tecnicaFilterBadge = document.getElementById('tecnicaFilterBadge');
+            this.tecnicaFilterBadgeText = document.getElementById('tecnicaFilterBadgeText');
+            this.btnClearTecnicaFilter = document.getElementById('btnClearTecnicaFilter');
+            this.btnCloseTecnicaPopover = document.getElementById('btnCloseTecnicaPopover');
+
+            this.activeTecnicaFilter = false;
+            this.activeTecnicaCategory = null;
             this.kpiEscritos = document.getElementById('kpiEscritos');
             this.kpiPendientes = document.getElementById('kpiPendientes');
             this.cardTareasPendientes = document.getElementById('cardTareasPendientes');
@@ -852,6 +899,34 @@
                 });
                 this.cardTotalAtenciones.addEventListener('mouseleave', () => {
                     this.operatorTooltip.style.display = 'none';
+                });
+            }
+
+            if (this.cardDerivadasTecnica) {
+                this.cardDerivadasTecnica.addEventListener('click', (e) => {
+                    if (e.target.closest('#btnToggleTecnicaBreakdown') || e.target.closest('#tecnicaBreakdownPopover')) return;
+                    this.toggleTecnicaFilter();
+                });
+            }
+
+            if (this.btnToggleTecnicaBreakdown) {
+                this.btnToggleTecnicaBreakdown.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleTecnicaPopover();
+                });
+            }
+
+            if (this.btnClearTecnicaFilter) {
+                this.btnClearTecnicaFilter.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.clearTecnicaFilter();
+                });
+            }
+
+            if (this.btnCloseTecnicaPopover) {
+                this.btnCloseTecnicaPopover.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.tecnicaBreakdownPopover) this.tecnicaBreakdownPopover.style.display = 'none';
                 });
             }
 
@@ -1594,7 +1669,9 @@
             const filters = {
                 query: this.searchInput.value,
                 defensoria: this.filterDefensoria.value,
-                resultado: this.filterResultado.value
+                resultado: this.filterResultado.value,
+                soloTecnica: this.activeTecnicaFilter,
+                tecnicaCategory: this.activeTecnicaCategory
             };
             this.currentDTOs = this.searchAttendancesUseCase.execute(this.rawEntities, filters);
             const filteredEntities = this.rawEntities.filter(e => this.currentDTOs.some(d => d.id === e.id));
@@ -1624,6 +1701,30 @@
             if (this.kpiPendientesSemana) this.kpiPendientesSemana.textContent = summary.pendientesSemana.toLocaleString();
             if (this.kpiPendientesAntiguas) this.kpiPendientesAntiguas.textContent = summary.pendientesAntiguas.toLocaleString();
 
+            if (this.tecnicaBreakdownList && summary.tecnicaBreakdown) {
+                const labels = {
+                    eti: '🏢 ETI / Protección',
+                    psico_social: '🧠 Psicología / Trabajo Social',
+                    asesoria: '⚖️ Asesoría Niñez / Capacidad',
+                    otras: '📋 Otras Asistencias Técnicas'
+                };
+                let html = '';
+                for (const [key, count] of Object.entries(summary.tecnicaBreakdown)) {
+                    const isSel = (this.activeTecnicaFilter && this.activeTecnicaCategory === key);
+                    const bg = isSel ? 'background: rgba(236, 72, 153, 0.3); border: 1px solid #EC4899;' : 'background: rgba(255,255,255,0.05);';
+                    html += `<div class="tecnica-breakdown-item" data-cat="${key}" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ${bg}"><span>${labels[key]}</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">${count}</span></div>`;
+                }
+                this.tecnicaBreakdownList.innerHTML = html;
+
+                this.tecnicaBreakdownList.querySelectorAll('.tecnica-breakdown-item').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const cat = el.getAttribute('data-cat');
+                        this.setTecnicaCategoryFilter(cat);
+                    });
+                });
+            }
+
             if (this.pendingOperatorBreakdownList) {
                 let html = '';
                 if (Object.keys(summary.pendingOperatorBreakdown).length === 0) {
@@ -1637,6 +1738,62 @@
             }
 
             this.renderPaginatedTable();
+        }
+
+        toggleTecnicaFilter() {
+            this.activeTecnicaFilter = !this.activeTecnicaFilter;
+            if (!this.activeTecnicaFilter) {
+                this.activeTecnicaCategory = null;
+            }
+            this.updateTecnicaFilterUI();
+            this.currentPage = 1;
+            this.updateView();
+        }
+
+        setTecnicaCategoryFilter(categoryKey) {
+            this.activeTecnicaFilter = true;
+            this.activeTecnicaCategory = categoryKey;
+            if (this.tecnicaBreakdownPopover) this.tecnicaBreakdownPopover.style.display = 'none';
+            this.updateTecnicaFilterUI();
+            this.currentPage = 1;
+            this.updateView();
+        }
+
+        clearTecnicaFilter() {
+            this.activeTecnicaFilter = false;
+            this.activeTecnicaCategory = null;
+            this.updateTecnicaFilterUI();
+            this.currentPage = 1;
+            this.updateView();
+        }
+
+        toggleTecnicaPopover() {
+            if (!this.tecnicaBreakdownPopover) return;
+            const current = this.tecnicaBreakdownPopover.style.display;
+            this.tecnicaBreakdownPopover.style.display = (current === 'none' || !current) ? 'block' : 'none';
+        }
+
+        updateTecnicaFilterUI() {
+            if (this.cardDerivadasTecnica) {
+                if (this.activeTecnicaFilter) {
+                    this.cardDerivadasTecnica.classList.add('active-filter-card');
+                } else {
+                    this.cardDerivadasTecnica.classList.remove('active-filter-card');
+                }
+            }
+            if (this.tecnicaFilterBadge) {
+                if (this.activeTecnicaFilter) {
+                    this.tecnicaFilterBadge.style.display = 'flex';
+                    let label = 'Filtro: Asistencia Técnica';
+                    if (this.activeTecnicaCategory === 'eti') label = 'Filtro: ETI / Protección';
+                    else if (this.activeTecnicaCategory === 'psico_social') label = 'Filtro: Psicología / Trabajo Social';
+                    else if (this.activeTecnicaCategory === 'asesoria') label = 'Filtro: Asesoría Niñez / Capacidad';
+                    else if (this.activeTecnicaCategory === 'otras') label = 'Filtro: Otras Asist. Técnicas';
+                    if (this.tecnicaFilterBadgeText) this.tecnicaFilterBadgeText.textContent = label;
+                } else {
+                    this.tecnicaFilterBadge.style.display = 'none';
+                }
+            }
         }
 
         renderPaginatedTable() {
