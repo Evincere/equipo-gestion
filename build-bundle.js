@@ -472,7 +472,10 @@ const bundleContent = `/* ======================================================
                         derivadoA: entity.derivadoA,
                         escritos: entity.escritos,
                         tareaPendiente: entity.tareaPendiente,
-                        detallePendiente: entity.detallePendiente
+                        detallePendiente: entity.detallePendiente,
+                        modoDerivacionFamilia: entity.modoDerivacionFamilia,
+                        codefensoraAsignada: entity.codefensoraAsignada,
+                        fechaVencimientoContestacion: entity.fechaVencimientoContestacion
                     })
                 });
             } catch(e) {
