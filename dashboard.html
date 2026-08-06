@@ -577,17 +577,17 @@
 
                     <div class="form-group">
                         <label>Motivo General</label>
-                        <input type="text" id="newMotivo" list="motivoOptions" class="form-control" placeholder="Seleccione o incorpore un motivo...">
-                        <datalist id="motivoOptions">
-                            <option value="Espontánea"></option>
-                            <option value="Causa Trámite"></option>
-                            <option value="Turno"></option>
-                            <option value="Divorcio"></option>
-                            <option value="Aud. Fijada"></option>
-                            <option value="Aud. Imputación"></option>
-                            <option value="Ejecución"></option>
-                            <option value="Otro"></option>
-                        </datalist>
+                        <select id="newMotivo" class="form-control" required>
+                            <option value="" disabled selected>-- Seleccionar Motivo --</option>
+                            <option value="Espontánea">Espontánea</option>
+                            <option value="Causa Trámite">Causa Trámite</option>
+                            <option value="Aud. Fijada">Aud. Fijada</option>
+                            <option value="Divorcio">Divorcio</option>
+                            <option value="Ejecución">Ejecución</option>
+                            <option value="Turno">Turno</option>
+                            <option value="Aud. Imputación">Aud. Imputación</option>
+                            <option value="Otro">Otro</option>
+                        </select>
                     </div>
 
                     <div class="form-group">

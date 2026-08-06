@@ -1641,8 +1641,17 @@ const bundleContent = `/* ======================================================
                 }
             }
 
+            let rawMotivo = entity.motivo || '';
+            if (rawMotivo.startsWith('[')) {
+                const idx = rawMotivo.indexOf(']');
+                if (idx !== -1) {
+                    const sub = rawMotivo.substring(1, idx).trim();
+                    if (this.newFamilySubmotivoSelect) this.newFamilySubmotivoSelect.value = sub;
+                    rawMotivo = rawMotivo.substring(idx + 1).trim();
+                }
+            }
             const elMotivo = document.getElementById('newMotivo');
-            if (elMotivo) elMotivo.value = entity.motivo;
+            if (elMotivo) elMotivo.value = rawMotivo;
 
             const elResultado = document.getElementById('newResultado');
             if (elResultado) elResultado.value = entity.resultado;
