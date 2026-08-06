@@ -1570,13 +1570,17 @@ const bundleContent = `/* ======================================================
             if (submitBtn) submitBtn.innerHTML = '<i class="ri-save-line"></i> Guardar Registro';
 
             if (this.newRecordForm) this.newRecordForm.reset();
+
+            const elActividad = document.getElementById('newActividad');
+            if (elActividad) elActividad.value = '';
+
             if (this.newDefensoriaSelect) this.newDefensoriaSelect.value = '';
 
-            if (this.newDniInput) this.newDniInput.value = '';
-            const elFecha = document.getElementById('newFecha');
-            if (elFecha) elFecha.value = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
             const elMotivo = document.getElementById('newMotivo');
-            if (elMotivo) elMotivo.value = 'Espontánea';
+            if (elMotivo) elMotivo.value = '';
+
+            const elResultado = document.getElementById('newResultado');
+            if (elResultado) elResultado.value = '';
 
             if (this.newTareaPendiente) this.newTareaPendiente.checked = false;
             if (this.newDetallePendiente) this.newDetallePendiente.value = '';
