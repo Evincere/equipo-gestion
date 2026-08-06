@@ -1565,6 +1565,7 @@
             if (submitBtn) submitBtn.innerHTML = '<i class="ri-save-line"></i> Guardar Registro';
 
             if (this.newRecordForm) this.newRecordForm.reset();
+            if (this.newDefensoriaSelect) this.newDefensoriaSelect.value = '';
 
             if (this.newDniInput) this.newDniInput.value = '';
             const elFecha = document.getElementById('newFecha');
