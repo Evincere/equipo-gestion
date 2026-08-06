@@ -433,6 +433,7 @@ body {
 .stat-card.stat-magenta::before { background: var(--mpd-magenta); }
 .stat-card.stat-gold::before { background: var(--mpd-gold); }
 
+.stat-card.active-filter-card { border: 2px solid #EC4899 !important; box-shadow: 0 0 14px rgba(236, 72, 153, 0.45) !important; }
 .stat-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); }
 #cardTotalAtenciones:hover #operatorTooltip { display: block !important; }
 

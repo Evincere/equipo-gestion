@@ -173,12 +173,32 @@
                             </div>
                         </div>
 
-                        <div class="stat-card stat-magenta">
+                        <div class="stat-card stat-magenta" id="cardDerivadasTecnica" style="cursor: pointer; position: relative;">
                             <div class="stat-header">
                                 <span class="stat-label">Derivadas Asist. Técnica</span>
-                                <div class="stat-icon"><i class="ri-git-pull-request-line"></i></div>
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <button type="button" id="btnToggleTecnicaBreakdown" title="Ver desglose por áreas" style="background: none; border: none; color: #EC4899; cursor: pointer; font-size: 1.1rem; padding: 0.2rem; border-radius: 4px;" onclick="event.stopPropagation();">
+                                        <i class="ri-pie-chart-line"></i>
+                                    </button>
+                                    <div class="stat-icon"><i class="ri-git-pull-request-line"></i></div>
+                                </div>
                             </div>
                             <div class="stat-value" id="kpiTecnica">...</div>
+                            <div id="tecnicaFilterBadge" style="display: none; margin-top: 0.4rem; font-size: 0.75rem; color: #F472B6; background: rgba(236, 72, 153, 0.15); border: 1px solid #EC4899; padding: 0.2rem 0.5rem; border-radius: 12px; align-items: center; justify-content: space-between;">
+                                <span id="tecnicaFilterBadgeText">Filtro: Asistencia Técnica</span>
+                                <i class="ri-close-line" id="btnClearTecnicaFilter" style="cursor: pointer; margin-left: 0.4rem; font-weight: bold;"></i>
+                            </div>
+                            
+                            <!-- Popover Desglose Flotante -->
+                            <div id="tecnicaBreakdownPopover" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 260px; background: #1E293B; border: 1px solid #EC4899; border-radius: 8px; padding: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100;" onclick="event.stopPropagation();">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem;">
+                                    <strong style="color: #F472B6; font-size: 0.8rem; text-transform: uppercase;">Desglose Áreas Técnicas</strong>
+                                    <i class="ri-close-line" id="btnCloseTecnicaPopover" style="color: #94A3B8; cursor: pointer; font-size: 1rem;"></i>
+                                </div>
+                                <div id="tecnicaBreakdownList" style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                    <span style="color: #94A3B8; font-size: 0.8rem;">Cargando...</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="stat-card stat-gold">
