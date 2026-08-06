@@ -397,7 +397,10 @@
                             escritos: row.escritos,
                             tarea_pendiente: row.tarea_pendiente,
                             detalle_pendiente: row.detalle_pendiente,
-                            tarea_cumplida_at: row.tarea_cumplida_at
+                            tarea_cumplida_at: row.tarea_cumplida_at,
+                            modo_derivacion_familia: row.modo_derivacion_familia,
+                            codefensora_asignada: row.codefensora_asignada,
+                            fecha_vencimiento_contestacion: row.fecha_vencimiento_contestacion
                         }));
 
                         this.cache.sort((a, b) => b.id - a.id);
