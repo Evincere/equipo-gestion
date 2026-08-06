@@ -1854,9 +1854,9 @@
             const taskDetail = this.newDetallePendiente ? this.newDetallePendiente.value : '';
 
             const isFamilia = this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
-            const modoFamilia = isFamilia && this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : '';
-            const codefensora = isFamilia && this.newCodefensoraAsignada ? this.newCodefensoraAsignada.value : '';
-            const vencimientoContestacion = (isFamilia && modoFamilia === 'Contestación de Demanda' && this.newFechaVencimientoContestacion) ? this.newFechaVencimientoContestacion.value : '';
+            const modoFamilia = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : '';
+            const codefensora = this.newCodefensoraAsignada ? this.newCodefensoraAsignada.value : '';
+            const vencimientoContestacion = this.newFechaVencimientoContestacion ? this.newFechaVencimientoContestacion.value : '';
 
             if (isFamilia && modoFamilia === 'Contestación de Demanda' && !vencimientoContestacion) {
                 showToast('Por favor ingrese la Fecha de Vencimiento / Plazo para la Contestación de Demanda.', 'error');
