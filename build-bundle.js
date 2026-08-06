@@ -1429,11 +1429,11 @@ const bundleContent = `/* ======================================================
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success && data.proximaDefensora) {
-                        this.proximaDefensoriaTurno = data.proximaDefensoria;
+                        this.proximaDefensoriaTurno = data.proximaDefensora;
                         if (this.turnIndicatorBadge) {
-                            this.turnIndicatorBadge.textContent = \`Próximo Turno (\${canalKey}): Dra. \${data.proximaDefensoria}\`;
+                            this.turnIndicatorBadge.textContent = `Próximo Turno (${canalKey}): Dra. ${data.proximaDefensora}`;
                         }
-                        return data.proximaDefensoria;
+                        return data.proximaDefensora;
                     }
                 }
             } catch(e) {}
