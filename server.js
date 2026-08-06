@@ -607,6 +607,12 @@ function handlePutAtencion(req, res) {
     req.on('end', () => {
         try {
             const data = JSON.parse(body);
+            console.log('[PUT /api/atenciones] Datos recibidos:', JSON.stringify({
+                id: data.id,
+                atendidoPor: data.atendidoPor,
+                codefensoraAsignada: data.codefensoraAsignada,
+                modoDerivacionFamilia: data.modoDerivacionFamilia
+            }));
             if (!data.id) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: false, error: 'Se requiere ID del registro a actualizar.' }));
