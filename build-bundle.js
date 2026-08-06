@@ -1693,7 +1693,7 @@ const bundleContent = `/* ======================================================
                     html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin atenciones hoy</span>';
                 } else {
                     for (const [operator, count] of Object.entries(summary.operatorBreakdown)) {
-                        html += `<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">${operator}</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">${count}</span></div>`;
+                        html += `<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">\${operator}</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">\${count}</span></div>`;
                     }
                 }
                 this.operatorBreakdownList.innerHTML = html;
@@ -1717,7 +1717,7 @@ const bundleContent = `/* ======================================================
                 for (const [key, count] of Object.entries(summary.tecnicaBreakdown)) {
                     const isSel = (this.activeTecnicaFilter && this.activeTecnicaCategory === key);
                     const bg = isSel ? 'background: rgba(236, 72, 153, 0.3); border: 1px solid #EC4899;' : 'background: rgba(255,255,255,0.05);';
-                    html += `<div class="tecnica-breakdown-item" data-cat="${key}" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ${bg}"><span>${labels[key]}</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">${count}</span></div>`;
+                    html += `<div class="tecnica-breakdown-item" data-cat="\${key}" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; \${bg}"><span>\${labels[key]}</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">\${count}</span></div>`;
                 }
                 this.tecnicaBreakdownList.innerHTML = html;
 
