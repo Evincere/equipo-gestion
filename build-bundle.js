@@ -1431,7 +1431,7 @@ const bundleContent = `/* ======================================================
                     if (data.success && data.proximaDefensora) {
                         this.proximaDefensoriaTurno = data.proximaDefensora;
                         if (this.turnIndicatorBadge) {
-                            this.turnIndicatorBadge.textContent = `Próximo Turno (${canalKey}): Dra. ${data.proximaDefensora}`;
+                            this.turnIndicatorBadge.textContent = 'Próximo Turno (' + canalKey + '): Dra. ' + data.proximaDefensora;
                         }
                         return data.proximaDefensora;
                     }
