@@ -978,11 +978,10 @@
             if (this.newRecordForm) this.newRecordForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
             if (this.btnExportPDF) this.btnExportPDF.addEventListener('click', (e) => { e.preventDefault(); window.print(); });
 
-            // Close modals when clicking outside (on the overlay)
+            // Close modals when clicking outside (on the overlay), except newRecordModal to prevent data loss
             document.querySelectorAll('.modal-overlay').forEach(overlay => {
                 overlay.addEventListener('click', (e) => {
-                    // Only close if they actually clicked the overlay background, not the modal content
-                    if (e.target === overlay) {
+                    if (e.target === overlay && overlay.id !== 'newRecordModal') {
                         overlay.classList.remove('active');
                     }
                 });
