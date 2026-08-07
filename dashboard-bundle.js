@@ -690,6 +690,7 @@
             
             this.currentDateText = document.getElementById('currentDateText');
             this.currentTimeText = document.getElementById('currentTimeText');
+            this.activeCatalogCategory = 'actividad';
         }
 
         async init() {
@@ -1342,8 +1343,6 @@
             this.navItemDashboard.classList.add('active');
             if (this.navItemConfig) this.navItemConfig.classList.remove('active');
         }
-
-        activeCatalogCategory: 'actividad',
 
         async showConfigSection() {
             if (!this.currentUser || (!this.currentUser.isAdmin() && this.currentUser.username !== 'spereyra')) {
