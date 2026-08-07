@@ -810,6 +810,35 @@
                 this.adminUserForm.addEventListener('submit', (e) => this.handleAdminUserSubmit(e));
             }
 
+            const catalogCategoryTabs = document.getElementById('catalogCategoryTabs');
+            if (catalogCategoryTabs) {
+                catalogCategoryTabs.querySelectorAll('.catalog-tab-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        catalogCategoryTabs.querySelectorAll('.catalog-tab-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.activeCatalogCategory = btn.getAttribute('data-cat');
+                        await this.loadAdminCatalogView();
+                    });
+                });
+            }
+
+            const btnAddCatalogOptionBtn = document.getElementById('btnAddCatalogOptionBtn');
+            if (btnAddCatalogOptionBtn) {
+                btnAddCatalogOptionBtn.addEventListener('click', async () => {
+                    const input = document.getElementById('newCatalogOptionInput');
+                    if (input && input.value.trim()) {
+                        await this.addCatalogOption(input.value.trim());
+                    }
+                });
+            }
+
+            const btnCancelEditUser = document.getElementById('btnCancelEditUser');
+            if (btnCancelEditUser) {
+                btnCancelEditUser.addEventListener('click', () => {
+                    this.resetAdminUserForm();
+                });
+            }
+
             if (this.btnSearchDni) {
                 this.btnSearchDni.addEventListener('click', () => {
                     this.performDniLookup();
@@ -1145,6 +1174,7 @@
             }
 
             await this.loadCodefensorasRoster();
+            await this.loadCatalogOptions();
             this.rawEntities = await this.repository.getAll();
             this.showDashboardSection();
             this.updateView();
@@ -1313,6 +1343,8 @@
             if (this.navItemConfig) this.navItemConfig.classList.remove('active');
         }
 
+        activeCatalogCategory: 'actividad',
+
         async showConfigSection() {
             if (!this.currentUser || (!this.currentUser.isAdmin() && this.currentUser.username !== 'spereyra')) {
                 alert('Acceso Denegado: Reservado exclusivamente para el Administrador Sergio M. Pereyra.');
@@ -1325,7 +1357,66 @@
             this.navItemConfig.classList.add('active');
 
             await this.loadAdminUsersTable();
+            await this.loadAdminCatalogView();
             await this.loadAdminAuditTable();
+        }
+
+        async loadCatalogOptions() {
+            try {
+                const res = await fetch(getApiUrl('/api/catalogos'));
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        this.catalogData = json.data;
+                        this.populateSelectsFromCatalog();
+                    }
+                }
+            } catch (e) {
+                console.warn('Error cargando catálogos:', e.message);
+            }
+        }
+
+        populateSelectsFromCatalog() {
+            if (!this.catalogData) return;
+
+            const elActividad = document.getElementById('newActividad');
+            if (elActividad && this.catalogData.actividad) {
+                const curVal = elActividad.value;
+                elActividad.innerHTML = '<option value="" disabled selected>-- Seleccionar Actividad --</option>' +
+                    this.catalogData.actividad.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                if (curVal) elActividad.value = curVal;
+            }
+
+            const elDefensoria = document.getElementById('newDefensoria');
+            if (elDefensoria && this.catalogData.defensoria) {
+                const curVal = elDefensoria.value;
+                elDefensoria.innerHTML = '<option value="" disabled selected>-- Seleccionar Defensoría / Área --</option>' +
+                    this.catalogData.defensoria.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                if (curVal) elDefensoria.value = curVal;
+            }
+
+            const elMotivo = document.getElementById('newMotivo');
+            if (elMotivo && this.catalogData.motivo) {
+                const curVal = elMotivo.value;
+                elMotivo.innerHTML = '<option value="" disabled selected>-- Seleccionar Motivo --</option>' +
+                    this.catalogData.motivo.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                if (curVal) elMotivo.value = curVal;
+            }
+
+            const elResultado = document.getElementById('newResultado');
+            if (elResultado && this.catalogData.resultado) {
+                const curVal = elResultado.value;
+                elResultado.innerHTML = '<option value="" disabled selected>-- Seleccionar Resultado --</option>' +
+                    this.catalogData.resultado.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                if (curVal) elResultado.value = curVal;
+            }
+
+            const elFamilySubmotivo = document.getElementById('newFamilySubmotivo');
+            if (elFamilySubmotivo && this.catalogData.submotivo_familia) {
+                const curVal = elFamilySubmotivo.value;
+                elFamilySubmotivo.innerHTML = this.catalogData.submotivo_familia.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                if (curVal) elFamilySubmotivo.value = curVal;
+            }
         }
 
         async loadAdminUsersTable() {
@@ -1337,30 +1428,57 @@
                         let html = '';
                         data.data.forEach(u => {
                             const isSelf = u.username === 'spereyra';
-                            const statusBadge = u.activo ? '<span class="badge badge-civil">Activo</span>' : '<span class="badge badge-penal">Dado de Baja</span>';
-                            const actionBtn = isSelf ? '<span style="font-size:0.75rem; color:#C9B07A;">Admin Principal</span>' : 
-                                (u.activo ? `<button class="btn btn-secondary btn-baja-user" data-id="${u.id}" data-username="${u.username}" style="padding: 0.2rem 0.5rem; font-size:0.75rem; color:#F87171;">Dar de Baja</button>` : '<span style="font-size:0.75rem; color:#64748B;">Inactivo</span>');
+                            const statusBadge = u.activo ? '<span class="badge badge-civil">Activo</span>' : '<span class="badge badge-penal">Inactivo</span>';
+                            const actionBtns = isSelf ? '<span style="font-size:0.75rem; color:#C9B07A;">Admin Principal</span>' : 
+                                '<div style="display:flex; gap:0.35rem;">' +
+                                    '<button class="btn btn-secondary btn-edit-user" data-id="' + u.id + '" data-username="' + u.username + '" data-nombre="' + u.nombre_completo + '" data-rol="' + u.rol + '" style="padding: 0.2rem 0.5rem; font-size:0.75rem; color:#38BDF8;">' +
+                                        '<i class="ri-edit-line"></i> Editar' +
+                                    '</button>' +
+                                    '<button class="btn btn-secondary btn-toggle-user" data-id="' + u.id + '" data-username="' + u.username + '" style="padding: 0.2rem 0.5rem; font-size:0.75rem; color:' + (u.activo ? '#F87171' : '#4ADE80') + ';">' +
+                                        (u.activo ? 'Desactivar' : 'Reactivar') +
+                                    '</button>' +
+                                '</div>';
 
-                            html += `
-                                <tr>
-                                    <td><strong>${u.username}</strong></td>
-                                    <td>${u.nombre_completo}</td>
-                                    <td><span class="badge ${u.rol === 'ADMINISTRADOR' ? 'badge-familia' : 'badge-otro'}">${u.rol}</span></td>
-                                    <td>${statusBadge}</td>
-                                    <td>${actionBtn}</td>
-                                </tr>
-                            `;
+                            html += '<tr>' +
+                                '<td><strong>' + u.username + '</strong></td>' +
+                                '<td>' + u.nombre_completo + '</td>' +
+                                '<td><span class="badge ' + (u.rol === 'ADMINISTRADOR' ? 'badge-familia' : 'badge-otro') + '">' + u.rol + '</span></td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td>' + actionBtns + '</td>' +
+                            '</tr>';
                         });
                         this.adminUsersTableBody.innerHTML = html;
 
-                        this.adminUsersTableBody.querySelectorAll('.btn-baja-user').forEach(btn => {
+                        this.adminUsersTableBody.querySelectorAll('.btn-edit-user').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const id = btn.getAttribute('data-id');
+                                const username = btn.getAttribute('data-username');
+                                const nombre = btn.getAttribute('data-nombre');
+                                const rol = btn.getAttribute('data-rol');
+                                
+                                document.getElementById('adminUserId').value = id;
+                                document.getElementById('adminUsername').value = username;
+                                document.getElementById('adminUsername').readOnly = true;
+                                document.getElementById('adminNombreCompleto').value = nombre;
+                                document.getElementById('adminRol').value = rol;
+                                document.getElementById('adminPassword').value = '';
+                                
+                                const modeBadge = document.getElementById('adminUserFormMode');
+                                if (modeBadge) {
+                                    modeBadge.textContent = 'Edición de Usuario: ' + username;
+                                    modeBadge.className = 'badge badge-gold';
+                                }
+                                const btnCancel = document.getElementById('btnCancelEditUser');
+                                if (btnCancel) btnCancel.style.display = 'inline-flex';
+                            });
+                        });
+
+                        this.adminUsersTableBody.querySelectorAll('.btn-toggle-user').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const username = btn.getAttribute('data-username');
                                 const id = btn.getAttribute('data-id');
-                                if (confirm(`¿Confirmar dar de baja al operario ${username}?`)) {
-                                    await this.deactivateUser(id, username);
-                                    await this.loadAdminUsersTable();
-                                }
+                                await this.toggleUserActive(id, username);
+                                await this.loadAdminUsersTable();
                             });
                         });
                     }
@@ -1368,16 +1486,128 @@
             } catch(e) {}
         }
 
-        async deactivateUser(id, username) {
+        async toggleUserActive(id, username) {
             try {
-                await fetch(getApiUrl('/api/admin/usuarios/baja'), {
+                const res = await fetch(getApiUrl('/api/admin/usuarios/baja'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, username, adminOperatorName: this.currentUser.nombreCompleto })
+                    body: JSON.stringify({ id, username, toggleStatus: true, adminOperatorName: this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN' })
                 });
-                alert(`Operario ${username} dado de baja correctamente.`);
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.error || 'Error al cambiar estado', 'error');
+                }
             } catch(e) {
-                alert('Error al dar de baja usuario');
+                showToast('Error de red al cambiar estado de usuario', 'error');
+            }
+        }
+
+        resetAdminUserForm() {
+            if (this.adminUserForm) this.adminUserForm.reset();
+            const idInput = document.getElementById('adminUserId');
+            if (idInput) idInput.value = '';
+            const userInput = document.getElementById('adminUsername');
+            if (userInput) userInput.readOnly = false;
+            const modeBadge = document.getElementById('adminUserFormMode');
+            if (modeBadge) {
+                modeBadge.textContent = 'Alta de Usuario';
+                modeBadge.className = 'badge badge-familia';
+            }
+            const btnCancel = document.getElementById('btnCancelEditUser');
+            if (btnCancel) btnCancel.style.display = 'none';
+        }
+
+        async loadAdminCatalogView() {
+            try {
+                const res = await fetch(getApiUrl('/api/admin/catalogos'));
+                if (!res.ok) return;
+                const json = await res.json();
+                if (!json.success || !Array.isArray(json.data)) return;
+
+                const optionsListContainer = document.getElementById('catalogOptionsListContainer');
+                if (!optionsListContainer) return;
+
+                const catOptions = json.data.filter(item => item.categoria === this.activeCatalogCategory);
+
+                if (catOptions.length === 0) {
+                    optionsListContainer.innerHTML = '<div style="color:#94A3B8; font-size:0.85rem;">No hay opciones registradas en esta categoría.</div>';
+                    return;
+                }
+
+                let html = '';
+                catOptions.forEach(opt => {
+                    const statusBadge = opt.activo ? '<span class="badge badge-civil" style="font-size:0.7rem;">Activo</span>' : '<span class="badge badge-penal" style="font-size:0.7rem;">Inactivo</span>';
+                    html += '<div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">' +
+                        '<div>' +
+                            '<strong style="color: #FFF; font-size: 0.9rem; display: block;">' + opt.valor + '</strong>' +
+                            '<span style="font-size: 0.75rem; color: #94A3B8;">ID: ' + opt.id + ' • ' + statusBadge + '</span>' +
+                        '</div>' +
+                        '<button class="btn btn-secondary btn-delete-catalog-opt" data-id="' + opt.id + '" data-val="' + opt.valor + '" style="padding: 0.3rem 0.5rem; color: #F87171;" title="Desactivar / Eliminar esta opción">' +
+                            '<i class="ri-delete-bin-line"></i>' +
+                        '</button>' +
+                    '</div>';
+                });
+                optionsListContainer.innerHTML = html;
+
+                optionsListContainer.querySelectorAll('.btn-delete-catalog-opt').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const id = btn.getAttribute('data-id');
+                        const val = btn.getAttribute('data-val');
+                        showConfirm('Desactivar Opción', '¿Seguro que deseas desactivar la opción "' + val + '" del formulario?', async () => {
+                            await this.deleteCatalogOption(id);
+                            await this.loadAdminCatalogView();
+                            await this.loadCatalogOptions();
+                        });
+                    });
+                });
+            } catch(e) {
+                console.warn('Error cargando catálogo admin:', e);
+            }
+        }
+
+        async addCatalogOption(val) {
+            if (!val || !val.trim()) return;
+            try {
+                const res = await fetch(getApiUrl('/api/admin/catalogos'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        categoria: this.activeCatalogCategory,
+                        valor: val.trim(),
+                        adminOperatorName: this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Opción "' + val + '" agregada correctamente', 'success');
+                    const input = document.getElementById('newCatalogOptionInput');
+                    if (input) input.value = '';
+                    await this.loadAdminCatalogView();
+                    await this.loadCatalogOptions();
+                } else {
+                    showToast(data.error || 'Error al agregar opción', 'error');
+                }
+            } catch(e) {
+                showToast('Error de red al agregar opción al catálogo', 'error');
+            }
+        }
+
+        async deleteCatalogOption(id) {
+            try {
+                const operatorName = this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN';
+                const res = await fetch(getApiUrl('/api/admin/catalogos?id=' + id + '&operatorName=' + encodeURIComponent(operatorName)), {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Opción desactivada correctamente.', 'info');
+                } else {
+                    showToast(data.error || 'Error al desactivar opción', 'error');
+                }
+            } catch(e) {
+                showToast('Error de red al eliminar opción', 'error');
             }
         }
 
@@ -1389,14 +1619,12 @@
                     if (data.success && Array.isArray(data.data)) {
                         let html = '';
                         data.data.forEach(a => {
-                            html += `
-                                <tr>
-                                    <td><span style="font-family: var(--font-mono); font-size: 0.78rem;">${a.timestamp}</span></td>
-                                    <td><strong>${a.usuario_nombre}</strong></td>
-                                    <td><span class="badge badge-familia">${a.accion}</span></td>
-                                    <td>${a.detalle}</td>
-                                </tr>
-                            `;
+                            html += '<tr>' +
+                                '<td><span style="font-family: var(--font-mono); font-size: 0.78rem;">' + a.timestamp + '</span></td>' +
+                                '<td><strong>' + a.usuario_nombre + '</strong></td>' +
+                                '<td><span class="badge badge-familia">' + a.accion + '</span></td>' +
+                                '<td>' + a.detalle + '</td>' +
+                            '</tr>';
                         });
                         this.adminAuditTableBody.innerHTML = html;
                     }
@@ -1406,6 +1634,7 @@
 
         async handleAdminUserSubmit(e) {
             e.preventDefault();
+            const userId = document.getElementById('adminUserId').value;
             const username = document.getElementById('adminUsername').value;
             const nombreCompleto = document.getElementById('adminNombreCompleto').value;
             const rol = document.getElementById('adminRol').value;
@@ -1416,21 +1645,25 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        id: userId,
                         username,
                         nombreCompleto,
                         rol,
                         password,
-                        adminOperatorName: this.currentUser.nombreCompleto
+                        adminOperatorName: this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN'
                     })
                 });
 
                 if (res.ok) {
-                    alert(`Usuario ${username} guardado correctamente.`);
-                    this.adminUserForm.reset();
+                    showToast('Usuario ' + username + ' guardado correctamente.', 'success');
+                    this.resetAdminUserForm();
                     await this.loadAdminUsersTable();
+                } else {
+                    const errJson = await res.json();
+                    showToast(errJson.error || 'Error al guardar usuario', 'error');
                 }
             } catch(err) {
-                alert('Error al guardar usuario en SQLite');
+                showToast('Error de red al guardar usuario', 'error');
             }
         }
 
@@ -1459,12 +1692,10 @@
             this.codefensorasRoster.forEach(c => {
                 const statusClass = c.isPresente ? 'presente' : 'ausente';
                 const statusText = c.isPresente ? 'Presente' : 'Ausente';
-                html += `
-                    <div class="presence-pill ${statusClass}" data-name="${c.nombre}" title="Clic para cambiar presencia/ausencia">
-                        <span class="dot"></span>
-                        <span>Dra. ${c.nombre} (${statusText})</span>
-                    </div>
-                `;
+                html += '<div class="presence-pill ' + statusClass + '" data-name="' + c.nombre + '" title="Clic para cambiar presencia/ausencia">' +
+                    '<span class="dot"></span>' +
+                    '<span>Dra. ' + c.nombre + ' (' + statusText + ')</span>' +
+                '</div>';
             });
             this.presenceRosterContainer.innerHTML = html;
 
@@ -1508,7 +1739,7 @@
                             };
                             for (const [chanLabel, defName] of Object.entries(data.turnos)) {
                                 const st = styles[chanLabel] || 'background: rgba(255,255,255,0.1); color: #FFF;';
-                                badgesHtml += `<span class="turn-indicator" style="${st} font-size: 0.74rem; padding: 0.2rem 0.6rem; border-radius: 14px; font-weight: 600;">${chanLabel}: Dra. ${defName}</span>`;
+                                badgesHtml += '<span class="turn-indicator" style="' + st + ' font-size: 0.74rem; padding: 0.2rem 0.6rem; border-radius: 14px; font-weight: 600;">' + chanLabel + ': Dra. ' + defName + '</span>';
                             }
                             if (this.turnIndicatorContainer) {
                                 this.turnIndicatorContainer.innerHTML = badgesHtml;
@@ -1538,12 +1769,12 @@
             const modo = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : 'Asesoramiento General';
 
             if (modo === 'Causa en Trámite') {
-                const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^\d]/g, '') : '';
+                const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^d]/g, '') : '';
                 const expteClean = this.newExpteInput ? this.newExpteInput.value.trim() : '';
 
                 if (dniClean || expteClean) {
                     try {
-                        const res = await fetch(getApiUrl(`/api/atenciones/historial-familia?dni=${encodeURIComponent(dniClean)}&expte=${encodeURIComponent(expteClean)}`));
+                        const res = await fetch(getApiUrl('/api/atenciones/historial-familia?dni=' + encodeURIComponent(dniClean) + '&expte=' + encodeURIComponent(expteClean)));
                         if (res.ok) {
                             const data = await res.json();
                             if (data.success && data.found && data.suggestedCodefensora) {
@@ -1552,7 +1783,7 @@
                                 }
                                 if (this.codefensoraHint) {
                                     this.codefensoraHint.style.color = '#4ADE80';
-                                    this.codefensoraHint.textContent = `✓ Co-Defensora previa vinculada al historial del ciudadano: Dra. ${data.suggestedCodefensora}`;
+                                    this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al historial del ciudadano: Dra. ' + data.suggestedCodefensora;
                                 }
                                 return;
                             }
@@ -1571,9 +1802,10 @@
                 }
                 if (this.codefensoraHint) {
                     this.codefensoraHint.style.color = '#94A3B8';
-                    this.codefensoraHint.textContent = `Sugerida automáticamente por turno del canal "${modo}". (Puede modificarla manualmente si es necesario).`;
+                    this.codefensoraHint.textContent = 'Sugerida automáticamente por turno del canal "' + modo + '". (Puede modificarla manualmente si es necesario).';
                 }
             }
+        }
         }
 
         async openNewModal() {
@@ -1608,20 +1840,24 @@
             }
             if (this.citizenHistoryContainer) this.citizenHistoryContainer.style.display = 'none';
 
-            if (this.newAtendidoPorInput && this.currentUser) {
-                this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
+            if (this.newAtendidoPorInput) {
+                if (this.currentUser) this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
+                this.newAtendidoPorInput.readOnly = (!this.currentUser || !this.currentUser.isAdmin());
             }
 
             if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = 'none';
             if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
             if (this.fechaVencimientoGroup) this.fechaVencimientoGroup.style.display = 'none';
 
+            await this.loadCatalogOptions();
             this.newRecordModal.classList.add('active');
         }
 
-        openEditModal(dto) {
+        async openEditModal(dto) {
             const entity = this.rawEntities.find(e => e.id === dto.id);
             if (!entity) return;
+
+            await this.loadCatalogOptions();
 
             this.editingRecordId = dto.id;
             const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
@@ -1677,7 +1913,10 @@
             const elObs = document.getElementById('newObservaciones');
             if (elObs) elObs.value = entity.observaciones;
 
-            if (this.newAtendidoPorInput) this.newAtendidoPorInput.value = entity.atendidoPor;
+            if (this.newAtendidoPorInput) {
+                this.newAtendidoPorInput.value = entity.atendidoPor;
+                this.newAtendidoPorInput.readOnly = (!this.currentUser || !this.currentUser.isAdmin());
+            }
 
             if (this.newTareaPendiente) this.newTareaPendiente.checked = entity.tareaPendiente;
             if (this.newDetallePendiente) this.newDetallePendiente.value = entity.detallePendiente || '';
@@ -1708,7 +1947,7 @@
                     html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin atenciones hoy</span>';
                 } else {
                     for (const [operator, count] of Object.entries(summary.operatorBreakdown)) {
-                        html += `<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">${operator}</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">${count}</span></div>`;
+                        html += '<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">' + operator + '</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">' + count + '</span></div>';
                     }
                 }
                 this.operatorBreakdownList.innerHTML = html;
@@ -1730,7 +1969,7 @@
                     for (const [profesional, count] of entries) {
                         const isSel = (this.activeTecnicaFilter && this.activeTecnicaCategory === profesional);
                         const bg = isSel ? 'background: rgba(236, 72, 153, 0.3); border: 1px solid #EC4899;' : 'background: rgba(255,255,255,0.05);';
-                        html += `<div class="tecnica-breakdown-item" data-cat="${profesional}" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ${bg}"><span style="font-weight: 600;">👤 ${profesional}</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">${count}</span></div>`;
+                        html += '<div class="tecnica-breakdown-item" data-cat="' + profesional + '" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ' + bg + '"><span style="font-weight: 600;">👤 ' + profesional + '</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">' + count + '</span></div>';
                     }
                 }
                 this.tecnicaBreakdownList.innerHTML = html;
@@ -1750,7 +1989,7 @@
                     html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin tareas pendientes</span>';
                 } else {
                     for (const [operator, count] of Object.entries(summary.pendingOperatorBreakdown)) {
-                        html += `<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">${operator}</span> <span style="background: rgba(245,158,11,0.2); padding: 0.1rem 0.4rem; border-radius: 4px; color: #FBBF24;">${count}</span></div>`;
+                        html += '<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">' + operator + '</span> <span style="background: rgba(245,158,11,0.2); padding: 0.1rem 0.4rem; border-radius: 4px; color: #FBBF24;">' + count + '</span></div>';
                     }
                 }
                 this.pendingOperatorBreakdownList.innerHTML = html;
@@ -1829,7 +2068,7 @@
             if (this.totalRecordsCount) this.totalRecordsCount.textContent = total.toLocaleString();
             if (this.pageStart) this.pageStart.textContent = total > 0 ? (startIndex + 1).toLocaleString() : '0';
             if (this.pageEnd) this.pageEnd.textContent = endIndex.toLocaleString();
-            if (this.pageIndicator) this.pageIndicator.textContent = `Página ${this.currentPage} de ${maxPages}`;
+            if (this.pageIndicator) this.pageIndicator.textContent = 'Página ' + this.currentPage + ' de ' + maxPages;
 
             if (this.btnPrevPage) this.btnPrevPage.disabled = (this.currentPage <= 1);
             if (this.btnNextPage) this.btnNextPage.disabled = (this.currentPage >= maxPages);
@@ -1850,34 +2089,32 @@
                 const rowStyle = isPending ? 'background: rgba(245, 158, 11, 0.08); border-left: 4px solid #F59E0B;' : '';
 
                 const statusHtml = isPending ? 
-                    `<span class="badge" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;"><i class="ri-time-line"></i> Pendiente</span>
-                     ${dto.detallePendiente ? `<span style="display:block; font-size:0.75rem; color:#FBBF24; margin-top:0.2rem;">${dto.detallePendiente}</span>` : ''}`
-                    : `<span>${dto.resultado}</span>`;
+                    '<span class="badge" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;"><i class="ri-time-line"></i> Pendiente</span>' +
+                    (dto.detallePendiente ? '<span style="display:block; font-size:0.75rem; color:#FBBF24; margin-top:0.2rem;">' + dto.detallePendiente + '</span>' : '')
+                    : '<span>' + dto.resultado + '</span>';
 
                 const actionBtn = isPending ?
-                    `<button class="btn btn-secondary btn-complete-task" data-id="${dto.id}" title="Marcar tarea como cumplida" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; color: #4ADE80; border-color: rgba(74, 222, 128, 0.4);"><i class="ri-check-double-line"></i> Cumplir</button>`
-                    : `<button class="btn btn-secondary btn-toggle-pending" data-id="${dto.id}" title="Marcar con tarea pendiente" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #FBBF24; opacity: 0.6;"><i class="ri-time-line"></i></button>`;
+                    '<button class="btn btn-secondary btn-complete-task" data-id="' + dto.id + '" title="Marcar tarea como cumplida" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; color: #4ADE80; border-color: rgba(74, 222, 128, 0.4);"><i class="ri-check-double-line"></i> Cumplir</button>'
+                    : '<button class="btn btn-secondary btn-toggle-pending" data-id="' + dto.id + '" title="Marcar con tarea pendiente" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #FBBF24; opacity: 0.6;"><i class="ri-time-line"></i></button>';
 
-                const editBtn = `<button class="btn btn-secondary btn-edit-record" data-id="${dto.id}" title="Editar registro" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); margin-left: 0.25rem;"><i class="ri-edit-line"></i></button>`;
+                const editBtn = '<button class="btn btn-secondary btn-edit-record" data-id="' + dto.id + '" title="Editar registro" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); margin-left: 0.25rem;"><i class="ri-edit-line"></i></button>';
 
-                html += `
-                    <tr class="${rowClass}" data-id="${dto.id}" style="${rowStyle}">
-                        <td>${dto.fecha || 's/f'}</td>
-                        <td>
-                            <span class="citizen-name">${dto.fullName}</span>
-                            <span class="citizen-dni">${dto.dniFormatted}</span>
-                        </td>
-                        <td><span class="expte-number">${dto.expte || dto.motivo || 'Atención General'}</span></td>
-                        <td><span class="badge ${dto.defensoriaBadgeClass}">${dto.defensoriaName}</span></td>
-                        <td>${statusHtml}</td>
-                        <td>
-                            ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada 
-                                ? `<span style="color:#F472B6; font-weight:600;">${dto.codefensoraAsignada}</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: ${dto.atendidoPor}</span>` 
-                                : dto.atendidoPor}
-                        </td>
-                        <td onclick="event.stopPropagation();">${actionBtn}${editBtn}</td>
-                    </tr>
-                `;
+                html += '<tr class="' + rowClass + '" data-id="' + dto.id + '" style="' + rowStyle + '">' +
+                    '<td>' + (dto.fecha || 's/f') + '</td>' +
+                    '<td>' +
+                        '<span class="citizen-name">' + dto.fullName + '</span>' +
+                        '<span class="citizen-dni">' + dto.dniFormatted + '</span>' +
+                    '</td>' +
+                    '<td><span class="expte-number">' + (dto.expte || dto.motivo || 'Atención General') + '</span></td>' +
+                    '<td><span class="badge ' + dto.defensoriaBadgeClass + '">' + dto.defensoriaName + '</span></td>' +
+                    '<td>' + statusHtml + '</td>' +
+                    '<td>' +
+                        (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada 
+                            ? '<span style="color:#F472B6; font-weight:600;">' + dto.codefensoraAsignada + '</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: ' + dto.atendidoPor + '</span>' 
+                            : dto.atendidoPor) +
+                    '</td>' +
+                    '<td onclick="event.stopPropagation();">' + actionBtn + editBtn + '</td>' +
+                '</tr>';
             });
             this.tableBody.innerHTML = html;
 
@@ -1942,54 +2179,52 @@
             const toggleTaskBtnText = isPending ? '✅ Marcar Tarea como CUMPLIDA' : '⚠️ Marcar con Tarea Pendiente';
             const toggleTaskBtnColor = isPending ? 'background: rgba(74, 222, 128, 0.2); border: 1px solid #4ADE80; color: #4ADE80;' : 'background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;';
 
-            this.detailModalBody.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
-                            <h3 style="font-size: 1.3rem; color: #FFF;">${dto.fullName}</h3>
-                            <p style="font-size: 0.85rem; color: #00B4D8; margin-top: 0.2rem;">DNI: ${dto.dniFormatted} | Celular: ${dto.celular || 'No posee'}</p>
-                        </div>
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <button id="btnModalEditRecord" class="btn" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38BDF8; color: #38BDF8; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Editar este registro">
-                                <i class="ri-edit-line"></i> Editar
-                            </button>
-                            <button id="btnModalToggleTask" class="btn" style="${toggleTaskBtnColor} font-size:0.85rem; padding:0.4rem 0.8rem;">
-                                ${toggleTaskBtnText}
-                            </button>
-                            <button id="btnModalDeleteRecord" class="btn" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #F87171; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Eliminar este registro">
-                                <i class="ri-delete-bin-line"></i> Eliminar
-                            </button>
-                        </div>
-                    </div>
+            this.detailModalBody.innerHTML = '<div style="display: flex; flex-direction: column; gap: 1rem;">' +
+                '<div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; display:flex; justify-content:space-between; align-items:flex-start;">' +
+                    '<div>' +
+                        '<h3 style="font-size: 1.3rem; color: #FFF;">' + dto.fullName + '</h3>' +
+                        '<p style="font-size: 0.85rem; color: #00B4D8; margin-top: 0.2rem;">DNI: ' + dto.dniFormatted + ' | Celular: ' + (dto.celular || 'No posee') + '</p>' +
+                    '</div>' +
+                    '<div style="display:flex; gap:0.5rem; align-items:center;">' +
+                        '<button id="btnModalEditRecord" class="btn" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38BDF8; color: #38BDF8; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Editar este registro">' +
+                            '<i class="ri-edit-line"></i> Editar' +
+                        '</button>' +
+                        '<button id="btnModalToggleTask" class="btn" style="' + toggleTaskBtnColor + ' font-size:0.85rem; padding:0.4rem 0.8rem;">' +
+                            toggleTaskBtnText +
+                        '</button>' +
+                        '<button id="btnModalDeleteRecord" class="btn" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #F87171; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Eliminar este registro">' +
+                            '<i class="ri-delete-bin-line"></i> Eliminar' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
 
-                    ${isPending ? `<div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #F59E0B; padding: 0.75rem 1rem; border-radius: 6px;"><strong style="color: #FBBF24; display:block; margin-bottom: 0.2rem;"><i class="ri-time-line"></i> Tarea Pendiente de Resolución:</strong><p style="color: #FFF; font-size: 0.9rem;">${dto.detallePendiente || 'Trámite pendiente de seguimiento'}</p></div>` : ''}
+                (isPending ? '<div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #F59E0B; padding: 0.75rem 1rem; border-radius: 6px;"><strong style="color: #FBBF24; display:block; margin-bottom: 0.2rem;"><i class="ri-time-line"></i> Tarea Pendiente de Resolución:</strong><p style="color: #FFF; font-size: 0.9rem;">' + (dto.detallePendiente || 'Trámite pendiente de seguimiento') + '</p></div>' : '') +
 
-                    <div class="form-grid">
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Fecha</span><p style="font-weight: 600;">${dto.fecha}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Actividad</span><p style="font-weight: 600;">${dto.actividad}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">N° Expte</span><p style="font-weight: 600; color: #00B4D8;">${dto.expte || 'Sin Expte.'}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge ${dto.defensoriaBadgeClass || 'badge-otro'}">${dto.defensoriaName || 'General'}</span></p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">${dto.resultado}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">${dto.atendidoPor || 'Secretaría'}</p></div>
-                        ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? `<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. ${dto.codefensoraAsignada.replace(/^Dra\.\s*/i, '')}</p></div>` : ''}
-                        ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.modoDerivacionFamilia ? `<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">${dto.modoDerivacionFamilia}</p></div>` : ''}
-                        ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.fechaVencimientoContestacion ? `<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> ${dto.fechaVencimientoContestacion}</p></div>` : ''}
-                    </div>
-                    
-                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">
-                        <div style="margin-bottom: 0.75rem;">
-                            <span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Motivo / Trámite</span>
-                            <p style="font-size: 0.95rem; font-weight: 600; color: #E2E8F0;">${dto.motivo || 'Sin motivo registrado.'}</p>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Observaciones</span>
-                            <p style="font-size: 0.9rem; line-height: 1.5; color: ${dto.observaciones ? '#FFF' : '#64748B'};">${dto.observaciones || 'Sin observaciones registradas en este evento.'}</p>
-                        </div>
-                    </div>
+                '<div class="form-grid">' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Fecha</span><p style="font-weight: 600;">' + dto.fecha + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Actividad</span><p style="font-weight: 600;">' + dto.actividad + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">N° Expte</span><p style="font-weight: 600; color: #00B4D8;">' + (dto.expte || 'Sin Expte.') + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge ' + (dto.defensoriaBadgeClass || 'badge-otro') + '">' + (dto.defensoriaName || 'General') + '</span></p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">' + dto.resultado + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">' + (dto.atendidoPor || 'Secretaría') + '</p></div>' +
+                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? '<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. ' + dto.codefensoraAsignada.replace(/^Dra.s*/i, '') + '</p></div>' : '') +
+                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.modoDerivacionFamilia ? '<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">' + dto.modoDerivacionFamilia + '</p></div>' : '') +
+                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.fechaVencimientoContestacion ? '<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> ' + dto.fechaVencimientoContestacion + '</p></div>' : '') +
+                '</div>' +
+                
+                '<div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">' +
+                    '<div style="margin-bottom: 0.75rem;">' +
+                        '<span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Motivo / Trámite</span>' +
+                        '<p style="font-size: 0.95rem; font-weight: 600; color: #E2E8F0;">' + (dto.motivo || 'Sin motivo registrado.') + '</p>' +
+                    '</div>' +
+                    '<div>' +
+                        '<span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Observaciones</span>' +
+                        '<p style="font-size: 0.9rem; line-height: 1.5; color: ' + (dto.observaciones ? '#FFF' : '#64748B') + ';">' + (dto.observaciones || 'Sin observaciones registradas en este evento.') + '</p>' +
+                    '</div>' +
+                '</div>' +
 
-                    ${dto.escritos ? `<div style="background: rgba(168, 10, 10, 0.15); padding: 1rem; border-radius: 6px; border: 1px solid rgba(168, 10, 10, 0.3);"><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Escritos Judiciales</span><p style="font-size: 0.9rem; font-weight: 500;">${dto.escritos}</p></div>` : ''}
-                </div>
-            `;
+                (dto.escritos ? '<div style="background: rgba(168, 10, 10, 0.15); padding: 1rem; border-radius: 6px; border: 1px solid rgba(168, 10, 10, 0.3);"><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Escritos Judiciales</span><p style="font-size: 0.9rem; font-weight: 500;">' + dto.escritos + '</p></div>' : '') +
+            '</div>';
 
             const btnModalEditRecord = document.getElementById('btnModalEditRecord');
             if (btnModalEditRecord) {
@@ -2023,14 +2258,15 @@
 
         async deleteRecord(id) {
             try {
-                await fetch(getApiUrl('/api/atenciones?id=' + id), { method: 'DELETE' });
+                const operatorName = this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN';
+                await fetch(getApiUrl('/api/atenciones?id=' + id + '&operatorName=' + encodeURIComponent(operatorName)), { method: 'DELETE' });
                 showToast('Atención N° ' + id + ' eliminada correctamente.', 'info');
+                this.rawEntities = await this.repository.getAll();
+                this.updateView();
             } catch (e) {
                 console.warn('Error al eliminar registro:', e.message);
                 showToast('Error al eliminar registro.', 'error');
             }
-            this.rawEntities = this.rawEntities.filter(e => e.id !== id);
-            this.updateView();
         }
 
         async handleFormSubmit(e) {

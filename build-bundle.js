@@ -1952,7 +1952,7 @@ const bundleContent = `/* ======================================================
                     html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin atenciones hoy</span>';
                 } else {
                     for (const [operator, count] of Object.entries(summary.operatorBreakdown)) {
-                        html += `<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">${operator}</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">${count}</span></div>`;
+                        html += '<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">' + operator + '</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">' + count + '</span></div>';
                     }
                 }
                 this.operatorBreakdownList.innerHTML = html;
@@ -1974,7 +1974,7 @@ const bundleContent = `/* ======================================================
                     for (const [profesional, count] of entries) {
                         const isSel = (this.activeTecnicaFilter && this.activeTecnicaCategory === profesional);
                         const bg = isSel ? 'background: rgba(236, 72, 153, 0.3); border: 1px solid #EC4899;' : 'background: rgba(255,255,255,0.05);';
-                        html += `<div class="tecnica-breakdown-item" data-cat="${profesional}" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ${bg}"><span style="font-weight: 600;">👤 ${profesional}</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">${count}</span></div>`;
+                        html += '<div class="tecnica-breakdown-item" data-cat="' + profesional + '" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #E2E8F0; padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; ' + bg + '"><span style="font-weight: 600;">👤 ' + profesional + '</span> <span style="background: rgba(236, 72, 153, 0.2); color: #F472B6; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;">' + count + '</span></div>';
                     }
                 }
                 this.tecnicaBreakdownList.innerHTML = html;
@@ -1994,7 +1994,7 @@ const bundleContent = `/* ======================================================
                     html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin tareas pendientes</span>';
                 } else {
                     for (const [operator, count] of Object.entries(summary.pendingOperatorBreakdown)) {
-                        html += `<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">${operator}</span> <span style="background: rgba(245,158,11,0.2); padding: 0.1rem 0.4rem; border-radius: 4px; color: #FBBF24;">${count}</span></div>`;
+                        html += '<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">' + operator + '</span> <span style="background: rgba(245,158,11,0.2); padding: 0.1rem 0.4rem; border-radius: 4px; color: #FBBF24;">' + count + '</span></div>';
                     }
                 }
                 this.pendingOperatorBreakdownList.innerHTML = html;
@@ -2073,7 +2073,7 @@ const bundleContent = `/* ======================================================
             if (this.totalRecordsCount) this.totalRecordsCount.textContent = total.toLocaleString();
             if (this.pageStart) this.pageStart.textContent = total > 0 ? (startIndex + 1).toLocaleString() : '0';
             if (this.pageEnd) this.pageEnd.textContent = endIndex.toLocaleString();
-            if (this.pageIndicator) this.pageIndicator.textContent = `Página ${this.currentPage} de ${maxPages}`;
+            if (this.pageIndicator) this.pageIndicator.textContent = 'Página ' + this.currentPage + ' de ' + maxPages;
 
             if (this.btnPrevPage) this.btnPrevPage.disabled = (this.currentPage <= 1);
             if (this.btnNextPage) this.btnNextPage.disabled = (this.currentPage >= maxPages);
@@ -2094,34 +2094,32 @@ const bundleContent = `/* ======================================================
                 const rowStyle = isPending ? 'background: rgba(245, 158, 11, 0.08); border-left: 4px solid #F59E0B;' : '';
 
                 const statusHtml = isPending ? 
-                    `<span class="badge" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;"><i class="ri-time-line"></i> Pendiente</span>
-                     ${dto.detallePendiente ? `<span style="display:block; font-size:0.75rem; color:#FBBF24; margin-top:0.2rem;">${dto.detallePendiente}</span>` : ''}`
-                    : `<span>${dto.resultado}</span>`;
+                    '<span class="badge" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;"><i class="ri-time-line"></i> Pendiente</span>' +
+                    (dto.detallePendiente ? '<span style="display:block; font-size:0.75rem; color:#FBBF24; margin-top:0.2rem;">' + dto.detallePendiente + '</span>' : '')
+                    : '<span>' + dto.resultado + '</span>';
 
                 const actionBtn = isPending ?
-                    `<button class="btn btn-secondary btn-complete-task" data-id="${dto.id}" title="Marcar tarea como cumplida" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; color: #4ADE80; border-color: rgba(74, 222, 128, 0.4);"><i class="ri-check-double-line"></i> Cumplir</button>`
-                    : `<button class="btn btn-secondary btn-toggle-pending" data-id="${dto.id}" title="Marcar con tarea pendiente" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #FBBF24; opacity: 0.6;"><i class="ri-time-line"></i></button>`;
+                    '<button class="btn btn-secondary btn-complete-task" data-id="' + dto.id + '" title="Marcar tarea como cumplida" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; color: #4ADE80; border-color: rgba(74, 222, 128, 0.4);"><i class="ri-check-double-line"></i> Cumplir</button>'
+                    : '<button class="btn btn-secondary btn-toggle-pending" data-id="' + dto.id + '" title="Marcar con tarea pendiente" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #FBBF24; opacity: 0.6;"><i class="ri-time-line"></i></button>';
 
-                const editBtn = `<button class="btn btn-secondary btn-edit-record" data-id="${dto.id}" title="Editar registro" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); margin-left: 0.25rem;"><i class="ri-edit-line"></i></button>`;
+                const editBtn = '<button class="btn btn-secondary btn-edit-record" data-id="' + dto.id + '" title="Editar registro" style="padding: 0.25rem 0.5rem; font-size: 0.78rem; color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); margin-left: 0.25rem;"><i class="ri-edit-line"></i></button>';
 
-                html += `
-                    <tr class="${rowClass}" data-id="${dto.id}" style="${rowStyle}">
-                        <td>${dto.fecha || 's/f'}</td>
-                        <td>
-                            <span class="citizen-name">${dto.fullName}</span>
-                            <span class="citizen-dni">${dto.dniFormatted}</span>
-                        </td>
-                        <td><span class="expte-number">${dto.expte || dto.motivo || 'Atención General'}</span></td>
-                        <td><span class="badge ${dto.defensoriaBadgeClass}">${dto.defensoriaName}</span></td>
-                        <td>${statusHtml}</td>
-                        <td>
-                            ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada 
-                                ? `<span style="color:#F472B6; font-weight:600;">${dto.codefensoraAsignada}</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: ${dto.atendidoPor}</span>` 
-                                : dto.atendidoPor}
-                        </td>
-                        <td onclick="event.stopPropagation();">${actionBtn}${editBtn}</td>
-                    </tr>
-                `;
+                html += '<tr class="' + rowClass + '" data-id="' + dto.id + '" style="' + rowStyle + '">' +
+                    '<td>' + (dto.fecha || 's/f') + '</td>' +
+                    '<td>' +
+                        '<span class="citizen-name">' + dto.fullName + '</span>' +
+                        '<span class="citizen-dni">' + dto.dniFormatted + '</span>' +
+                    '</td>' +
+                    '<td><span class="expte-number">' + (dto.expte || dto.motivo || 'Atención General') + '</span></td>' +
+                    '<td><span class="badge ' + dto.defensoriaBadgeClass + '">' + dto.defensoriaName + '</span></td>' +
+                    '<td>' + statusHtml + '</td>' +
+                    '<td>' +
+                        (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada 
+                            ? '<span style="color:#F472B6; font-weight:600;">' + dto.codefensoraAsignada + '</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: ' + dto.atendidoPor + '</span>' 
+                            : dto.atendidoPor) +
+                    '</td>' +
+                    '<td onclick="event.stopPropagation();">' + actionBtn + editBtn + '</td>' +
+                '</tr>';
             });
             this.tableBody.innerHTML = html;
 
@@ -2186,54 +2184,52 @@ const bundleContent = `/* ======================================================
             const toggleTaskBtnText = isPending ? '✅ Marcar Tarea como CUMPLIDA' : '⚠️ Marcar con Tarea Pendiente';
             const toggleTaskBtnColor = isPending ? 'background: rgba(74, 222, 128, 0.2); border: 1px solid #4ADE80; color: #4ADE80;' : 'background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;';
 
-            this.detailModalBody.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
-                            <h3 style="font-size: 1.3rem; color: #FFF;">${dto.fullName}</h3>
-                            <p style="font-size: 0.85rem; color: #00B4D8; margin-top: 0.2rem;">DNI: ${dto.dniFormatted} | Celular: ${dto.celular || 'No posee'}</p>
-                        </div>
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <button id="btnModalEditRecord" class="btn" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38BDF8; color: #38BDF8; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Editar este registro">
-                                <i class="ri-edit-line"></i> Editar
-                            </button>
-                            <button id="btnModalToggleTask" class="btn" style="${toggleTaskBtnColor} font-size:0.85rem; padding:0.4rem 0.8rem;">
-                                ${toggleTaskBtnText}
-                            </button>
-                            <button id="btnModalDeleteRecord" class="btn" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #F87171; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Eliminar este registro">
-                                <i class="ri-delete-bin-line"></i> Eliminar
-                            </button>
-                        </div>
-                    </div>
+            this.detailModalBody.innerHTML = '<div style="display: flex; flex-direction: column; gap: 1rem;">' +
+                '<div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; display:flex; justify-content:space-between; align-items:flex-start;">' +
+                    '<div>' +
+                        '<h3 style="font-size: 1.3rem; color: #FFF;">' + dto.fullName + '</h3>' +
+                        '<p style="font-size: 0.85rem; color: #00B4D8; margin-top: 0.2rem;">DNI: ' + dto.dniFormatted + ' | Celular: ' + (dto.celular || 'No posee') + '</p>' +
+                    '</div>' +
+                    '<div style="display:flex; gap:0.5rem; align-items:center;">' +
+                        '<button id="btnModalEditRecord" class="btn" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38BDF8; color: #38BDF8; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Editar este registro">' +
+                            '<i class="ri-edit-line"></i> Editar' +
+                        '</button>' +
+                        '<button id="btnModalToggleTask" class="btn" style="' + toggleTaskBtnColor + ' font-size:0.85rem; padding:0.4rem 0.8rem;">' +
+                            toggleTaskBtnText +
+                        '</button>' +
+                        '<button id="btnModalDeleteRecord" class="btn" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #F87171; font-size:0.85rem; padding:0.4rem 0.8rem;" title="Eliminar este registro">' +
+                            '<i class="ri-delete-bin-line"></i> Eliminar' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
 
-                    ${isPending ? `<div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #F59E0B; padding: 0.75rem 1rem; border-radius: 6px;"><strong style="color: #FBBF24; display:block; margin-bottom: 0.2rem;"><i class="ri-time-line"></i> Tarea Pendiente de Resolución:</strong><p style="color: #FFF; font-size: 0.9rem;">${dto.detallePendiente || 'Trámite pendiente de seguimiento'}</p></div>` : ''}
+                (isPending ? '<div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #F59E0B; padding: 0.75rem 1rem; border-radius: 6px;"><strong style="color: #FBBF24; display:block; margin-bottom: 0.2rem;"><i class="ri-time-line"></i> Tarea Pendiente de Resolución:</strong><p style="color: #FFF; font-size: 0.9rem;">' + (dto.detallePendiente || 'Trámite pendiente de seguimiento') + '</p></div>' : '') +
 
-                    <div class="form-grid">
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Fecha</span><p style="font-weight: 600;">${dto.fecha}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Actividad</span><p style="font-weight: 600;">${dto.actividad}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">N° Expte</span><p style="font-weight: 600; color: #00B4D8;">${dto.expte || 'Sin Expte.'}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge ${dto.defensoriaBadgeClass || 'badge-otro'}">${dto.defensoriaName || 'General'}</span></p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">${dto.resultado}</p></div>
-                        <div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">${dto.atendidoPor || 'Secretaría'}</p></div>
-                        ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? `<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. ${dto.codefensoraAsignada.replace(/^Dra\.\s*/i, '')}</p></div>` : ''}
-                        ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.modoDerivacionFamilia ? `<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">${dto.modoDerivacionFamilia}</p></div>` : ''}
-                        ${dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.fechaVencimientoContestacion ? `<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> ${dto.fechaVencimientoContestacion}</p></div>` : ''}
-                    </div>
-                    
-                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">
-                        <div style="margin-bottom: 0.75rem;">
-                            <span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Motivo / Trámite</span>
-                            <p style="font-size: 0.95rem; font-weight: 600; color: #E2E8F0;">${dto.motivo || 'Sin motivo registrado.'}</p>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Observaciones</span>
-                            <p style="font-size: 0.9rem; line-height: 1.5; color: ${dto.observaciones ? '#FFF' : '#64748B'};">${dto.observaciones || 'Sin observaciones registradas en este evento.'}</p>
-                        </div>
-                    </div>
+                '<div class="form-grid">' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Fecha</span><p style="font-weight: 600;">' + dto.fecha + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Actividad</span><p style="font-weight: 600;">' + dto.actividad + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">N° Expte</span><p style="font-weight: 600; color: #00B4D8;">' + (dto.expte || 'Sin Expte.') + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge ' + (dto.defensoriaBadgeClass || 'badge-otro') + '">' + (dto.defensoriaName || 'General') + '</span></p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">' + dto.resultado + '</p></div>' +
+                    '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">' + (dto.atendidoPor || 'Secretaría') + '</p></div>' +
+                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? '<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. ' + dto.codefensoraAsignada.replace(/^Dra\.\s*/i, '') + '</p></div>' : '') +
+                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.modoDerivacionFamilia ? '<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">' + dto.modoDerivacionFamilia + '</p></div>' : '') +
+                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.fechaVencimientoContestacion ? '<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> ' + dto.fechaVencimientoContestacion + '</p></div>' : '') +
+                '</div>' +
+                
+                '<div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">' +
+                    '<div style="margin-bottom: 0.75rem;">' +
+                        '<span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Motivo / Trámite</span>' +
+                        '<p style="font-size: 0.95rem; font-weight: 600; color: #E2E8F0;">' + (dto.motivo || 'Sin motivo registrado.') + '</p>' +
+                    '</div>' +
+                    '<div>' +
+                        '<span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">Observaciones</span>' +
+                        '<p style="font-size: 0.9rem; line-height: 1.5; color: ' + (dto.observaciones ? '#FFF' : '#64748B') + ';">' + (dto.observaciones || 'Sin observaciones registradas en este evento.') + '</p>' +
+                    '</div>' +
+                '</div>' +
 
-                    ${dto.escritos ? `<div style="background: rgba(168, 10, 10, 0.15); padding: 1rem; border-radius: 6px; border: 1px solid rgba(168, 10, 10, 0.3);"><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Escritos Judiciales</span><p style="font-size: 0.9rem; font-weight: 500;">${dto.escritos}</p></div>` : ''}
-                </div>
-            `;
+                (dto.escritos ? '<div style="background: rgba(168, 10, 10, 0.15); padding: 1rem; border-radius: 6px; border: 1px solid rgba(168, 10, 10, 0.3);"><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Escritos Judiciales</span><p style="font-size: 0.9rem; font-weight: 500;">' + dto.escritos + '</p></div>' : '') +
+            '</div>';
 
             const btnModalEditRecord = document.getElementById('btnModalEditRecord');
             if (btnModalEditRecord) {
@@ -2268,7 +2264,7 @@ const bundleContent = `/* ======================================================
         async deleteRecord(id) {
             try {
                 const operatorName = this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN';
-                await fetch(getApiUrl(`/api/atenciones?id=${id}&operatorName=${encodeURIComponent(operatorName)}`), { method: 'DELETE' });
+                await fetch(getApiUrl('/api/atenciones?id=' + id + '&operatorName=' + encodeURIComponent(operatorName)), { method: 'DELETE' });
                 showToast('Atención N° ' + id + ' eliminada correctamente.', 'info');
                 this.rawEntities = await this.repository.getAll();
                 this.updateView();
