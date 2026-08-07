@@ -468,9 +468,13 @@ const bundleContent = `/* ======================================================
                 if (res.ok) {
                     const data = await res.json();
                     if (data.id) entity.id = Number(data.id);
+                } else {
+                    const errText = await res.text();
+                    throw new Error('HTTP ' + res.status + ' al guardar: ' + errText);
                 }
             } catch(e) {
-                console.warn('Error enviando registro a API:', e.message);
+                console.error('Error enviando registro a API:', e.message);
+                throw e;
             }
             this.cache.unshift(entity);
             return entity;
@@ -2033,66 +2037,71 @@ const bundleContent = `/* ======================================================
         async handleFormSubmit(e) {
             e.preventDefault();
 
-            let motivoFinal = document.getElementById('newMotivo').value;
-            if (this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA' && this.newFamilySubmotivoSelect) {
-                if (!motivoFinal.startsWith('[')) {
-                    motivoFinal = ('[' + this.newFamilySubmotivoSelect.value + '] ' + motivoFinal).trim();
+            try {
+                let motivoFinal = document.getElementById('newMotivo') ? document.getElementById('newMotivo').value : '';
+                if (this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA' && this.newFamilySubmotivoSelect) {
+                    if (!motivoFinal.startsWith('[')) {
+                        motivoFinal = ('[' + this.newFamilySubmotivoSelect.value + '] ' + motivoFinal).trim();
+                    }
                 }
+
+                const isTaskPending = this.newTareaPendiente ? this.newTareaPendiente.checked : false;
+                const taskDetail = this.newDetallePendiente ? this.newDetallePendiente.value : '';
+
+                const isFamilia = this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
+                const modoFamilia = (isFamilia && this.newModoDerivacionFamilia) ? this.newModoDerivacionFamilia.value : '';
+                const codefensora = (isFamilia && this.newCodefensoraAsignada) ? this.newCodefensoraAsignada.value : '';
+                const vencimientoContestacion = (isFamilia && this.newFechaVencimientoContestacion) ? this.newFechaVencimientoContestacion.value : '';
+
+                if (isFamilia && modoFamilia === 'Contestación de Demanda' && !vencimientoContestacion) {
+                    showToast('Por favor ingrese la Fecha de Vencimiento / Plazo para la Contestación de Demanda.', 'error');
+                    return;
+                }
+
+                const formData = {
+                    id: this.editingRecordId || undefined,
+                    fecha: document.getElementById('newFecha').value,
+                    actividad: document.getElementById('newActividad').value,
+                    dni: document.getElementById('newDni').value,
+                    apellidos: document.getElementById('newApellidos').value,
+                    nombres: document.getElementById('newNombres').value,
+                    celular: document.getElementById('newCelular').value,
+                    expte: document.getElementById('newExpte').value,
+                    motivo: motivoFinal,
+                    defensoria: document.getElementById('newDefensoria').value,
+                    resultado: document.getElementById('newResultado').value,
+                    observaciones: document.getElementById('newObservaciones').value,
+                    atendidoPor: document.getElementById('newAtendidoPor').value,
+                    tareaPendiente: isTaskPending,
+                    detallePendiente: taskDetail,
+                    modoDerivacionFamilia: modoFamilia,
+                    codefensoraAsignada: codefensora,
+                    fechaVencimientoContestacion: vencimientoContestacion,
+                    operatorId: this.currentUser ? this.currentUser.id : 0
+                };
+
+                if (this.editingRecordId) {
+                    const entityToUpdate = new Attendance(formData);
+                    entityToUpdate.id = this.editingRecordId;
+                    await this.repository.update(entityToUpdate);
+                    showToast('¡Atención N° ' + this.editingRecordId + ' actualizada correctamente!', 'success');
+                } else {
+                    await this.createAttendanceUseCase.execute(formData);
+                    showToast('¡Atención registrada correctamente!', 'success');
+                }
+
+                this.rawEntities = await this.repository.getAll();
+                await this.calculateProximoTurno();
+                this.currentPage = 1;
+                this.updateView();
+
+                this.editingRecordId = null;
+                this.newRecordModal.classList.remove('active');
+                if (this.newRecordForm) this.newRecordForm.reset();
+            } catch (err) {
+                console.error('Error al guardar atención:', err);
+                showToast('Error al guardar atención: ' + (err.message || err), 'error');
             }
-
-            const isTaskPending = this.newTareaPendiente ? this.newTareaPendiente.checked : false;
-            const taskDetail = this.newDetallePendiente ? this.newDetallePendiente.value : '';
-
-            const isFamilia = this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
-            const modoFamilia = (isFamilia && this.newModoDerivacionFamilia) ? this.newModoDerivacionFamilia.value : '';
-            const codefensora = (isFamilia && this.newCodefensoraAsignada) ? this.newCodefensoraAsignada.value : '';
-            const vencimientoContestacion = (isFamilia && this.newFechaVencimientoContestacion) ? this.newFechaVencimientoContestacion.value : '';
-
-            if (isFamilia && modoFamilia === 'Contestación de Demanda' && !vencimientoContestacion) {
-                showToast('Por favor ingrese la Fecha de Vencimiento / Plazo para la Contestación de Demanda.', 'error');
-                return;
-            }
-
-            const formData = {
-                id: this.editingRecordId || undefined,
-                fecha: document.getElementById('newFecha').value,
-                actividad: document.getElementById('newActividad').value,
-                dni: document.getElementById('newDni').value,
-                apellidos: document.getElementById('newApellidos').value,
-                nombres: document.getElementById('newNombres').value,
-                celular: document.getElementById('newCelular').value,
-                expte: document.getElementById('newExpte').value,
-                motivo: motivoFinal,
-                defensoria: document.getElementById('newDefensoria').value,
-                resultado: document.getElementById('newResultado').value,
-                observaciones: document.getElementById('newObservaciones').value,
-                atendidoPor: document.getElementById('newAtendidoPor').value,
-                tareaPendiente: isTaskPending,
-                detallePendiente: taskDetail,
-                modoDerivacionFamilia: modoFamilia,
-                codefensoraAsignada: codefensora,
-                fechaVencimientoContestacion: vencimientoContestacion,
-                operatorId: this.currentUser ? this.currentUser.id : 0
-            };
-
-            if (this.editingRecordId) {
-                const entityToUpdate = new Attendance(formData);
-                entityToUpdate.id = this.editingRecordId;
-                await this.repository.update(entityToUpdate);
-                showToast('¡Atención N° ' + this.editingRecordId + ' actualizada correctamente!', 'success');
-            } else {
-                await this.createAttendanceUseCase.execute(formData);
-                showToast('¡Atención registrada correctamente!', 'success');
-            }
-
-            this.rawEntities = await this.repository.getAll();
-            await this.calculateProximoTurno();
-            this.currentPage = 1;
-            this.updateView();
-
-            this.editingRecordId = null;
-            this.newRecordModal.classList.remove('active');
-            this.newRecordForm.reset();
         }
     }
 
