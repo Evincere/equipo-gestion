@@ -1388,7 +1388,7 @@ const bundleContent = `/* ======================================================
             if (elActividad && this.catalogData.actividad) {
                 const curVal = elActividad.value;
                 elActividad.innerHTML = '<option value="" disabled selected>-- Seleccionar Actividad --</option>' +
-                    this.catalogData.actividad.map(item => `<option value="${item.valor}">${item.valor}</option>`).join('');
+                    this.catalogData.actividad.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
                 if (curVal) elActividad.value = curVal;
             }
 
@@ -1396,7 +1396,7 @@ const bundleContent = `/* ======================================================
             if (elDefensoria && this.catalogData.defensoria) {
                 const curVal = elDefensoria.value;
                 elDefensoria.innerHTML = '<option value="" disabled selected>-- Seleccionar Defensoría / Área --</option>' +
-                    this.catalogData.defensoria.map(item => `<option value="${item.valor}">${item.valor}</option>`).join('');
+                    this.catalogData.defensoria.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
                 if (curVal) elDefensoria.value = curVal;
             }
 
@@ -1404,7 +1404,7 @@ const bundleContent = `/* ======================================================
             if (elMotivo && this.catalogData.motivo) {
                 const curVal = elMotivo.value;
                 elMotivo.innerHTML = '<option value="" disabled selected>-- Seleccionar Motivo --</option>' +
-                    this.catalogData.motivo.map(item => `<option value="${item.valor}">${item.valor}</option>`).join('');
+                    this.catalogData.motivo.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
                 if (curVal) elMotivo.value = curVal;
             }
 
@@ -1412,14 +1412,14 @@ const bundleContent = `/* ======================================================
             if (elResultado && this.catalogData.resultado) {
                 const curVal = elResultado.value;
                 elResultado.innerHTML = '<option value="" disabled selected>-- Seleccionar Resultado --</option>' +
-                    this.catalogData.resultado.map(item => `<option value="${item.valor}">${item.valor}</option>`).join('');
+                    this.catalogData.resultado.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
                 if (curVal) elResultado.value = curVal;
             }
 
             const elFamilySubmotivo = document.getElementById('newFamilySubmotivo');
             if (elFamilySubmotivo && this.catalogData.submotivo_familia) {
                 const curVal = elFamilySubmotivo.value;
-                elFamilySubmotivo.innerHTML = this.catalogData.submotivo_familia.map(item => `<option value="${item.valor}">${item.valor}</option>`).join('');
+                elFamilySubmotivo.innerHTML = this.catalogData.submotivo_familia.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
                 if (curVal) elFamilySubmotivo.value = curVal;
             }
         }
@@ -1434,26 +1434,23 @@ const bundleContent = `/* ======================================================
                         data.data.forEach(u => {
                             const isSelf = u.username === 'spereyra';
                             const statusBadge = u.activo ? '<span class="badge badge-civil">Activo</span>' : '<span class="badge badge-penal">Inactivo</span>';
-                            const actionBtns = isSelf ? '<span style="font-size:0.75rem; color:#C9B07A;">Admin Principal</span>' : `
-                                <div style="display:flex; gap:0.35rem;">
-                                    <button class="btn btn-secondary btn-edit-user" data-id="${u.id}" data-username="${u.username}" data-nombre="${u.nombre_completo}" data-rol="${u.rol}" style="padding: 0.2rem 0.5rem; font-size:0.75rem; color:#38BDF8;">
-                                        <i class="ri-edit-line"></i> Editar
-                                    </button>
-                                    <button class="btn btn-secondary btn-toggle-user" data-id="${u.id}" data-username="${u.username}" style="padding: 0.2rem 0.5rem; font-size:0.75rem; color:${u.activo ? '#F87171' : '#4ADE80'};">
-                                        ${u.activo ? 'Desactivar' : 'Reactivar'}
-                                    </button>
-                                </div>
-                            `;
+                            const actionBtns = isSelf ? '<span style="font-size:0.75rem; color:#C9B07A;">Admin Principal</span>' : 
+                                '<div style="display:flex; gap:0.35rem;">' +
+                                    '<button class="btn btn-secondary btn-edit-user" data-id="' + u.id + '" data-username="' + u.username + '" data-nombre="' + u.nombre_completo + '" data-rol="' + u.rol + '" style="padding: 0.2rem 0.5rem; font-size:0.75rem; color:#38BDF8;">' +
+                                        '<i class="ri-edit-line"></i> Editar' +
+                                    '</button>' +
+                                    '<button class="btn btn-secondary btn-toggle-user" data-id="' + u.id + '" data-username="' + u.username + '" style="padding: 0.2rem 0.5rem; font-size:0.75rem; color:' + (u.activo ? '#F87171' : '#4ADE80') + ';">' +
+                                        (u.activo ? 'Desactivar' : 'Reactivar') +
+                                    '</button>' +
+                                '</div>';
 
-                            html += `
-                                <tr>
-                                    <td><strong>${u.username}</strong></td>
-                                    <td>${u.nombre_completo}</td>
-                                    <td><span class="badge ${u.rol === 'ADMINISTRADOR' ? 'badge-familia' : 'badge-otro'}">${u.rol}</span></td>
-                                    <td>${statusBadge}</td>
-                                    <td>${actionBtns}</td>
-                                </tr>
-                            `;
+                            html += '<tr>' +
+                                '<td><strong>' + u.username + '</strong></td>' +
+                                '<td>' + u.nombre_completo + '</td>' +
+                                '<td><span class="badge ' + (u.rol === 'ADMINISTRADOR' ? 'badge-familia' : 'badge-otro') + '">' + u.rol + '</span></td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td>' + actionBtns + '</td>' +
+                            '</tr>';
                         });
                         this.adminUsersTableBody.innerHTML = html;
 
@@ -1547,17 +1544,15 @@ const bundleContent = `/* ======================================================
                 let html = '';
                 catOptions.forEach(opt => {
                     const statusBadge = opt.activo ? '<span class="badge badge-civil" style="font-size:0.7rem;">Activo</span>' : '<span class="badge badge-penal" style="font-size:0.7rem;">Inactivo</span>';
-                    html += `
-                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong style="color: #FFF; font-size: 0.9rem; display: block;">${opt.valor}</strong>
-                                <span style="font-size: 0.75rem; color: #94A3B8;">ID: ${opt.id} • ${statusBadge}</span>
-                            </div>
-                            <button class="btn btn-secondary btn-delete-catalog-opt" data-id="${opt.id}" data-val="${opt.valor}" style="padding: 0.3rem 0.5rem; color: #F87171;" title="Desactivar / Eliminar esta opción">
-                                <i class="ri-delete-bin-line"></i>
-                            </button>
-                        </div>
-                    `;
+                    html += '<div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">' +
+                        '<div>' +
+                            '<strong style="color: #FFF; font-size: 0.9rem; display: block;">' + opt.valor + '</strong>' +
+                            '<span style="font-size: 0.75rem; color: #94A3B8;">ID: ' + opt.id + ' • ' + statusBadge + '</span>' +
+                        '</div>' +
+                        '<button class="btn btn-secondary btn-delete-catalog-opt" data-id="' + opt.id + '" data-val="' + opt.valor + '" style="padding: 0.3rem 0.5rem; color: #F87171;" title="Desactivar / Eliminar esta opción">' +
+                            '<i class="ri-delete-bin-line"></i>' +
+                        '</button>' +
+                    '</div>';
                 });
                 optionsListContainer.innerHTML = html;
 
@@ -1565,7 +1560,7 @@ const bundleContent = `/* ======================================================
                     btn.addEventListener('click', async () => {
                         const id = btn.getAttribute('data-id');
                         const val = btn.getAttribute('data-val');
-                        showConfirm('Desactivar Opción', `¿Seguro que deseas desactivar la opción "${val}" del formulario?`, async () => {
+                        showConfirm('Desactivar Opción', '¿Seguro que deseas desactivar la opción "' + val + '" del formulario?', async () => {
                             await this.deleteCatalogOption(id);
                             await this.loadAdminCatalogView();
                             await this.loadCatalogOptions();
@@ -1591,7 +1586,7 @@ const bundleContent = `/* ======================================================
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast(`Opción "${val}" agregada correctamente`, 'success');
+                    showToast('Opción "' + val + '" agregada correctamente', 'success');
                     const input = document.getElementById('newCatalogOptionInput');
                     if (input) input.value = '';
                     await this.loadAdminCatalogView();
@@ -1607,7 +1602,7 @@ const bundleContent = `/* ======================================================
         async deleteCatalogOption(id) {
             try {
                 const operatorName = this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN';
-                const res = await fetch(getApiUrl(`/api/admin/catalogos?id=${id}&operatorName=${encodeURIComponent(operatorName)}`), {
+                const res = await fetch(getApiUrl('/api/admin/catalogos?id=' + id + '&operatorName=' + encodeURIComponent(operatorName)), {
                     method: 'DELETE'
                 });
                 const data = await res.json();
@@ -1629,14 +1624,12 @@ const bundleContent = `/* ======================================================
                     if (data.success && Array.isArray(data.data)) {
                         let html = '';
                         data.data.forEach(a => {
-                            html += `
-                                <tr>
-                                    <td><span style="font-family: var(--font-mono); font-size: 0.78rem;">${a.timestamp}</span></td>
-                                    <td><strong>${a.usuario_nombre}</strong></td>
-                                    <td><span class="badge badge-familia">${a.accion}</span></td>
-                                    <td>${a.detalle}</td>
-                                </tr>
-                            `;
+                            html += '<tr>' +
+                                '<td><span style="font-family: var(--font-mono); font-size: 0.78rem;">' + a.timestamp + '</span></td>' +
+                                '<td><strong>' + a.usuario_nombre + '</strong></td>' +
+                                '<td><span class="badge badge-familia">' + a.accion + '</span></td>' +
+                                '<td>' + a.detalle + '</td>' +
+                            '</tr>';
                         });
                         this.adminAuditTableBody.innerHTML = html;
                     }
