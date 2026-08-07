@@ -534,6 +534,7 @@ function handlePostAtencion(req, res) {
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
+            const detallePendiente = data.detallePendiente || '';
             const isFamilia = data.defensoria === 'CO-DEF. FAMILIA';
             const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
             const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
@@ -649,6 +650,7 @@ function handlePutAtencion(req, res) {
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
+            const detallePendiente = data.detallePendiente || '';
             const isFamilia = data.defensoria === 'CO-DEF. FAMILIA';
             const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
             const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
