@@ -263,14 +263,39 @@ if (checkAtenciones.count === 0 && fs.existsSync(CSV_BACKUP_PATH)) {
     }
 }
 
-// Sembrado inicial de Co-Defensoras y Usuarios si están vacías
-const checkCodefensoras = db.prepare('SELECT COUNT(*) as count FROM codefensoras_estado').get();
-if (checkCodefensoras.count === 0) {
-    const seedStmt = db.prepare('INSERT INTO codefensoras_estado (nombre, is_presente) VALUES (?, 1)');
-    seedStmt.run('Claudia Perruzzi');
-    seedStmt.run('Andrea Lombard');
-    seedStmt.run('Luz Perez');
-    seedStmt.run('Mariela Fokszek');
+// Sembrado e inicialización del orden canónico de Co-Defensoras y turnos
+try {
+    const defaultRoster = [
+        { id: 1, nombre: 'Mariela Fokszek' },
+        { id: 2, nombre: 'Andrea Lombard' },
+        { id: 3, nombre: 'Claudia Perruzzi' },
+        { id: 4, nombre: 'Luz Perez' }
+    ];
+
+    const existingStates = db.prepare('SELECT nombre, is_presente, motivo_ausencia FROM codefensoras_estado').all();
+    const presenceMap = {};
+    existingStates.forEach(r => {
+        presenceMap[r.nombre] = { is_presente: r.is_presente, motivo_ausencia: r.motivo_ausencia };
+    });
+
+    db.exec('DELETE FROM codefensoras_estado;');
+    const insertStmt = db.prepare('INSERT INTO codefensoras_estado (id, nombre, is_presente, motivo_ausencia) VALUES (?, ?, ?, ?)');
+    defaultRoster.forEach(c => {
+        const prev = presenceMap[c.nombre] || { is_presente: 1, motivo_ausencia: '' };
+        insertStmt.run(c.id, c.nombre, Number(prev.is_presente), prev.motivo_ausencia || '');
+    });
+
+    // Sincronizar última Co-Defensora asignada en cada canal según planillas oficiales:
+    // ASESORAMIENTO_GENERAL: última fue Luz Perez (index 3) -> próxima será Mariela Fokszek
+    // CAUSA_NUEVA: última fue Mariela Fokszek (index 0) -> próxima será Andrea Lombard
+    // CONTESTACION_DEMANDA: última fue Luz Perez (index 3) -> próxima será Mariela Fokszek
+    // ADOPCION: última fue Mariela Fokszek (index 0) -> próxima será Andrea Lombard
+    db.prepare("INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES ('ASESORAMIENTO_GENERAL', 3)").run();
+    db.prepare("INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES ('CAUSA_NUEVA', 0)").run();
+    db.prepare("INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES ('CONTESTACION_DEMANDA', 3)").run();
+    db.prepare("INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES ('ADOPCION', 0)").run();
+} catch (e) {
+    console.warn('Error inicializando orden de co-defensoras:', e.message);
 }
 
 const checkUsers = db.prepare('SELECT COUNT(*) as count FROM usuarios').get();
