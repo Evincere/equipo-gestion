@@ -302,11 +302,13 @@
 
                     <!-- Gestión de Operarios -->
                     <div class="records-section">
-                        <div class="section-header">
-                            <h3>Gestión de Usuarios y Operarios</h3>
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3><i class="ri-user-settings-line"></i> Gestión de Usuarios y Operarios</h3>
+                            <span class="badge badge-familia" id="adminUserFormMode">Alta de Usuario</span>
                         </div>
 
-                        <form id="adminUserForm" class="form-grid" style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px;">
+                        <form id="adminUserForm" class="form-grid" style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <input type="hidden" id="adminUserId" value="">
                             <div class="form-group">
                                 <label>Usuario (Username)</label>
                                 <input type="text" id="adminUsername" class="form-control" placeholder="Ej: spereyra" required>
@@ -324,11 +326,14 @@
                             </div>
                             <div class="form-group">
                                 <label>Contraseña</label>
-                                <input type="password" id="adminPassword" class="form-control" value="defensoria2026" required>
+                                <input type="password" id="adminPassword" class="form-control" placeholder="Nueva clave o vacía para mantener">
                             </div>
-                            <div class="form-group full-width">
-                                <button type="submit" class="btn btn-primary" style="justify-content: center;">
+                            <div class="form-group full-width" style="display: flex; gap: 0.75rem;">
+                                <button type="submit" class="btn btn-primary" id="btnSaveUser" style="flex: 1; justify-content: center;">
                                     <i class="ri-user-add-line"></i> Guardar / Actualizar Usuario
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btnCancelEditUser" style="display: none;">
+                                    Cancelar Edición
                                 </button>
                             </div>
                         </form>
@@ -351,10 +356,41 @@
                         </div>
                     </div>
 
-                    <!-- Tabla de Auditoría de Acciones -->
-                    <div class="records-section">
+                    <!-- Gestión Dinámica de Campos del Formulario -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
                         <div class="section-header">
-                            <h3>Historial de Auditoría de Acciones del Sistema</h3>
+                            <h3><i class="ri-list-settings-line"></i> Gestión Dinámica de Campos del Formulario de Registro</h3>
+                            <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.25rem;">Permite al Administrador agregar o eliminar opciones de los desplegables del sistema en tiempo real.</p>
+                        </div>
+
+                        <!-- Selector de Categoría de Catálogo -->
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem;" id="catalogCategoryTabs">
+                            <button class="btn btn-secondary catalog-tab-btn active" data-cat="actividad" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-run-line"></i> Tipo de Actividad</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="defensoria" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-building-4-line"></i> Defensoría / Área</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="motivo" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-file-list-3-line"></i> Motivo General</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="resultado" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-checkbox-circle-line"></i> Resultado</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="submotivo_familia" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-heart-pulse-line"></i> Supuesto Especial (Familia)</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="derivado_a" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-user-shared-line"></i> Asistente Técnico</button>
+                        </div>
+
+                        <!-- Formulario para agregar nueva opción al catálogo activo -->
+                        <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 8px; border: 1px solid var(--mpd-cyan-glow); margin-bottom: 1rem; display: flex; gap: 0.75rem; align-items: center;">
+                            <input type="text" id="newCatalogOptionInput" class="form-control" placeholder="Escriba el nombre de la nueva opción a incorporar..." style="flex: 1;">
+                            <button type="button" class="btn btn-primary" id="btnAddCatalogOptionBtn" style="white-space: nowrap;">
+                                <i class="ri-add-line"></i> Agregar Opción
+                            </button>
+                        </div>
+
+                        <!-- Lista de Opciones Actuales -->
+                        <div id="catalogOptionsListContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;">
+                            <div style="color: #94A3B8; font-size: 0.85rem;">Cargando opciones...</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Auditoría de Acciones -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
+                        <div class="section-header">
+                            <h3><i class="ri-history-line"></i> Historial de Auditoría de Acciones del Sistema</h3>
                         </div>
                         <div class="table-container">
                             <table class="data-table">

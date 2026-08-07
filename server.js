@@ -98,13 +98,82 @@ db.exec(`
 
 // Índices
 db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_atenciones_dni ON atenciones(dni);
-    CREATE INDEX IF NOT EXISTS idx_atenciones_expte ON atenciones(expte);
-    CREATE INDEX IF NOT EXISTS idx_atenciones_defensoria ON atenciones(defensoria);
-    CREATE INDEX IF NOT EXISTS idx_atenciones_apellidos ON atenciones(apellidos);
-    CREATE INDEX IF NOT EXISTS idx_atenciones_pendiente ON atenciones(tarea_pendiente);
-    CREATE INDEX IF NOT EXISTS idx_atenciones_codefensora ON atenciones(codefensora_asignada);
+    CREATE TABLE IF NOT EXISTS catalogos_opciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        categoria TEXT NOT NULL,
+        valor TEXT NOT NULL,
+        activo INTEGER DEFAULT 1,
+        orden INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_catalogos_cat ON catalogos_opciones(categoria);
 `);
+
+// Sembrado dinámico de catálogos de opciones del formulario si está vacío
+const checkCatalogos = db.prepare('SELECT COUNT(*) as count FROM catalogos_opciones').get();
+if (checkCatalogos.count === 0) {
+    const seedCatStmt = db.prepare('INSERT INTO catalogos_opciones (categoria, valor, activo, orden) VALUES (?, ?, 1, ?)');
+    const defaultCatalogos = [
+        { cat: 'actividad', val: 'Atención Personal', ord: 1 },
+        { cat: 'actividad', val: 'Atención Telefónica', ord: 2 },
+        { cat: 'actividad', val: 'Atención WhatsApp / Digital', ord: 3 },
+        { cat: 'actividad', val: 'Mesa de Entrada', ord: 4 },
+        { cat: 'actividad', val: 'Oficio / Escrito', ord: 5 },
+
+        { cat: 'defensoria', val: 'CO-DEF. FAMILIA', ord: 1 },
+        { cat: 'defensoria', val: '1° DEFENSORIA PENAL', ord: 2 },
+        { cat: 'defensoria', val: '2° DEFENSORIA PENAL', ord: 3 },
+        { cat: 'defensoria', val: '3° DEFENSORIA PENAL', ord: 4 },
+        { cat: 'defensoria', val: 'PENAL', ord: 5 },
+        { cat: 'defensoria', val: 'DEF. CIVIL', ord: 6 },
+        { cat: 'defensoria', val: 'DEF. EJECUCION', ord: 7 },
+        { cat: 'defensoria', val: 'ASESORIA DE NIÑEZ', ord: 8 },
+        { cat: 'defensoria', val: 'ASISTENCIA TECNICA', ord: 9 },
+        { cat: 'defensoria', val: 'Otro', ord: 10 },
+
+        { cat: 'motivo', val: 'Espontánea', ord: 1 },
+        { cat: 'motivo', val: 'Causa Trámite', ord: 2 },
+        { cat: 'motivo', val: 'Aud. Fijada', ord: 3 },
+        { cat: 'motivo', val: 'Divorcio', ord: 4 },
+        { cat: 'motivo', val: 'Ejecución', ord: 5 },
+        { cat: 'motivo', val: 'Turno', ord: 6 },
+        { cat: 'motivo', val: 'Aud. Imputación', ord: 7 },
+        { cat: 'motivo', val: 'Otro', ord: 8 },
+
+        { cat: 'resultado', val: 'Resuelve', ord: 1 },
+        { cat: 'resultado', val: 'Deriva a CO-DEF- FAMILIA', ord: 2 },
+        { cat: 'resultado', val: 'Deriva a A. Técnica', ord: 3 },
+        { cat: 'resultado', val: 'Fija Audiencia', ord: 4 },
+        { cat: 'resultado', val: 'Deriva a Niñez / Capacidad', ord: 5 },
+        { cat: 'resultado', val: 'Otro', ord: 6 },
+
+        { cat: 'submotivo_familia', val: 'Mediación', ord: 1 },
+        { cat: 'submotivo_familia', val: 'Prohibición de Acercamiento / Exclusión', ord: 2 },
+        { cat: 'submotivo_familia', val: 'Alimentos / Liquidación / Cese', ord: 3 },
+        { cat: 'submotivo_familia', val: 'Filiación / Presunta Filiación', ord: 4 },
+        { cat: 'submotivo_familia', val: 'Impugnación / Supresión de Apellido', ord: 5 },
+        { cat: 'submotivo_familia', val: 'Guarda Judicial / Tutela / Adopción', ord: 6 },
+        { cat: 'submotivo_familia', val: 'Medidas de Protección ETI / Vulnerabilidad', ord: 7 },
+        { cat: 'submotivo_familia', val: 'Cuidado Personal / Régimen de Contacto', ord: 8 },
+        { cat: 'submotivo_familia', val: 'Determinación de Capacidad', ord: 9 },
+        { cat: 'submotivo_familia', val: 'Reintegro', ord: 10 },
+        { cat: 'submotivo_familia', val: 'Restitución Internacional', ord: 11 },
+        { cat: 'submotivo_familia', val: 'Otro / Asesoramiento General', ord: 12 },
+
+        { cat: 'derivado_a', val: 'L. Alvarado', ord: 1 },
+        { cat: 'derivado_a', val: 'J.P. Papini', ord: 2 },
+        { cat: 'derivado_a', val: 'C. Gimenez', ord: 3 },
+        { cat: 'derivado_a', val: 'I. Molina', ord: 4 },
+        { cat: 'derivado_a', val: 'S. Camerucci', ord: 5 },
+        { cat: 'derivado_a', val: 'A. Sanchez', ord: 6 },
+        { cat: 'derivado_a', val: 'ETI / Medidas de Protección', ord: 7 },
+        { cat: 'derivado_a', val: 'Psicología / Trabajo Social', ord: 8 },
+        { cat: 'derivado_a', val: 'Asesoría de Niñez / Capacidad', ord: 9 },
+        { cat: 'derivado_a', val: 'Otras Asistencias Técnicas', ord: 10 }
+    ];
+    defaultCatalogos.forEach(item => {
+        seedCatStmt.run(item.cat, item.val, item.ord);
+    });
+}
 
 // Restaurar atenciones.csv original si el volumen está vacío
 const ORIGINAL_CSV_PATH = path.join(__dirname, 'atenciones.csv');
@@ -301,6 +370,16 @@ const server = http.createServer((req, res) => {
 
     if (pathname === '/api/auth/users' && req.method === 'GET') {
         return handleGetPublicUserList(req, res);
+    }
+
+    if (pathname === '/api/catalogos' && req.method === 'GET') {
+        return handleGetCatalogos(req, res);
+    }
+
+    if (pathname === '/api/admin/catalogos') {
+        if (req.method === 'GET') return handleAdminGetCatalogos(req, res);
+        if (req.method === 'POST') return handleAdminPostCatalogo(req, res);
+        if (req.method === 'DELETE') return handleAdminDeleteCatalogo(req, res, parsedUrl);
     }
 
     if (pathname === '/api/admin/usuarios') {
@@ -693,6 +772,7 @@ function handlePutAtencion(req, res) {
 function handleDeleteAtencion(req, res, parsedUrl) {
     try {
         const id = parsedUrl.searchParams.get('id');
+        const operatorName = parsedUrl.searchParams.get('operatorName') || 'ADMIN';
         if (!id) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'ID es requerido' }));
@@ -702,7 +782,7 @@ function handleDeleteAtencion(req, res, parsedUrl) {
         const stmt = db.prepare('DELETE FROM atenciones WHERE id = ?');
         stmt.run(id);
 
-        logAudit(0, 'OPERADOR', 'ELIMINAR_ATENCION', `Atención ID ${id} eliminada`);
+        logAudit(0, operatorName, 'ELIMINAR_ATENCION', `Atención ID ${id} eliminada por Administrador`);
 
         broadcast('RECORD_DELETED', { id: Number(id) });
 
@@ -913,24 +993,110 @@ function handleAdminBajaUsuario(req, res) {
     req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
         try {
-            const { id, username, adminOperatorName } = JSON.parse(body);
+            const { id, username, toggleStatus, adminOperatorName } = JSON.parse(body);
             if (username === 'spereyra') {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: false, error: 'No se puede dar de baja al Administrador Principal' }));
                 return;
             }
 
-            const stmt = db.prepare('UPDATE usuarios SET activo = 0 WHERE id = ? OR username = ?');
-            stmt.run(id || 0, username || '');
-            logAudit(0, adminOperatorName || 'Sergio M. Pereyra (ADMIN)', 'BAJA_USUARIO', `Usuario ${username} dado de baja`);
+            if (toggleStatus) {
+                const user = db.prepare('SELECT activo FROM usuarios WHERE id = ? OR username = ?').get(id || 0, username || '');
+                const newStatus = user && user.activo ? 0 : 1;
+                db.prepare('UPDATE usuarios SET activo = ? WHERE id = ? OR username = ?').run(newStatus, id || 0, username || '');
+                logAudit(0, adminOperatorName || 'ADMIN', 'CAMBIAR_ESTADO_USUARIO', `Usuario ${username} estado cambiado a ${newStatus ? 'Activo' : 'Inactivo'}`);
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+                res.end(JSON.stringify({ success: true, message: `Estado del usuario ${username} actualizado correctamente` }));
+            } else {
+                const stmt = db.prepare('UPDATE usuarios SET activo = 0 WHERE id = ? OR username = ?');
+                stmt.run(id || 0, username || '');
+                logAudit(0, adminOperatorName || 'Sergio M. Pereyra (ADMIN)', 'BAJA_USUARIO', `Usuario ${username} dado de baja`);
 
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-            res.end(JSON.stringify({ success: true, message: `Usuario ${username} dado de baja correctamente` }));
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+                res.end(JSON.stringify({ success: true, message: `Usuario ${username} dado de baja correctamente` }));
+            }
         } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: err.message }));
         }
     });
+}
+
+function handleGetCatalogos(req, res) {
+    try {
+        const rows = db.prepare('SELECT id, categoria, valor, orden FROM catalogos_opciones WHERE activo = 1 ORDER BY categoria ASC, orden ASC, valor ASC').all();
+        const grouped = {};
+        rows.forEach(r => {
+            if (!grouped[r.categoria]) grouped[r.categoria] = [];
+            grouped[r.categoria].push({ id: r.id, valor: r.valor });
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, data: grouped, raw: rows }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
+function handleAdminGetCatalogos(req, res) {
+    try {
+        const rows = db.prepare('SELECT id, categoria, valor, activo, orden FROM catalogos_opciones ORDER BY categoria ASC, orden ASC, valor ASC').all();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, data: rows }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
+function handleAdminPostCatalogo(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const { categoria, valor, adminOperatorName } = JSON.parse(body);
+            if (!categoria || !valor || !valor.trim()) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Categoría y Valor son requeridos' }));
+                return;
+            }
+            const cleanVal = valor.trim();
+            const existing = db.prepare('SELECT id, activo FROM catalogos_opciones WHERE categoria = ? AND LOWER(valor) = LOWER(?)').get(categoria, cleanVal);
+            if (existing) {
+                db.prepare('UPDATE catalogos_opciones SET activo = 1, valor = ? WHERE id = ?').run(cleanVal, existing.id);
+            } else {
+                db.prepare('INSERT INTO catalogos_opciones (categoria, valor, activo) VALUES (?, ?, 1)').run(categoria, cleanVal);
+            }
+            logAudit(0, adminOperatorName || 'ADMIN', 'CREAR_OPCION_CATALOGO', `Agregada opción "${cleanVal}" a categoría ${categoria}`);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, message: 'Opción guardada correctamente' }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
+function handleAdminDeleteCatalogo(req, res, parsedUrl) {
+    try {
+        const id = parsedUrl.searchParams.get('id');
+        const adminOperatorName = parsedUrl.searchParams.get('operatorName') || 'ADMIN';
+        if (!id) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'ID es requerido' }));
+            return;
+        }
+        const opt = db.prepare('SELECT categoria, valor FROM catalogos_opciones WHERE id = ?').get(id);
+        db.prepare('UPDATE catalogos_opciones SET activo = 0 WHERE id = ?').run(id);
+        if (opt) {
+            logAudit(0, adminOperatorName, 'ELIMINAR_OPCION_CATALOGO', `Desactivada opción "${opt.valor}" de categoría ${opt.categoria}`);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, message: 'Opción desactivada correctamente' }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
 }
 
 function handleAdminGetAuditoria(req, res) {
