@@ -1590,6 +1590,10 @@ const bundleContent = `/* ======================================================
 
             if (this.newRecordForm) this.newRecordForm.reset();
 
+            if (this.newDniInput) this.newDniInput.value = '';
+            const elFecha = document.getElementById('newFecha');
+            if (elFecha) elFecha.value = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
+
             const elActividad = document.getElementById('newActividad');
             if (elActividad) elActividad.value = '';
 
