@@ -1810,7 +1810,6 @@ const bundleContent = `/* ======================================================
                 }
             }
         }
-        }
 
         async openNewModal() {
             this.editingRecordId = null;

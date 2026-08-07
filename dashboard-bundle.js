@@ -1805,7 +1805,6 @@
                 }
             }
         }
-        }
 
         async openNewModal() {
             this.editingRecordId = null;
