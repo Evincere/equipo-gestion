@@ -1415,6 +1415,13 @@
                 elFamilySubmotivo.innerHTML = this.catalogData.submotivo_familia.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
                 if (curVal) elFamilySubmotivo.value = curVal;
             }
+
+            const elModoFamilia = document.getElementById('newModoDerivacionFamilia');
+            if (elModoFamilia && this.catalogData.modo_derivacion_familia) {
+                const curVal = elModoFamilia.value;
+                elModoFamilia.innerHTML = this.catalogData.modo_derivacion_familia.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                if (curVal) elModoFamilia.value = curVal;
+            }
         }
 
         async loadAdminUsersTable() {

@@ -159,6 +159,13 @@ if (checkCatalogos.count === 0) {
         { cat: 'submotivo_familia', val: 'Restitución Internacional', ord: 11 },
         { cat: 'submotivo_familia', val: 'Otro / Asesoramiento General', ord: 12 },
 
+        { cat: 'modo_derivacion_familia', val: 'Asesoramiento General', ord: 1 },
+        { cat: 'modo_derivacion_familia', val: 'Causa Nueva', ord: 2 },
+        { cat: 'modo_derivacion_familia', val: 'Contestación de Demanda', ord: 3 },
+        { cat: 'modo_derivacion_familia', val: 'Guarda Judicial / Tutela / Adopción', ord: 4 },
+        { cat: 'modo_derivacion_familia', val: 'Causa en Trámite', ord: 5 },
+        { cat: 'modo_derivacion_familia', val: 'Otro', ord: 6 },
+
         { cat: 'derivado_a', val: 'L. Alvarado', ord: 1 },
         { cat: 'derivado_a', val: 'J.P. Papini', ord: 2 },
         { cat: 'derivado_a', val: 'C. Gimenez', ord: 3 },
@@ -174,6 +181,24 @@ if (checkCatalogos.count === 0) {
         seedCatStmt.run(item.cat, item.val, item.ord);
     });
 }
+
+// Asegurar que modo_derivacion_familia tenga sus opciones iniciales incluida "Otro"
+try {
+    const modoDefaults = [
+        'Asesoramiento General',
+        'Causa Nueva',
+        'Contestación de Demanda',
+        'Guarda Judicial / Tutela / Adopción',
+        'Causa en Trámite',
+        'Otro'
+    ];
+    modoDefaults.forEach((val, idx) => {
+        const exists = db.prepare("SELECT id FROM catalogos_opciones WHERE categoria = 'modo_derivacion_familia' AND valor = ?").get(val);
+        if (!exists) {
+            db.prepare("INSERT INTO catalogos_opciones (categoria, valor, activo, orden) VALUES ('modo_derivacion_familia', ?, 1, ?)").run(val, idx + 1);
+        }
+    });
+} catch (e) {}
 
 // Restaurar atenciones.csv original si el volumen está vacío
 const ORIGINAL_CSV_PATH = path.join(__dirname, 'atenciones.csv');
