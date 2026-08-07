@@ -1660,7 +1660,7 @@ const bundleContent = `/* ======================================================
                 });
 
                 if (res.ok) {
-                    showToast(`Usuario ${username} guardado correctamente.`, 'success');
+                    showToast('Usuario ' + username + ' guardado correctamente.', 'success');
                     this.resetAdminUserForm();
                     await this.loadAdminUsersTable();
                 } else {
@@ -1697,12 +1697,10 @@ const bundleContent = `/* ======================================================
             this.codefensorasRoster.forEach(c => {
                 const statusClass = c.isPresente ? 'presente' : 'ausente';
                 const statusText = c.isPresente ? 'Presente' : 'Ausente';
-                html += `
-                    <div class="presence-pill ${statusClass}" data-name="${c.nombre}" title="Clic para cambiar presencia/ausencia">
-                        <span class="dot"></span>
-                        <span>Dra. ${c.nombre} (${statusText})</span>
-                    </div>
-                `;
+                html += '<div class="presence-pill ' + statusClass + '" data-name="' + c.nombre + '" title="Clic para cambiar presencia/ausencia">' +
+                    '<span class="dot"></span>' +
+                    '<span>Dra. ' + c.nombre + ' (' + statusText + ')</span>' +
+                '</div>';
             });
             this.presenceRosterContainer.innerHTML = html;
 
@@ -1746,7 +1744,7 @@ const bundleContent = `/* ======================================================
                             };
                             for (const [chanLabel, defName] of Object.entries(data.turnos)) {
                                 const st = styles[chanLabel] || 'background: rgba(255,255,255,0.1); color: #FFF;';
-                                badgesHtml += `<span class="turn-indicator" style="${st} font-size: 0.74rem; padding: 0.2rem 0.6rem; border-radius: 14px; font-weight: 600;">${chanLabel}: Dra. ${defName}</span>`;
+                                badgesHtml += '<span class="turn-indicator" style="' + st + ' font-size: 0.74rem; padding: 0.2rem 0.6rem; border-radius: 14px; font-weight: 600;">' + chanLabel + ': Dra. ' + defName + '</span>';
                             }
                             if (this.turnIndicatorContainer) {
                                 this.turnIndicatorContainer.innerHTML = badgesHtml;
@@ -1776,12 +1774,12 @@ const bundleContent = `/* ======================================================
             const modo = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : 'Asesoramiento General';
 
             if (modo === 'Causa en Trámite') {
-                const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^\\d]/g, '') : '';
+                const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^\d]/g, '') : '';
                 const expteClean = this.newExpteInput ? this.newExpteInput.value.trim() : '';
 
                 if (dniClean || expteClean) {
                     try {
-                        const res = await fetch(getApiUrl(`/api/atenciones/historial-familia?dni=${encodeURIComponent(dniClean)}&expte=${encodeURIComponent(expteClean)}`));
+                        const res = await fetch(getApiUrl('/api/atenciones/historial-familia?dni=' + encodeURIComponent(dniClean) + '&expte=' + encodeURIComponent(expteClean)));
                         if (res.ok) {
                             const data = await res.json();
                             if (data.success && data.found && data.suggestedCodefensora) {
@@ -1790,7 +1788,7 @@ const bundleContent = `/* ======================================================
                                 }
                                 if (this.codefensoraHint) {
                                     this.codefensoraHint.style.color = '#4ADE80';
-                                    this.codefensoraHint.textContent = `✓ Co-Defensora previa vinculada al historial del ciudadano: Dra. ${data.suggestedCodefensora}`;
+                                    this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al historial del ciudadano: Dra. ' + data.suggestedCodefensora;
                                 }
                                 return;
                             }
@@ -1809,9 +1807,10 @@ const bundleContent = `/* ======================================================
                 }
                 if (this.codefensoraHint) {
                     this.codefensoraHint.style.color = '#94A3B8';
-                    this.codefensoraHint.textContent = `Sugerida automáticamente por turno del canal "${modo}". (Puede modificarla manualmente si es necesario).`;
+                    this.codefensoraHint.textContent = 'Sugerida automáticamente por turno del canal "' + modo + '". (Puede modificarla manualmente si es necesario).';
                 }
             }
+        }
         }
 
         async openNewModal() {
