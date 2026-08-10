@@ -734,11 +734,7 @@ const bundleContent = `/* ======================================================
             }
             if (this.loginUserSelect && this.loginPassword) {
                 this.loginUserSelect.addEventListener('change', () => {
-                    if (this.loginUserSelect.value === 'spereyra') {
-                        this.loginPassword.value = 'admin2026';
-                    } else {
-                        this.loginPassword.value = 'defensoria2026';
-                    }
+                    this.loginPassword.value = '';
                 });
             }
 
@@ -995,7 +991,7 @@ const bundleContent = `/* ======================================================
             // Close modals when clicking outside (on the overlay), except newRecordModal to prevent data loss
             document.querySelectorAll('.modal-overlay').forEach(overlay => {
                 overlay.addEventListener('click', (e) => {
-                    if (e.target === overlay && overlay.id !== 'newRecordModal') {
+                    if (e.target === overlay && overlay.id !== 'newRecordModal' && overlay.id !== 'loginModal') {
                         overlay.classList.remove('active');
                     }
                 });
@@ -1352,8 +1348,7 @@ const bundleContent = `/* ======================================================
                         const currentVal = this.loginUserSelect.value;
                         let html = '';
                         result.data.forEach(u => {
-                            const icon = u.rol === 'ADMINISTRADOR' ? '👑 ' : '';
-                            html += '<option value="' + u.username + '">' + icon + u.nombre_completo + ' (' + u.rol + ')</option>';
+                            html += '<option value="' + u.username + '">' + u.nombre_completo + '</option>';
                         });
                         this.loginUserSelect.innerHTML = html;
                         if (currentVal && Array.from(this.loginUserSelect.options).some(o => o.value === currentVal)) {
