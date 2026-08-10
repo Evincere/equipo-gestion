@@ -2306,6 +2306,11 @@
 
         async handleFormSubmit(e) {
             e.preventDefault();
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
+            
+            const submitBtn = this.newRecordForm ? this.newRecordForm.querySelector('button[type="submit"]') : null;
+            if (submitBtn) submitBtn.disabled = true;
 
             try {
                 let motivoFinal = document.getElementById('newMotivo') ? document.getElementById('newMotivo').value : '';
@@ -2371,6 +2376,10 @@
             } catch (err) {
                 console.error('Error al guardar atención:', err);
                 showToast('Error al guardar atención: ' + (err.message || err), 'error');
+            } finally {
+                this.isSubmitting = false;
+                const submitBtn = this.newRecordForm ? this.newRecordForm.querySelector('button[type="submit"]') : null;
+                if (submitBtn) submitBtn.disabled = false;
             }
         }
     }
