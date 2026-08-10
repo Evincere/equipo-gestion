@@ -334,6 +334,8 @@ if (checkUsers.count === 0) {
     seedUserStmt.run('cgimenez', 'C. Gimenez', 'OPERADOR', 'defensoria2026', 'CG');
     seedUserStmt.run('asanchez', 'A. Sanchez', 'OPERADOR', 'defensoria2026', 'AS');
     seedUserStmt.run('lalvarado', 'L. Alvarado', 'OPERADOR', 'defensoria2026', 'LA');
+    seedUserStmt.run('mguerrero', 'Martin Guerrero', 'OPERADOR', '123456', 'MG');
+    seedUserStmt.run('mtosetto', 'Marcos Tosetto', 'OPERADOR', '123456', 'MT');
 }
 
 function logAudit(usuarioId, usuarioNombre, accion, detalle, ip = '127.0.0.1') {
@@ -443,6 +445,10 @@ const server = http.createServer((req, res) => {
 
     if (pathname === '/api/admin/auditoria' && req.method === 'GET') {
         return handleAdminGetAuditoria(req, res);
+    }
+
+    if (pathname === '/api/admin/backup-db' && req.method === 'GET') {
+        return handleAdminBackupDB(req, res);
     }
 
     if (pathname === '/api/usuarios/heartbeat' && req.method === 'POST') {
@@ -1070,6 +1076,32 @@ function handleAdminBajaUsuario(req, res) {
             res.end(JSON.stringify({ success: false, error: err.message }));
         }
     });
+}
+
+function handleAdminBackupDB(req, res) {
+    try {
+        if (!fs.existsSync(DB_PATH)) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Base de datos no encontrada' }));
+        }
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        const filename = `atenciones_backup_${dateStr}.db`;
+
+        const stat = fs.statSync(DB_PATH);
+        res.writeHead(200, {
+            'Content-Type': 'application/x-sqlite3',
+            'Content-Length': stat.size,
+            'Content-Disposition': `attachment; filename="${filename}"`
+        });
+
+        const readStream = fs.createReadStream(DB_PATH);
+        readStream.pipe(res);
+        logAudit(0, 'Sergio M. Pereyra (ADMIN)', 'BACKUP_DB', `Descarga manual de copia de seguridad SQLite (${filename})`);
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
 }
 
 function handleGetCatalogos(req, res) {

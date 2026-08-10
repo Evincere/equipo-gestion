@@ -610,6 +610,7 @@ const bundleContent = `/* ======================================================
             this.adminUserForm = document.getElementById('adminUserForm');
             this.adminUsersTableBody = document.getElementById('adminUsersTableBody');
             this.adminAuditTableBody = document.getElementById('adminAuditTableBody');
+            this.btnDownloadBackup = document.getElementById('btnDownloadBackup');
 
             this.newDniInput = document.getElementById('newDni');
             this.btnSearchDni = document.getElementById('btnSearchDni');
@@ -701,6 +702,7 @@ const bundleContent = `/* ======================================================
         async init() {
             this.bindEvents();
             this.startClock();
+            await this.loadPublicUsersForLogin();
 
             const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
             if (savedSession) {
@@ -768,6 +770,13 @@ const bundleContent = `/* ======================================================
                 this.btnConfirmLogout.addEventListener('click', () => {
                     this.confirmLogoutModal.classList.remove('active');
                     this.logoutUser();
+                });
+            }
+
+            if (this.btnDownloadBackup) {
+                this.btnDownloadBackup.addEventListener('click', () => {
+                    showToast('Iniciando descarga de copia de seguridad SQLite...', 'info');
+                    window.location.href = getApiUrl('/api/admin/backup-db');
                 });
             }
 
@@ -1333,10 +1342,35 @@ const bundleContent = `/* ======================================================
             this.onlineUsersList.innerHTML = html;
         }
 
+        async loadPublicUsersForLogin() {
+            if (!this.loginUserSelect) return;
+            try {
+                const res = await fetch(getApiUrl('/api/auth/users'));
+                if (res.ok) {
+                    const result = await res.json();
+                    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                        const currentVal = this.loginUserSelect.value;
+                        let html = '';
+                        result.data.forEach(u => {
+                            const icon = u.rol === 'ADMINISTRADOR' ? '👑 ' : '';
+                            html += '<option value="' + u.username + '">' + icon + u.nombre_completo + ' (' + u.rol + ')</option>';
+                        });
+                        this.loginUserSelect.innerHTML = html;
+                        if (currentVal && Array.from(this.loginUserSelect.options).some(o => o.value === currentVal)) {
+                            this.loginUserSelect.value = currentVal;
+                        }
+                    }
+                }
+            } catch(e) {
+                console.warn('Error al cargar usuarios para login:', e.message);
+            }
+        }
+
         logoutUser() {
             this.currentUser = null;
             localStorage.removeItem(SESSION_STORAGE_KEY);
             this.loginModal.classList.add('active');
+            this.loadPublicUsersForLogin();
             if (this.navItemConfig) this.navItemConfig.style.display = 'none';
             this.showDashboardSection();
         }
@@ -1506,6 +1540,7 @@ const bundleContent = `/* ======================================================
                 const data = await res.json();
                 if (data.success) {
                     showToast(data.message, 'success');
+                    await this.loadPublicUsersForLogin();
                 } else {
                     showToast(data.error || 'Error al cambiar estado', 'error');
                 }
@@ -1668,6 +1703,7 @@ const bundleContent = `/* ======================================================
                     showToast('Usuario ' + username + ' guardado correctamente.', 'success');
                     this.resetAdminUserForm();
                     await this.loadAdminUsersTable();
+                    await this.loadPublicUsersForLogin();
                 } else {
                     const errJson = await res.json();
                     showToast(errJson.error || 'Error al guardar usuario', 'error');
