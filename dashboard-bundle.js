@@ -1206,6 +1206,8 @@
             this.rawEntities = await this.repository.getAll();
             this.showDashboardSection();
             this.updateView();
+            this.initChatModule();
+            await this.updateChatGlobalUnreadBadge();
             this.initWebSocketConnection();
             this.startAutoSyncPolling();
         }
@@ -1282,6 +1284,24 @@
             } else if (type === 'ONLINE_USERS_UPDATED') {
                 if (payload && Array.isArray(payload.data)) {
                     this.renderOnlineUsers(payload.data);
+                }
+            } else if (type === 'CHAT_RECEIVE_MESSAGE') {
+                if (payload) {
+                    const isForMe = this.currentUser && payload.receptor_username === this.currentUser.username;
+                    if (isForMe && (!this.activeChatUsername || this.activeChatUsername !== payload.emisor_username)) {
+                        showToast('💬 Nuevo mensaje de ' + payload.emisor_username, 'info');
+                    }
+                    if (this.activeChatUsername && (payload.emisor_username === this.activeChatUsername || payload.receptor_username === this.activeChatUsername)) {
+                        await this.loadChatMessages();
+                    }
+                    await this.updateChatGlobalUnreadBadge();
+                    if (this.chatContactsList && this.chatContactsList.style.display !== 'none') {
+                        await this.loadChatContacts();
+                    }
+                }
+            } else if (type === 'CHAT_FILE_PURGED') {
+                if (this.activeChatUsername) {
+                    await this.loadChatMessages();
                 }
             }
         }
@@ -1410,6 +1430,263 @@
             await this.loadAdminRotacionControl();
             await this.loadAdminCatalogView();
             await this.loadAdminAuditTable();
+        }
+
+        initChatModule() {
+            this.btnOpenChatDrawer = document.getElementById('btnOpenChatDrawer');
+            this.btnCloseChatDrawer = document.getElementById('btnCloseChatDrawer');
+            this.chatDrawerOverlay = document.getElementById('chatDrawerOverlay');
+            this.chatContactsList = document.getElementById('chatContactsList');
+            this.chatConversationView = document.getElementById('chatConversationView');
+            this.btnBackToContacts = document.getElementById('btnBackToContacts');
+            this.chatMessagesArea = document.getElementById('chatMessagesArea');
+            this.chatTextInput = document.getElementById('chatTextInput');
+            this.btnSendChatMessage = document.getElementById('btnSendChatMessage');
+            this.btnAttachFile = document.getElementById('btnAttachFile');
+            this.chatFileInput = document.getElementById('chatFileInput');
+            this.chatGlobalUnreadBadge = document.getElementById('chatGlobalUnreadBadge');
+            this.activeChatUsername = null;
+
+            if (this.btnOpenChatDrawer && !this.btnOpenChatDrawer.dataset.bound) {
+                this.btnOpenChatDrawer.dataset.bound = "true";
+                this.btnOpenChatDrawer.addEventListener('click', () => this.openChatDrawer());
+            }
+            if (this.btnCloseChatDrawer && !this.btnCloseChatDrawer.dataset.bound) {
+                this.btnCloseChatDrawer.dataset.bound = "true";
+                this.btnCloseChatDrawer.addEventListener('click', () => this.closeChatDrawer());
+            }
+            if (this.chatDrawerOverlay && !this.chatDrawerOverlay.dataset.bound) {
+                this.chatDrawerOverlay.dataset.bound = "true";
+                this.chatDrawerOverlay.addEventListener('click', (e) => {
+                    if (e.target === this.chatDrawerOverlay) this.closeChatDrawer();
+                });
+            }
+            if (this.btnBackToContacts && !this.btnBackToContacts.dataset.bound) {
+                this.btnBackToContacts.dataset.bound = "true";
+                this.btnBackToContacts.addEventListener('click', () => {
+                    this.activeChatUsername = null;
+                    this.chatConversationView.style.display = 'none';
+                    this.chatContactsList.style.display = 'flex';
+                    this.loadChatContacts();
+                });
+            }
+            if (this.btnSendChatMessage && !this.btnSendChatMessage.dataset.bound) {
+                this.btnSendChatMessage.dataset.bound = "true";
+                this.btnSendChatMessage.addEventListener('click', () => this.sendChatMessage());
+            }
+            if (this.chatTextInput && !this.chatTextInput.dataset.bound) {
+                this.chatTextInput.dataset.bound = "true";
+                this.chatTextInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendChatMessage();
+                });
+            }
+            if (this.btnAttachFile && this.chatFileInput && !this.btnAttachFile.dataset.bound) {
+                this.btnAttachFile.dataset.bound = "true";
+                this.btnAttachFile.addEventListener('click', () => this.chatFileInput.click());
+                this.chatFileInput.addEventListener('change', () => this.handleFileSelected());
+            }
+        }
+
+        async openChatDrawer() {
+            if (this.chatDrawerOverlay) this.chatDrawerOverlay.classList.add('active');
+            await this.loadChatContacts();
+        }
+
+        closeChatDrawer() {
+            if (this.chatDrawerOverlay) this.chatDrawerOverlay.classList.remove('active');
+        }
+
+        async updateChatGlobalUnreadBadge() {
+            if (!this.currentUser || !this.chatGlobalUnreadBadge) return;
+            try {
+                const res = await fetch(getApiUrl('/api/chat/unread-count?username=' + encodeURIComponent(this.currentUser.username)));
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        const total = json.data.reduce((acc, curr) => acc + (curr.unread_count || 0), 0);
+                        if (total > 0) {
+                            this.chatGlobalUnreadBadge.textContent = total;
+                            this.chatGlobalUnreadBadge.style.display = 'inline-block';
+                        } else {
+                            this.chatGlobalUnreadBadge.style.display = 'none';
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async loadChatContacts() {
+            if (!this.chatContactsList) return;
+            try {
+                const usersRes = await fetch(getApiUrl('/api/auth/users'));
+                const unreadRes = await fetch(getApiUrl('/api/chat/unread-count?username=' + encodeURIComponent(this.currentUser ? this.currentUser.username : '')));
+                const onlineRes = await fetch(getApiUrl('/api/usuarios/online'));
+
+                const usersData = usersRes.ok ? (await usersRes.json()).data : [];
+                const unreadData = unreadRes.ok ? (await unreadRes.json()).data : [];
+                const onlineData = onlineRes.ok ? (await onlineRes.json()).data : [];
+
+                const unreadMap = {};
+                (unreadData || []).forEach(r => unreadMap[r.emisor_username] = r.unread_count);
+                const onlineMap = {};
+                (onlineData || []).forEach(o => onlineMap[o.username] = true);
+
+                let html = '';
+                (usersData || []).forEach(u => {
+                    if (this.currentUser && u.username === this.currentUser.username) return;
+                    const isOnline = Boolean(onlineMap[u.username]);
+                    const unread = unreadMap[u.username] || 0;
+                    const initials = (u.nombre_completo.split(' ').map(p => p[0]).join('')).substring(0, 2).toUpperCase();
+
+                    const unreadBadgeHtml = unread > 0 ? '<span class="badge" style="background: #EF4444; color: #FFF; font-size: 0.7rem; padding: 0.15rem 0.4rem; border-radius: 10px;">' + unread + ' nuevo(s)</span>' : '';
+                    const statusColor = isOnline ? '#4ADE80' : '#64748B';
+                    const statusText = isOnline ? 'En línea' : 'Desconectado';
+
+                    html += '<div class="chat-contact-item" data-username="' + u.username + '" data-name="' + u.nombre_completo + '">' +
+                        '<div style="display: flex; align-items: center; gap: 0.75rem;">' +
+                            '<div style="position: relative;">' +
+                                '<div class="avatar" style="width: 34px; height: 34px; font-size: 0.8rem; font-weight: 700;">' + initials + '</div>' +
+                                '<span style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: ' + statusColor + '; border: 2px solid #0F172A;"></span>' +
+                            '</div>' +
+                            '<div>' +
+                                '<span style="display: block; font-size: 0.88rem; font-weight: 600; color: #FFF;">' + u.nombre_completo + '</span>' +
+                                '<span style="font-size: 0.72rem; color: ' + statusColor + ';">' + statusText + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        unreadBadgeHtml +
+                    '</div>';
+                });
+
+                this.chatContactsList.innerHTML = html || '<div style="color: #94A3B8; text-align: center; font-size: 0.85rem; padding: 1rem;">No hay otros usuarios registrados.</div>';
+
+                const self = this;
+                this.chatContactsList.querySelectorAll('.chat-contact-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const uname = item.getAttribute('data-username');
+                        const name = item.getAttribute('data-name');
+                        self.openConversation(uname, name);
+                    });
+                });
+            } catch(e) {}
+        }
+
+        async openConversation(username, name) {
+            this.activeChatUsername = username;
+            document.getElementById('activeChatName').textContent = name;
+            document.getElementById('activeChatAvatar').textContent = (name.split(' ').map(p => p[0]).join('')).substring(0, 2).toUpperCase();
+
+            this.chatContactsList.style.display = 'none';
+            this.chatConversationView.style.display = 'flex';
+
+            await fetch(getApiUrl('/api/chat/marcar-leidos'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ emisor: username, receptor: this.currentUser ? this.currentUser.username : '' })
+            });
+
+            await this.updateChatGlobalUnreadBadge();
+            await this.loadChatMessages();
+        }
+
+        async loadChatMessages() {
+            if (!this.activeChatUsername || !this.chatMessagesArea) return;
+            try {
+                const res = await fetch(getApiUrl('/api/chat/historial?user1=' + encodeURIComponent(this.currentUser ? this.currentUser.username : '') + '&user2=' + encodeURIComponent(this.activeChatUsername)));
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        let html = '';
+                        json.data.forEach(m => {
+                            const isSent = this.currentUser && m.emisor_username === this.currentUser.username;
+                            const bubbleClass = isSent ? 'sent' : 'received';
+
+                            let contentHtml = '';
+                            if (m.tipo === 'FILE') {
+                                if (m.descargado) {
+                                    contentHtml = '<div style="display: flex; align-items: center; gap: 0.4rem; color: #E2E8F0; font-size: 0.8rem;">' +
+                                        '<i class="ri-checkbox-circle-fill" style="color: #4ADE80; font-size: 1.1rem;"></i>' +
+                                        '<span>Archivo <strong>' + m.archivo_nombre + '</strong> descargado y purgado.</span>' +
+                                    '</div>';
+                                } else {
+                                    contentHtml = '<div style="display: flex; flex-direction: column; gap: 0.35rem;">' +
+                                        '<div style="font-weight: 600; font-size: 0.85rem;"><i class="ri-file-download-line"></i> ' + m.archivo_nombre + '</div>' +
+                                        '<div style="font-size: 0.72rem; opacity: 0.85;">Tamaño: ' + (m.archivo_tamano / 1024).toFixed(1) + ' KB</div>' +
+                                        '<a href="' + getApiUrl('/api/chat/descargar/' + m.id) + '" target="_blank" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.5rem; text-decoration: none; margin-top: 0.25rem; display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: #FFF;">' +
+                                            '<i class="ri-download-line"></i> Descargar (Borrado Automático)' +
+                                        '</a>' +
+                                    '</div>';
+                                }
+                            } else {
+                                contentHtml = m.mensaje;
+                            }
+
+                            html += '<div class="chat-bubble ' + bubbleClass + '">' +
+                                contentHtml +
+                            '</div>';
+                        });
+                        this.chatMessagesArea.innerHTML = html || '<div style="color: #64748B; font-size: 0.8rem; text-align: center; padding: 1rem;">No hay mensajes en esta conversación.</div>';
+                        this.chatMessagesArea.scrollTop = this.chatMessagesArea.scrollHeight;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async sendChatMessage() {
+            const text = this.chatTextInput ? this.chatTextInput.value.trim() : '';
+            if (!text || !this.activeChatUsername || !this.socket) return;
+
+            const payload = {
+                emisor: this.currentUser.username,
+                receptor: this.activeChatUsername,
+                mensaje: text,
+                tipo: 'TEXT'
+            };
+
+            this.socket.send(JSON.stringify({ type: 'CHAT_SEND_MESSAGE', payload }));
+            this.chatTextInput.value = '';
+        }
+
+        async handleFileSelected() {
+            const file = this.chatFileInput ? this.chatFileInput.files[0] : null;
+            if (!file || !this.activeChatUsername) return;
+
+            if (file.size > 15 * 1024 * 1024) {
+                showToast('El archivo supera el límite de 15 MB', 'error');
+                return;
+            }
+
+            try {
+                showToast('Subiendo archivo adjunto...', 'info');
+                const uploadRes = await fetch(getApiUrl('/api/chat/upload'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': file.type || 'application/octet-stream',
+                        'X-File-Name': encodeURIComponent(file.name)
+                    },
+                    body: file
+                });
+
+                if (uploadRes.ok) {
+                    const upData = await uploadRes.json();
+                    if (upData.success) {
+                        const payload = {
+                            emisor: this.currentUser.username,
+                            receptor: this.activeChatUsername,
+                            mensaje: 'Envió un archivo adjunto: ' + upData.archivoNombre,
+                            tipo: 'FILE',
+                            archivoNombre: upData.archivoNombre,
+                            archivoRuta: upData.archivoRuta,
+                            archivoTamano: upData.archivoTamano,
+                            archivoMime: upData.archivoMime
+                        };
+                        this.socket.send(JSON.stringify({ type: 'CHAT_SEND_MESSAGE', payload }));
+                        showToast('Archivo adjuntado correctamente', 'success');
+                    }
+                }
+            } catch(e) {
+                showToast('Error al subir archivo adjunto', 'error');
+            }
+            this.chatFileInput.value = '';
         }
 
         async loadAdminRotacionControl() {
