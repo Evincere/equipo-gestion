@@ -1389,8 +1389,98 @@ const bundleContent = `/* ======================================================
             this.navItemConfig.classList.add('active');
 
             await this.loadAdminUsersTable();
+            await this.loadAdminRotacionControl();
             await this.loadAdminCatalogView();
             await this.loadAdminAuditTable();
+        }
+
+        async loadAdminRotacionControl() {
+            const container = document.getElementById('rotacionCanalesContainer');
+            const btnReset = document.getElementById('btnResetRotacion');
+
+            if (btnReset && !btnReset.dataset.bound) {
+                btnReset.dataset.bound = "true";
+                btnReset.addEventListener('click', () => {
+                    showConfirm('¿Reiniciar Rotación?', '¿Confirma reiniciar el puntero de rotación a cero para todos los canales?', async () => {
+                        try {
+                            const res = await fetch(getApiUrl('/api/admin/rotacion/reset'), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ adminOperatorName: this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN' })
+                            });
+                            if (res.ok) {
+                                showToast('Rotación reiniciada a cero correctamente', 'success');
+                                await this.loadAdminRotacionControl();
+                                await this.calculateProximoTurno();
+                            }
+                        } catch(e) {
+                            showToast('Error al reiniciar rotación', 'error');
+                        }
+                    });
+                });
+            }
+
+            if (!container) return;
+
+            const canales = [
+                { key: 'ASESORAMIENTO_GENERAL', label: 'Asesoramiento General' },
+                { key: 'CAUSA_NUEVA', label: 'Causa Nueva' },
+                { key: 'CONTESTACION_DEMANDA', label: 'Contestación de Demanda' },
+                { key: 'ADOPCION', label: 'Guarda / Tutela / Adopción' }
+            ];
+
+            let html = '';
+            for (const c of canales) {
+                const turnRes = await fetch(getApiUrl('/api/familia/proximo-turno?canal=' + encodeURIComponent(c.key)));
+                let proxima = 'Sin asignar';
+                if (turnRes.ok) {
+                    const tData = await turnRes.json();
+                    if (tData.proximaDefensora) proxima = tData.proximaDefensora;
+                }
+
+                let optionsHtml = '';
+                this.codefensorasRoster.forEach((def, idx) => {
+                    const selected = def.nombre.toLowerCase() === proxima.toLowerCase() ? 'selected' : '';
+                    const ausenteTxt = def.isPresente ? '' : ' (Ausente)';
+                    optionsHtml += '<option value="' + (idx - 1) + '" ' + selected + '>Inicia con: Dra. ' + def.nombre + ausenteTxt + '</option>';
+                });
+
+                html += '<div class="form-group" style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">' +
+                    '<label style="font-weight: 600; color: #E2E8F0;">' + c.label + '</label>' +
+                    '<div style="font-size: 0.82rem; color: #38BDF8; margin-bottom: 0.5rem;">Próximo Turno: Dra. ' + proxima + '</div>' +
+                    '<select class="form-control channel-rotation-select" data-canal="' + c.key + '" style="font-size: 0.85rem;">' +
+                        optionsHtml +
+                    '</select>' +
+                '</div>';
+            }
+
+            container.innerHTML = html;
+
+            const self = this;
+            container.querySelectorAll('.channel-rotation-select').forEach(function(sel) {
+                sel.addEventListener('change', async function(e) {
+                    const canal = sel.getAttribute('data-canal');
+                    const lastIndex = parseInt(sel.value, 10);
+                    try {
+                        const res = await fetch(getApiUrl('/api/admin/rotacion/canal'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                canal: canal,
+                                lastIndex: lastIndex,
+                                adminOperatorName: self.currentUser ? self.currentUser.nombreCompleto : 'ADMIN'
+                            })
+                        });
+                        if (res.ok) {
+                            showToast('Turno del canal actualizado', 'success');
+                            await self.loadAdminRotacionControl();
+                            await self.calculateProximoTurno();
+                        }
+                    } catch(err) {
+                        showToast('Error al actualizar canal', 'error');
+                    }
+                });
+            });
         }
 
         async loadCatalogOptions() {

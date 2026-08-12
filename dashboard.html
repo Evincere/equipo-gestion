@@ -363,6 +363,22 @@
                         </div>
                     </div>
 
+                    <!-- Gestión de Rotación de Turnos (Co-Defensorías de Familia) -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <h3><i class="ri-refresh-line"></i> Gestión de Rotación de Turnos (Co-Defensorías de Familia)</h3>
+                                <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.25rem;">Ajuste el turno inicial o corrija desviaciones de distribución circular para cada canal. Las Co-Defensoras ausentes son omitidas automáticamente.</p>
+                            </div>
+                            <button type="button" class="btn btn-secondary" id="btnResetRotacion" style="background: rgba(239, 68, 68, 0.2); color: #F87171; border-color: #EF4444; font-size: 0.85rem;">
+                                <i class="ri-history-line"></i> Reiniciar Rotación a Cero
+                            </button>
+                        </div>
+                        <div class="grid-form" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-top: 1rem;" id="rotacionCanalesContainer">
+                            <div style="color: #94A3B8; font-size: 0.85rem;">Cargando estado de canales...</div>
+                        </div>
+                    </div>
+
                     <!-- Gestión Dinámica de Campos del Formulario -->
                     <div class="records-section" style="margin-top: 1.5rem;">
                         <div class="section-header">
