@@ -810,6 +810,29 @@ const bundleContent = `/* ======================================================
                 });
             }
 
+            const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
+
+            if (localStorage.getItem('mpd_sidebar_collapsed') === 'true' && sidebar) {
+                sidebar.classList.add('collapsed');
+                if (sidebarToggleIcon) {
+                    sidebarToggleIcon.className = 'ri-menu-unfold-line';
+                }
+            }
+
+            if (btnToggleSidebar && sidebar) {
+                btnToggleSidebar.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    sidebar.classList.toggle('collapsed');
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    localStorage.setItem('mpd_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+                    if (sidebarToggleIcon) {
+                        sidebarToggleIcon.className = isCollapsed ? 'ri-menu-unfold-line' : 'ri-menu-fold-line';
+                    }
+                });
+            }
+
             if (this.navItemConfig) {
                 this.navItemConfig.addEventListener('click', (e) => {
                     e.preventDefault();

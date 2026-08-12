@@ -168,6 +168,74 @@ body {
     display: flex;
     flex-direction: column;
     padding: 1.5rem 1.25rem;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+    position: relative;
+}
+
+.sidebar-toggle-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--mpd-cyan);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    color: #FFFFFF;
+    border-color: var(--mpd-cyan-glow);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.sidebar.collapsed {
+    width: 72px;
+    padding: 1.25rem 0.5rem;
+}
+
+.sidebar.collapsed .brand-subtitle,
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .user-info {
+    display: none !important;
+}
+
+.sidebar.collapsed .brand-section {
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.sidebar.collapsed .brand-logo {
+    max-height: 42px;
+}
+
+.sidebar.collapsed .sidebar-toggle-btn {
+    position: static;
+    margin: 0 auto 0.75rem auto;
+}
+
+.sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 0.75rem 0.5rem;
+}
+
+.sidebar.collapsed .nav-item i {
+    font-size: 1.35rem;
+}
+
+.sidebar.collapsed .user-profile {
+    justify-content: center !important;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
 }
 
 .brand-section {

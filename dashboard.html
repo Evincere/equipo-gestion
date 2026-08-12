@@ -31,25 +31,28 @@
             
             <!-- Sidebar / Menú Lateral -->
             <aside class="sidebar">
-                <div class="brand-section">
+                <div class="brand-section" style="position: relative;">
+                    <button class="sidebar-toggle-btn" id="btnToggleSidebar" title="Contraer / Expandir Menú Lateral">
+                        <i class="ri-menu-fold-line" id="sidebarToggleIcon"></i>
+                    </button>
                     <img src="logo_icon.png" alt="Logo MPD" class="brand-logo">
                     <span class="brand-subtitle">Defensoría Pública</span>
                 </div>
 
                 <nav class="nav-menu">
-                    <a href="#" class="nav-item active" id="navItemDashboard" data-tab="dashboard">
-                        <i class="ri-dashboard-3-line"></i> Dashboard
+                    <a href="#" class="nav-item active" id="navItemDashboard" data-tab="dashboard" title="Dashboard">
+                        <i class="ri-dashboard-3-line"></i> <span>Dashboard</span>
                     </a>
-                    <a href="#" class="nav-item" id="btnNavNuevaAtencion" data-tab="nueva">
-                        <i class="ri-add-circle-line"></i> Nueva Atención
+                    <a href="#" class="nav-item" id="btnNavNuevaAtencion" data-tab="nueva" title="Nueva Atención">
+                        <i class="ri-add-circle-line"></i> <span>Nueva Atención</span>
                     </a>
-                    <a href="#" class="nav-item" id="btnExportPDF">
-                        <i class="ri-file-pdf-line"></i> Reportes / PDF
+                    <a href="#" class="nav-item" id="btnExportPDF" title="Reportes / PDF">
+                        <i class="ri-file-pdf-line"></i> <span>Reportes / PDF</span>
                     </a>
                     
                     <!-- Menú Exclusivo Administrador (Sergio M. Pereyra) -->
-                    <a href="#" class="nav-item" id="navItemConfig" data-tab="config" style="display: none;">
-                        <i class="ri-settings-3-line"></i> Configuración (Admin)
+                    <a href="#" class="nav-item" id="navItemConfig" data-tab="config" style="display: none;" title="Configuración (Admin)">
+                        <i class="ri-settings-3-line"></i> <span>Configuración (Admin)</span>
                     </a>
                 </nav>
 
