@@ -816,6 +816,30 @@ function handlePutAtencion(req, res) {
 
             logAudit(data.operatorId || 0, atendidoPorFinal, 'EDITAR_ATENCION', `Atención N° ${data.id} actualizada para ${data.apellidos} ${data.nombres}`);
 
+            const updatedRecord = {
+                id: Number(data.id),
+                fecha: data.fecha || 'S/F',
+                actividad: data.actividad || 'Atención Personal',
+                dni: data.dni || '',
+                apellidos: (data.apellidos || '').toUpperCase(),
+                nombres: (data.nombres || '').toUpperCase(),
+                celular: data.celular || '',
+                expte: data.expte || '',
+                motivo: data.motivo || '',
+                defensoria: data.defensoria || 'Otro',
+                resultado: data.resultado || 'Resuelve',
+                observaciones: data.observaciones || '',
+                atendido_por: atendidoPorFinal,
+                derivado_a: data.derivadoA || '',
+                escritos: data.escritos || '',
+                tarea_pendiente: esPendiente,
+                detalle_pendiente: detallePendiente,
+                modo_derivacion_familia: modoFamilia,
+                codefensora_asignada: codefensora,
+                fecha_vencimiento_contestacion: vencimiento
+            };
+            broadcast('RECORD_UPDATED', { record: updatedRecord });
+
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true, message: 'Registro actualizado correctamente' }));
         } catch (err) {
@@ -848,81 +872,6 @@ function handleDeleteAtencion(req, res, parsedUrl) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: err.message }));
     }
-}
-
-function handlePutAtencion(req, res) {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', () => {
-        try {
-            const data = JSON.parse(body);
-            if (!data.id) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: false, error: 'ID es requerido para actualizar' }));
-                return;
-            }
-
-            const stmt = db.prepare(`
-                UPDATE atenciones SET
-                    fecha = ?, actividad = ?, dni = ?, apellidos = ?, nombres = ?,
-                    celular = ?, expte = ?, motivo = ?, defensoria = ?, resultado = ?,
-                    observaciones = ?, atendido_por = ?, derivado_a = ?, escritos = ?,
-                    tarea_pendiente = ?, detalle_pendiente = ?
-                WHERE id = ?
-            `);
-
-            const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
-
-            stmt.run(
-                data.fecha || 'S/F',
-                data.actividad || 'Atención Personal',
-                data.dni || '',
-                (data.apellidos || '').toUpperCase(),
-                (data.nombres || '').toUpperCase(),
-                data.celular || '',
-                data.expte || '',
-                data.motivo || '',
-                data.defensoria || 'Otro',
-                data.resultado || 'Resuelve',
-                data.observaciones || '',
-                data.atendidoPor || 'Secretaría',
-                data.derivadoA || '',
-                data.escritos || '',
-                esPendiente,
-                data.detallePendiente || '',
-                data.id
-            );
-
-            logAudit(0, 'OPERADOR', 'EDITAR_ATENCION', `Atención ID ${data.id} editada correctamente`);
-
-            const updatedRecord = {
-                id: Number(data.id),
-                fecha: data.fecha || 'S/F',
-                actividad: data.actividad || 'Atención Personal',
-                dni: data.dni || '',
-                apellidos: (data.apellidos || '').toUpperCase(),
-                nombres: (data.nombres || '').toUpperCase(),
-                celular: data.celular || '',
-                expte: data.expte || '',
-                motivo: data.motivo || '',
-                defensoria: data.defensoria || 'Otro',
-                resultado: data.resultado || 'Resuelve',
-                observaciones: data.observaciones || '',
-                atendido_por: data.atendidoPor || 'Secretaría',
-                derivado_a: data.derivadoA || '',
-                escritos: data.escritos || '',
-                tarea_pendiente: esPendiente,
-                detalle_pendiente: data.detallePendiente || ''
-            };
-            broadcast('RECORD_UPDATED', { record: updatedRecord });
-
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-            res.end(JSON.stringify({ success: true, message: 'Atención actualizada correctamente' }));
-        } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: err.message }));
-        }
-    });
 }
 
 function handlePostCambiarEstadoTarea(req, res) {
