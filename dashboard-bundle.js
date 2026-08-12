@@ -1814,12 +1814,23 @@
                         if (res.ok) {
                             const data = await res.json();
                             if (data.success && data.found && data.suggestedCodefensora) {
+                                const suggestedName = data.suggestedCodefensora;
                                 if (this.newCodefensoraAsignada) {
-                                    this.newCodefensoraAsignada.value = data.suggestedCodefensora;
+                                    this.newCodefensoraAsignada.value = suggestedName;
                                 }
+
+                                const defObj = this.codefensorasRoster.find(item => item.nombre.toLowerCase() === suggestedName.toLowerCase());
+                                const isPresente = defObj ? defObj.isPresente : true;
+                                const motivo = (defObj && defObj.motivoAusencia) ? ' (' + defObj.motivoAusencia + ')' : '';
+
                                 if (this.codefensoraHint) {
-                                    this.codefensoraHint.style.color = '#4ADE80';
-                                    this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al historial del ciudadano: Dra. ' + data.suggestedCodefensora;
+                                    if (isPresente) {
+                                        this.codefensoraHint.style.color = '#4ADE80';
+                                        this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al historial: Dra. ' + suggestedName;
+                                    } else {
+                                        this.codefensoraHint.style.color = '#FBBF24';
+                                        this.codefensoraHint.textContent = '⚠️ Dra. ' + suggestedName + ' (asignada previamente a este expediente) figura Ausente' + motivo + '. Puede mantenerla o re-asignar a otra Co-Defensora presente.';
+                                    }
                                 }
                                 return;
                             }
