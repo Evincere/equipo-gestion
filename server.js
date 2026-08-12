@@ -451,6 +451,14 @@ const server = http.createServer((req, res) => {
         return handleAdminBackupDB(req, res);
     }
 
+    if (pathname === '/api/admin/rotacion/reset' && req.method === 'POST') {
+        return handleAdminResetRotacion(req, res);
+    }
+
+    if (pathname === '/api/admin/rotacion/canal' && req.method === 'POST') {
+        return handleAdminAjustarCanal(req, res);
+    }
+
     if (pathname === '/api/usuarios/heartbeat' && req.method === 'POST') {
         return handlePostHeartbeat(req, res);
     }
@@ -1051,6 +1059,54 @@ function handleAdminBackupDB(req, res) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: err.message }));
     }
+}
+
+function handleAdminResetRotacion(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body || '{}');
+            const adminName = data.adminOperatorName || 'Sergio M. Pereyra (ADMIN)';
+            
+            db.exec("UPDATE rotacion_turnos_canales SET last_index = -1;");
+            logAudit(0, adminName, 'RESET_ROTACION', 'Se reiniciaron los turnos Round-Robin a cero para todos los canales de Familia');
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, message: 'Rotación de turnos reiniciada a cero correctamente' }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
+function handleAdminAjustarCanal(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body || '{}');
+            const { canal, lastIndex, adminOperatorName } = data;
+
+            if (!canal || typeof lastIndex !== 'number') {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Canal y lastIndex son requeridos' }));
+                return;
+            }
+
+            const stmt = db.prepare('INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES (?, ?)');
+            stmt.run(canal, lastIndex);
+
+            logAudit(0, adminOperatorName || 'ADMIN', 'AJUSTAR_ROTACION_CANAL', `Canal ${canal} ajustado a last_index = ${lastIndex}`);
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, message: `Canal ${canal} actualizado a índice ${lastIndex}` }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
 }
 
 function handleGetCatalogos(req, res) {
