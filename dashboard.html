@@ -20,6 +20,10 @@
                 <span>Gestión de Atenciones - Defensoría Pública (Mendoza)</span>
             </div>
             <div class="caption-buttons">
+                <button class="caption-btn" id="btnOpenChatDrawer" title="Chat Interno Directo 1-a-1" style="position: relative; width: auto; padding: 0 0.65rem; display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; color: var(--mpd-cyan); border-color: rgba(56, 189, 248, 0.3);">
+                    <i class="ri-chat-3-line"></i> <span>Chat</span>
+                    <span class="badge" id="chatGlobalUnreadBadge" style="display: none; font-size: 0.65rem; padding: 0.1rem 0.35rem; background: #EF4444; color: #FFF; border-radius: 10px;">0</span>
+                </button>
                 <button class="caption-btn" title="Minimizar"><i class="ri-subtract-line"></i></button>
                 <button class="caption-btn" title="Maximizar"><i class="ri-checkbox-blank-line"></i></button>
                 <button class="caption-btn btn-close" id="btnCloseApp" title="Cerrar Sesión / Salir"><i class="ri-close-line"></i></button>
@@ -696,6 +700,55 @@
                     </div>
                 </div>
             </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer Lateral Flotante de Chat 1-a-1 -->
+    <div class="chat-drawer-overlay" id="chatDrawerOverlay">
+        <div class="chat-drawer" id="chatDrawer">
+            <div class="chat-drawer-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="ri-chat-3-fill" style="color: var(--mpd-cyan); font-size: 1.25rem;"></i>
+                    <h4 style="margin: 0; font-size: 1rem; color: #FFF;" id="chatDrawerTitle">Chat Interno Operarios</h4>
+                </div>
+                <button class="modal-close-btn" id="btnCloseChatDrawer"><i class="ri-close-line"></i></button>
+            </div>
+
+            <div class="chat-drawer-body">
+                <!-- Sub-panel 1: Lista de Operarios -->
+                <div class="chat-contacts-list" id="chatContactsList">
+                    <div style="color: #94A3B8; font-size: 0.85rem; text-align: center; padding: 1rem;">Cargando contactos...</div>
+                </div>
+
+                <!-- Sub-panel 2: Ventana de Conversación Directa -->
+                <div class="chat-conversation-view" id="chatConversationView" style="display: none;">
+                    <div class="chat-conv-header">
+                        <button class="btn btn-secondary" id="btnBackToContacts" style="padding: 0.25rem 0.55rem; font-size: 0.78rem;">
+                            <i class="ri-arrow-left-line"></i> Volver
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div class="avatar" id="activeChatAvatar" style="width: 28px; height: 28px; font-size: 0.7rem; font-weight: 700;">OP</div>
+                            <span id="activeChatName" style="font-weight: 600; font-size: 0.88rem; color: #FFF;">Operador</span>
+                        </div>
+                    </div>
+
+                    <div class="chat-messages-area" id="chatMessagesArea">
+                        <!-- Burbujas de mensajes -->
+                    </div>
+
+                    <!-- Input y Adjuntar Archivo -->
+                    <div class="chat-input-bar">
+                        <input type="file" id="chatFileInput" style="display: none;" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.zip">
+                        <button type="button" class="btn-chat-attach" id="btnAttachFile" title="Adjuntar Archivo (PDF, Img, Doc, Zip - Máx 15MB)">
+                            <i class="ri-attachment-line"></i>
+                        </button>
+                        <input type="text" id="chatTextInput" placeholder="Escribe un mensaje privado..." class="form-control" style="font-size: 0.85rem;">
+                        <button type="button" class="btn btn-primary" id="btnSendChatMessage" style="padding: 0.5rem 0.75rem;">
+                            <i class="ri-send-plane-fill"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
