@@ -71,7 +71,29 @@ db.exec(`
         ip TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS chat_mensajes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emisor_username TEXT NOT NULL,
+        receptor_username TEXT NOT NULL,
+        mensaje TEXT,
+        tipo TEXT DEFAULT 'TEXT',
+        archivo_nombre TEXT,
+        archivo_ruta TEXT,
+        archivo_tamano INTEGER,
+        archivo_mime TEXT,
+        descargado INTEGER DEFAULT 0,
+        leido INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_users ON chat_mensajes(emisor_username, receptor_username);
 `);
+
+const CHAT_UPLOADS_DIR = path.join(__dirname, 'data', 'uploads', 'chat');
+if (!fs.existsSync(CHAT_UPLOADS_DIR)) {
+    fs.mkdirSync(CHAT_UPLOADS_DIR, { recursive: true });
+}
 
 // Migración suave para agregar columnas de tareas pendientes y co-defensoría de familia por canal
 try { db.exec('ALTER TABLE atenciones ADD COLUMN tarea_pendiente INTEGER DEFAULT 0;'); } catch (e) {}
@@ -457,6 +479,26 @@ const server = http.createServer((req, res) => {
 
     if (pathname === '/api/admin/rotacion/canal' && req.method === 'POST') {
         return handleAdminAjustarCanal(req, res);
+    }
+
+    if (pathname === '/api/chat/historial' && req.method === 'GET') {
+        return handleGetChatHistorial(req, res, parsedUrl);
+    }
+
+    if (pathname === '/api/chat/upload' && req.method === 'POST') {
+        return handlePostChatUpload(req, res);
+    }
+
+    if (pathname.startsWith('/api/chat/descargar/') && req.method === 'GET') {
+        return handleGetChatDescargar(req, res, pathname);
+    }
+
+    if (pathname === '/api/chat/marcar-leidos' && req.method === 'POST') {
+        return handlePostChatMarcarLeidos(req, res);
+    }
+
+    if (pathname === '/api/chat/unread-count' && req.method === 'GET') {
+        return handleGetChatUnreadCount(req, res, parsedUrl);
     }
 
     if (pathname === '/api/usuarios/heartbeat' && req.method === 'POST') {
@@ -1109,6 +1151,138 @@ function handleAdminAjustarCanal(req, res) {
     });
 }
 
+function handleGetChatHistorial(req, res, parsedUrl) {
+    try {
+        const user1 = parsedUrl.searchParams.get('user1') || '';
+        const user2 = parsedUrl.searchParams.get('user2') || '';
+        if (!user1 || !user2) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'user1 y user2 son requeridos' }));
+        }
+
+        const stmt = db.prepare(`
+            SELECT * FROM chat_mensajes 
+            WHERE (emisor_username = ? AND receptor_username = ?)
+               OR (emisor_username = ? AND receptor_username = ?)
+            ORDER BY id ASC LIMIT 200
+        `);
+        const rows = stmt.all(user1, user2, user2, user1);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, data: rows }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
+function handlePostChatUpload(req, res) {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => {
+        try {
+            const buffer = Buffer.concat(chunks);
+            const rawHeader = req.headers['x-file-name'] || 'archivo_adjunto';
+            const originalName = decodeURIComponent(rawHeader);
+            const fileMime = req.headers['content-type'] || 'application/octet-stream';
+            const safeName = Date.now() + '_' + originalName.replace(/[^a-zA-Z0-9_.-]/g, '_');
+            const targetPath = path.join(CHAT_UPLOADS_DIR, safeName);
+
+            fs.writeFileSync(targetPath, buffer);
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({
+                success: true,
+                archivoNombre: originalName,
+                archivoRuta: targetPath,
+                archivoTamano: buffer.length,
+                archivoMime: fileMime
+            }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
+function handleGetChatDescargar(req, res, pathname) {
+    try {
+        const msgId = pathname.split('/').pop();
+        const msg = db.prepare('SELECT * FROM chat_mensajes WHERE id = ?').get(msgId);
+
+        if (!msg || !msg.archivo_ruta) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: 'Archivo no encontrado' }));
+        }
+
+        if (!fs.existsSync(msg.archivo_ruta)) {
+            res.writeHead(410, { 'Content-Type': 'application/json; charset=UTF-8' });
+            return res.end(JSON.stringify({ success: false, error: 'El archivo ya ha sido descargado y purgado del servidor.' }));
+        }
+
+        const stat = fs.statSync(msg.archivo_ruta);
+        res.writeHead(200, {
+            'Content-Type': msg.archivo_mime || 'application/octet-stream',
+            'Content-Length': stat.size,
+            'Content-Disposition': `attachment; filename="${encodeURIComponent(msg.archivo_nombre || 'adjunto')}"`
+        });
+
+        const readStream = fs.createReadStream(msg.archivo_ruta);
+        readStream.pipe(res);
+
+        // BORRADO AUTOMÁTICO EN EL DISCO AL COMPLETAR LA DESCARGA
+        res.on('finish', () => {
+            try {
+                if (fs.existsSync(msg.archivo_ruta)) {
+                    fs.unlinkSync(msg.archivo_ruta);
+                    console.log(`🗑️ Archivo purgado de disco tras descarga exitosa: ${msg.archivo_nombre}`);
+                }
+                db.prepare('UPDATE chat_mensajes SET descargado = 1 WHERE id = ?').run(msgId);
+                broadcast('CHAT_FILE_PURGED', { messageId: Number(msgId) });
+            } catch (e) {
+                console.error('Error al purgar archivo descargado:', e.message);
+            }
+        });
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
+function handlePostChatMarcarLeidos(req, res) {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+        try {
+            const { emisor, receptor } = JSON.parse(body);
+            db.prepare('UPDATE chat_mensajes SET leido = 1 WHERE emisor_username = ? AND receptor_username = ? AND leido = 0').run(emisor, receptor);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+    });
+}
+
+function handleGetChatUnreadCount(req, res, parsedUrl) {
+    try {
+        const username = parsedUrl.searchParams.get('username') || '';
+        const rows = db.prepare(`
+            SELECT emisor_username, COUNT(*) as unread_count 
+            FROM chat_mensajes 
+            WHERE receptor_username = ? AND leido = 0 
+            GROUP BY emisor_username
+        `).all(username);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, data: rows }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
 function handleGetCatalogos(req, res) {
     try {
         const rows = db.prepare('SELECT id, categoria, valor, orden FROM catalogos_opciones WHERE activo = 1 ORDER BY categoria ASC, orden ASC, valor ASC').all();
@@ -1359,6 +1533,46 @@ wss.on('connection', (ws) => {
                     lastSeen: Date.now()
                 });
                 broadcastOnlineUsers();
+            } else if (data.type === 'CHAT_SEND_MESSAGE') {
+                const payload = data.payload || {};
+                const { emisor, receptor, mensaje, tipo, archivoNombre, archivoRuta, archivoTamano, archivoMime } = payload;
+
+                if (emisor && receptor) {
+                    const stmt = db.prepare(`
+                        INSERT INTO chat_mensajes (
+                            emisor_username, receptor_username, mensaje, tipo,
+                            archivo_nombre, archivo_ruta, archivo_tamano, archivo_mime, descargado, leido
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+                    `);
+                    const res = stmt.run(
+                        emisor, receptor, mensaje || '', tipo || 'TEXT',
+                        archivoNombre || null, archivoRuta || null, archivoTamano || null, archivoMime || null
+                    );
+
+                    const insertedMsg = {
+                        id: Number(res.lastInsertRowid),
+                        emisor_username: emisor,
+                        receptor_username: receptor,
+                        mensaje: mensaje || '',
+                        tipo: tipo || 'TEXT',
+                        archivo_nombre: archivoNombre || null,
+                        archivo_ruta: archivoRuta || null,
+                        archivo_tamano: archivoTamano || null,
+                        archivo_mime: archivoMime || null,
+                        descargado: 0,
+                        leido: 0,
+                        created_at: new Date().toISOString()
+                    };
+
+                    wss.clients.forEach(client => {
+                        if (client.readyState === 1 && (client.username === receptor || client.username === emisor)) {
+                            client.send(JSON.stringify({
+                                type: 'CHAT_RECEIVE_MESSAGE',
+                                payload: insertedMsg
+                            }));
+                        }
+                    });
+                }
             }
         } catch (e) {}
     });
