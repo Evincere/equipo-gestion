@@ -941,6 +941,11 @@ const bundleContent = `/* ======================================================
                 });
             }
 
+            const btnUnlink = document.getElementById('btnUnlinkHistory');
+            if (btnUnlink) {
+                btnUnlink.addEventListener('click', () => this.unlinkHistoryRecord());
+            }
+
             if (this.newFamilySubmotivoSelect) {
                 this.newFamilySubmotivoSelect.addEventListener('change', () => {
                     if (this.newFamilySubmotivoSelect.value === 'Guarda Judicial / Tutela / Adopción') {
@@ -1110,44 +1115,57 @@ const bundleContent = `/* ======================================================
             historyList.slice(0, 5).forEach((item) => {
                 const fecha = item.fecha || 's/f';
                 const defensoria = item.defensoria || item.defensoriaName || 'General';
-                const expte = item.expte ? \`Expte: \${item.expte}\` : (item.motivo || 'Atención Spontánea');
-                const obs = item.observaciones ? \`<p style="font-size:0.8rem; color:#CBD5E1; margin-top:0.25rem;">"...\${item.observaciones.substring(0, 120)}..."</p>\` : '';
+                const expte = item.expte ? ('Expte: ' + item.expte) : (item.motivo || 'Atención Spontánea');
+                const obs = item.observaciones ? ('<p style="font-size:0.8rem; color:#CBD5E1; margin-top:0.25rem;">"...' + item.observaciones.substring(0, 120) + '..."</p>') : '';
                 const taskBadge = item.tarea_pendiente || item.tareaPendiente ? '<span style="color:#FBBF24; font-size:0.75rem; font-weight:700;"> ⚠️ Tarea Pendiente</span>' : '';
+                const atendidoText = item.atendidoPor || item.atendido_por || 'Secretaría';
 
-                cardsHtml += \`
-                    <div class="history-card" data-history-id="\${item.id}" style="cursor: pointer; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; transition: background 0.2s ease;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">
-                            <span style="color: #00B4D8;"><i class="ri-calendar-line"></i> \${fecha} | \${defensoria}</span>
-                            <span style="color: #F472B6;">\${item.resultado || 'Resuelve'} \${taskBadge}</span>
-                        </div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: #FFF;">\${expte}</div>
-                        \${obs}
-                        <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 0.3rem;">Atendido por: \${item.atendidoPor || item.atendido_por || 'Secretaría'}</div>
-                    </div>
-                \`;
+                cardsHtml += '<div class="history-card" data-history-id="' + item.id + '" style="background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; transition: background 0.2s ease;">' +
+                    '<div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">' +
+                        '<span style="color: #00B4D8;"><i class="ri-calendar-line"></i> ' + fecha + ' | ' + defensoria + '</span>' +
+                        '<span style="color: #F472B6;">' + (item.resultado || 'Resuelve') + ' ' + taskBadge + '</span>' +
+                    '</div>' +
+                    '<div style="font-size: 0.85rem; font-weight: 600; color: #FFF;">' + expte + '</div>' +
+                    obs +
+                    '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">' +
+                        '<div style="font-size: 0.72rem; color: #94A3B8;">Atendido por: ' + atendidoText + '</div>' +
+                        '<div style="display: flex; gap: 0.4rem;">' +
+                            '<button type="button" class="btn-view-history-detail" data-history-id="' + item.id + '" style="background: rgba(51, 65, 85, 0.8); color: #94A3B8; border: 1px solid #475569; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer;">' +
+                                '<i class="ri-eye-line"></i> Ver Ficha' +
+                            '</button>' +
+                            '<button type="button" class="btn-continue-history-record" data-history-id="' + item.id + '" style="background: rgba(0, 180, 216, 0.2); color: #38BDF8; border: 1px solid #00B4D8; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 600; cursor: pointer;">' +
+                                '<i class="ri-link-m"></i> Continuar este Trámite' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
             });
 
-            this.citizenHistoryContainer.innerHTML = \`
-                <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--mpd-gold); border-radius: 8px; padding: 1rem;">
-                    <h5 style="color: var(--mpd-gold); font-size: 0.88rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="ri-history-line"></i> Historial de Atenciones Anteriores del Ciudadano (\${historyList.length} Registros)
-                    </h5>
-                    <div style="max-height: 220px; overflow-y: auto;">
-                        \${cardsHtml}
-                    </div>
-                </div>
-            \`;
+            this.citizenHistoryContainer.innerHTML = '<div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--mpd-gold); border-radius: 8px; padding: 1rem;">' +
+                '<h5 style="color: var(--mpd-gold); font-size: 0.88rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' +
+                    '<i class="ri-history-line"></i> Historial de Atenciones Anteriores del Ciudadano (' + historyList.length + ' Registros)' +
+                '</h5>' +
+                '<div style="max-height: 240px; overflow-y: auto;">' +
+                    cardsHtml +
+                '</div>' +
+            '</div>';
             
-            const cards = this.citizenHistoryContainer.querySelectorAll('.history-card');
-            cards.forEach(card => {
-                card.addEventListener('mouseenter', () => card.style.background = 'rgba(51, 65, 85, 0.9)');
-                card.addEventListener('mouseleave', () => card.style.background = 'rgba(30, 41, 59, 0.9)');
-                card.addEventListener('click', () => {
-                    const id = Number(card.getAttribute('data-history-id'));
+            const container = this.citizenHistoryContainer;
+            container.querySelectorAll('.btn-view-history-detail').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = Number(btn.getAttribute('data-history-id'));
                     const dto = historyList.find(i => i.id === id);
-                    if (dto) {
-                        this.openDetailModal(dto);
-                    }
+                    if (dto) this.openDetailModal(dto);
+                });
+            });
+
+            container.querySelectorAll('.btn-continue-history-record').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = Number(btn.getAttribute('data-history-id'));
+                    const dto = historyList.find(i => i.id === id);
+                    if (dto) this.selectHistoryRecordToContinue(dto);
                 });
             });
 
@@ -2331,6 +2349,63 @@ const bundleContent = `/* ======================================================
             }
         }
 
+        selectHistoryRecordToContinue(dto) {
+            if (!dto) return;
+
+            const banner = document.getElementById('linkedHistoryBanner');
+            const bannerText = document.getElementById('linkedHistoryBannerText');
+
+            const defensoria = dto.defensoria || dto.defensoriaName || 'CO-DEF. FAMILIA';
+            const codefensora = dto.codefensora_asignada || (dto.atendido_por && dto.atendido_por.startsWith('Dra.') ? dto.atendido_por.replace(/^Dra\.\s*/i, '') : '');
+            const expte = dto.expte || '';
+
+            if (banner && bannerText) {
+                const label = 'Continuando Trámite Previo (Atención N° ' + dto.id + ' | ' + defensoria + (codefensora ? ' | Dra. ' + codefensora : '') + (expte ? ' | Expte: ' + expte : '') + ')';
+                bannerText.textContent = label;
+                banner.style.display = 'flex';
+            }
+
+            if (this.newDefensoriaSelect) {
+                this.newDefensoriaSelect.value = defensoria;
+                if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = (defensoria === 'CO-DEF. FAMILIA') ? 'flex' : 'none';
+            }
+
+            if (this.newModoDerivacionFamilia) {
+                this.newModoDerivacionFamilia.value = 'Causa en Trámite';
+            }
+
+            if (this.newExpteInput && expte) {
+                this.newExpteInput.value = expte;
+            }
+
+            if (codefensora && this.newCodefensoraAsignada) {
+                this.newCodefensoraAsignada.value = codefensora;
+            }
+
+            this.updateFamiliaFormDynamism();
+            this.updateFamiliaAssignmentLogic();
+
+            const obsInput = document.getElementById('newObservaciones');
+            if (obsInput) {
+                obsInput.focus();
+            }
+
+            showToast('¡Trámite N° ' + dto.id + ' vinculado al formulario!', 'info');
+        }
+
+        unlinkHistoryRecord() {
+            const banner = document.getElementById('linkedHistoryBanner');
+            if (banner) banner.style.display = 'none';
+
+            if (this.newModoDerivacionFamilia) {
+                this.newModoDerivacionFamilia.value = 'Asesoramiento General';
+            }
+            this.updateFamiliaFormDynamism();
+            this.updateFamiliaAssignmentLogic();
+
+            showToast('Vinculación de trámite removida. Modo restablecido a Trámite Nuevo.', 'info');
+        }
+
         async openNewModal() {
             this.editingRecordId = null;
             const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
@@ -2362,6 +2437,9 @@ const bundleContent = `/* ======================================================
                 this.dniStatusBadge.textContent = 'Ingrese DNI';
             }
             if (this.citizenHistoryContainer) this.citizenHistoryContainer.style.display = 'none';
+
+            const banner = document.getElementById('linkedHistoryBanner');
+            if (banner) banner.style.display = 'none';
 
             if (this.newAtendidoPorInput) {
                 if (this.currentUser) this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
