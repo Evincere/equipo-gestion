@@ -546,6 +546,17 @@
                 <div id="citizenHistoryContainer" style="display: none; margin-bottom: 1.5rem;"></div>
 
                 <!-- PASO 2: Formulario de Registro -->
+                <!-- Banner de Vinculación de Trámite Histórico -->
+                <div id="linkedHistoryBanner" class="full-width" style="display: none; background: rgba(0, 180, 216, 0.15); border: 1px solid #00B4D8; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; align-items: center; justify-content: space-between; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem; color: #38BDF8; font-weight: 600; font-size: 0.88rem;">
+                        <i class="ri-link-m" style="font-size: 1.2rem;"></i>
+                        <span id="linkedHistoryBannerText">Continuando Trámite Previo...</span>
+                    </div>
+                    <button type="button" id="btnUnlinkHistory" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 0.78rem; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer;">
+                        <i class="ri-link-unlink-m"></i> Desvincular / Trámite Nuevo
+                    </button>
+                </div>
+
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Apellidos</label>
