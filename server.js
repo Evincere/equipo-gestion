@@ -102,6 +102,7 @@ try { db.exec('ALTER TABLE atenciones ADD COLUMN tarea_cumplida_at DATETIME;'); 
 try { db.exec('ALTER TABLE atenciones ADD COLUMN modo_derivacion_familia TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN codefensora_asignada TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN fecha_vencimiento_contestacion TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE atenciones ADD COLUMN detalle_reparticion TEXT;'); } catch (e) {}
 
 // Nueva estructura de rotación de turnos por canal independiente
 db.exec(`
@@ -713,8 +714,8 @@ function handlePostAtencion(req, res) {
                 INSERT INTO atenciones (
                     fecha, actividad, dni, apellidos, nombres, celular, expte, motivo,
                     defensoria, resultado, observaciones, atendido_por, derivado_a, escritos,
-                    tarea_pendiente, detalle_pendiente, modo_derivacion_familia, codefensora_asignada, fecha_vencimiento_contestacion
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    tarea_pendiente, detalle_pendiente, modo_derivacion_familia, codefensora_asignada, fecha_vencimiento_contestacion, detalle_reparticion
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
@@ -724,6 +725,7 @@ function handlePostAtencion(req, res) {
             const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
             const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
             const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
+            const detalleReparticion = data.resultado === 'Derivado a otra repartición' ? (data.detalleReparticion || '') : '';
 
             const result = stmt.run(
                 data.fecha || new Date().toLocaleDateString('es-AR'),
@@ -744,10 +746,11 @@ function handlePostAtencion(req, res) {
                 detallePendiente,
                 modoFamilia,
                 codefensora,
-                vencimiento
+                vencimiento,
+                detalleReparticion
             );
 
-            if (data.defensoria === 'CO-DEF. FAMILIA' && modoFamilia && modoFamilia !== 'Causa en Trámite') {
+            if (data.defensoria === 'CO-DEF. FAMILIA' && modoFamilia && modoFamilia !== 'Causa en Trámite' && data.resultado !== 'Resuelve operador') {
                 advanceTurnoCanal(modoFamilia);
             }
 
@@ -778,7 +781,8 @@ function handlePostAtencion(req, res) {
                 detalle_pendiente: detallePendiente,
                 modo_derivacion_familia: modoFamilia,
                 codefensora_asignada: codefensora,
-                fecha_vencimiento_contestacion: vencimiento
+                fecha_vencimiento_contestacion: vencimiento,
+                detalle_reparticion: detalleReparticion
             };
             broadcast('RECORD_CREATED', { record: newRecord, operator: atendidoPorFinal });
 
@@ -829,7 +833,8 @@ function handlePutAtencion(req, res) {
                     detalle_pendiente = ?,
                     modo_derivacion_familia = ?,
                     codefensora_asignada = ?,
-                    fecha_vencimiento_contestacion = ?
+                    fecha_vencimiento_contestacion = ?,
+                    detalle_reparticion = ?
                 WHERE id = ?
             `);
 
@@ -840,6 +845,7 @@ function handlePutAtencion(req, res) {
             const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
             const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
             const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
+            const detalleReparticion = data.resultado === 'Derivado a otra repartición' ? (data.detalleReparticion || '') : '';
 
             stmt.run(
                 data.fecha || 'S/F',
@@ -861,6 +867,7 @@ function handlePutAtencion(req, res) {
                 modoFamilia,
                 codefensora,
                 vencimiento,
+                detalleReparticion,
                 Number(data.id)
             );
 
