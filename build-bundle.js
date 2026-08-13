@@ -912,11 +912,11 @@ const bundleContent = `/* ======================================================
             if (this.newDefensoriaSelect) {
                 this.newDefensoriaSelect.addEventListener('change', () => {
                     const isFamilia = this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
-                    if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = isFamilia ? 'flex' : 'none';
                     if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = isFamilia ? 'flex' : 'none';
                     if (this.newAtendidoPorInput && this.currentUser) {
                         this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
                     }
+                    this.updateFamiliaFormDynamism();
                     if (isFamilia) {
                         this.updateFamiliaAssignmentLogic();
                     }
@@ -929,7 +929,15 @@ const bundleContent = `/* ======================================================
                     if (this.fechaVencimientoGroup) {
                         this.fechaVencimientoGroup.style.display = (modo === 'Contestación de Demanda') ? 'flex' : 'none';
                     }
+                    this.updateFamiliaFormDynamism();
                     this.updateFamiliaAssignmentLogic();
+                });
+            }
+
+            const elResultadoSelect = document.getElementById('newResultado');
+            if (elResultadoSelect) {
+                elResultadoSelect.addEventListener('change', () => {
+                    this.updateFamiliaFormDynamism();
                 });
             }
 
@@ -939,6 +947,7 @@ const bundleContent = `/* ======================================================
                         if (this.newModoDerivacionFamilia) {
                             this.newModoDerivacionFamilia.value = 'Guarda Judicial / Tutela / Adopción';
                         }
+                        this.updateFamiliaFormDynamism();
                         this.updateFamiliaAssignmentLogic();
                     }
                 });
@@ -2194,6 +2203,79 @@ const bundleContent = `/* ======================================================
             return '';
         }
 
+        updateFamiliaFormDynamism() {
+            const isFamilia = this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
+            const elMotivo = document.getElementById('newMotivo');
+            const elResultado = document.getElementById('newResultado');
+            const elReparticionGroup = document.getElementById('reparticionDetalleGroup');
+
+            if (isFamilia) {
+                if (elMotivo) {
+                    const curMotivo = elMotivo.value;
+                    const familiaMotivos = ['Espontánea', 'Causa en Trámite', 'Turno', 'Otro'];
+                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Motivo --</option>';
+                    familiaMotivos.forEach(m => {
+                        optionsHtml += '<option value="' + m + '">' + m + '</option>';
+                    });
+                    elMotivo.innerHTML = optionsHtml;
+                    if (curMotivo && familiaMotivos.includes(curMotivo)) {
+                        elMotivo.value = curMotivo;
+                    }
+                }
+
+                if (elResultado) {
+                    const curResultado = elResultado.value;
+                    const familiaResultados = ['Resuelve operador', 'Entrevista con Codefensor', 'Derivado a otra repartición', 'Otro'];
+                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Resultado --</option>';
+                    familiaResultados.forEach(r => {
+                        optionsHtml += '<option value="' + r + '">' + r + '</option>';
+                    });
+                    elResultado.innerHTML = optionsHtml;
+                    if (curResultado && familiaResultados.includes(curResultado)) {
+                        elResultado.value = curResultado;
+                    }
+                }
+
+                const modo = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : '';
+                if (modo === 'Guarda Judicial / Tutela / Adopción') {
+                    if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
+                    if (this.newFamilySubmotivoSelect) this.newFamilySubmotivoSelect.value = 'Guarda Judicial / Tutela / Adopción';
+                } else {
+                    if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'flex';
+                }
+            } else {
+                if (elMotivo) {
+                    const curMotivo = elMotivo.value;
+                    const genericMotivos = ['Espontánea', 'Causa Trámite', 'Aud. Fijada', 'Divorcio', 'Ejecución', 'Turno', 'Aud. Imputación', 'Otro'];
+                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Motivo --</option>';
+                    genericMotivos.forEach(m => {
+                        optionsHtml += '<option value="' + m + '">' + m + '</option>';
+                    });
+                    elMotivo.innerHTML = optionsHtml;
+                    if (curMotivo && genericMotivos.includes(curMotivo)) elMotivo.value = curMotivo;
+                }
+
+                if (elResultado) {
+                    const curResultado = elResultado.value;
+                    const genericResultados = ['Resuelve', 'Deriva a A. Técnica', 'Deriva a CO-DEF- FAMILIA', 'Derivado a otra repartición', 'Otro'];
+                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Resultado --</option>';
+                    genericResultados.forEach(r => {
+                        optionsHtml += '<option value="' + r + '">' + r + '</option>';
+                    });
+                    elResultado.innerHTML = optionsHtml;
+                    if (curResultado && genericResultados.includes(curResultado)) elResultado.value = curResultado;
+                }
+
+                if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
+            }
+
+            if (elResultado && elResultado.value === 'Derivado a otra repartición') {
+                if (elReparticionGroup) elReparticionGroup.style.display = 'flex';
+            } else {
+                if (elReparticionGroup) elReparticionGroup.style.display = 'none';
+            }
+        }
+
         async updateFamiliaAssignmentLogic() {
             if (!this.newDefensoriaSelect || this.newDefensoriaSelect.value !== 'CO-DEF. FAMILIA') return;
 
@@ -2739,6 +2821,10 @@ const bundleContent = `/* ======================================================
                     return;
                 }
 
+                const elResultadoVal = document.getElementById('newResultado') ? document.getElementById('newResultado').value : '';
+                const elReparticionInput = document.getElementById('newReparticionDetalle');
+                const detalleReparticionVal = elResultadoVal === 'Derivado a otra repartición' && elReparticionInput ? elReparticionInput.value.trim() : '';
+
                 const formData = {
                     id: this.editingRecordId || undefined,
                     fecha: document.getElementById('newFecha').value,
@@ -2750,7 +2836,7 @@ const bundleContent = `/* ======================================================
                     expte: document.getElementById('newExpte').value,
                     motivo: motivoFinal,
                     defensoria: document.getElementById('newDefensoria').value,
-                    resultado: document.getElementById('newResultado').value,
+                    resultado: elResultadoVal,
                     observaciones: document.getElementById('newObservaciones').value,
                     atendidoPor: document.getElementById('newAtendidoPor').value,
                     tareaPendiente: isTaskPending,
@@ -2758,6 +2844,7 @@ const bundleContent = `/* ======================================================
                     modoDerivacionFamilia: modoFamilia,
                     codefensoraAsignada: codefensora,
                     fechaVencimientoContestacion: vencimientoContestacion,
+                    detalleReparticion: detalleReparticionVal,
                     operatorId: this.currentUser ? this.currentUser.id : 0
                 };
 
