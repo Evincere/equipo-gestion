@@ -1079,6 +1079,7 @@ const bundleContent = `/* ======================================================
                             if (this.newCelularInput && data.personalData.celular) this.newCelularInput.value = data.personalData.celular;
                         }
 
+                        this.currentCitizenHistory = data.history || [];
                         this.renderCitizenHistoryPanel(data.history);
                         return;
                     }
@@ -1090,13 +1091,14 @@ const bundleContent = `/* ======================================================
             if (matchedEntities.length > 0) {
                 const latest = matchedEntities[0];
                 this.dniStatusBadge.className = 'badge badge-familia';
-                this.dniStatusBadge.textContent = \`¡Registrado! (\${matchedEntities.length} atenciones previas)\`;
+                this.dniStatusBadge.textContent = '¡Registrado! (' + matchedEntities.length + ' atenciones previas)';
 
                 if (this.newApellidosInput) this.newApellidosInput.value = latest.apellidos || '';
                 if (this.newNombresInput) this.newNombresInput.value = latest.nombres || '';
                 if (this.newCelularInput && latest.celular) this.newCelularInput.value = latest.celular;
 
                 const dtos = matchedEntities.map(e => AttendanceDTO.fromEntity(e));
+                this.currentCitizenHistory = dtos;
                 this.renderCitizenHistoryPanel(dtos);
             } else {
                 this.dniStatusBadge.className = 'badge badge-civil';
@@ -2294,43 +2296,77 @@ const bundleContent = `/* ======================================================
             }
         }
 
+        setSelectValueNormalized(selectElement, targetValue) {
+            if (!selectElement || !targetValue) return '';
+            const cleanTarget = targetValue.replace(/^Dra\.\s*/i, '').replace(/^Dr\.\s*/i, '').trim();
+            if (!cleanTarget) return '';
+
+            for (let i = 0; i < selectElement.options.length; i++) {
+                const optVal = selectElement.options[i].value.replace(/^Dra\.\s*/i, '').trim();
+                const optText = selectElement.options[i].text.replace(/^Dra\.\s*/i, '').trim();
+                if (optVal.toLowerCase() === cleanTarget.toLowerCase() || optText.toLowerCase().includes(cleanTarget.toLowerCase()) || cleanTarget.toLowerCase().includes(optVal.toLowerCase())) {
+                    selectElement.selectedIndex = i;
+                    return selectElement.options[i].value;
+                }
+            }
+            return cleanTarget;
+        }
+
         async updateFamiliaAssignmentLogic() {
             if (!this.newDefensoriaSelect || this.newDefensoriaSelect.value !== 'CO-DEF. FAMILIA') return;
 
             const modo = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : 'Asesoramiento General';
 
             if (modo === 'Causa en Trámite') {
+                let targetCodefensora = '';
+                let recordIdRef = '';
+
+                if (this.linkedHistoryDto) {
+                    targetCodefensora = this.linkedHistoryDto.codefensora_asignada || this.linkedHistoryDto.codefensoraAsignada || '';
+                    recordIdRef = ' (Trámite N° ' + this.linkedHistoryDto.id + ')';
+                }
+
+                if (!targetCodefensora && Array.isArray(this.currentCitizenHistory)) {
+                    const rec = this.currentCitizenHistory.find(r => r.codefensora_asignada || r.codefensoraAsignada);
+                    if (rec) {
+                        targetCodefensora = rec.codefensora_asignada || rec.codefensoraAsignada;
+                        if (!recordIdRef) recordIdRef = ' (Trámite N° ' + rec.id + ')';
+                    }
+                }
+
                 const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^\d]/g, '') : '';
                 const expteClean = this.newExpteInput ? this.newExpteInput.value.trim() : '';
 
-                if (dniClean || expteClean) {
+                if (!targetCodefensora && (dniClean || expteClean)) {
                     try {
                         const res = await fetch(getApiUrl('/api/atenciones/historial-familia?dni=' + encodeURIComponent(dniClean) + '&expte=' + encodeURIComponent(expteClean)));
                         if (res.ok) {
                             const data = await res.json();
                             if (data.success && data.found && data.suggestedCodefensora) {
-                                const suggestedName = data.suggestedCodefensora;
-                                if (this.newCodefensoraAsignada) {
-                                    this.newCodefensoraAsignada.value = suggestedName;
-                                }
-
-                                const defObj = this.codefensorasRoster.find(item => item.nombre.toLowerCase() === suggestedName.toLowerCase());
-                                const isPresente = defObj ? defObj.isPresente : true;
-                                const motivo = (defObj && defObj.motivoAusencia) ? ' (' + defObj.motivoAusencia + ')' : '';
-
-                                if (this.codefensoraHint) {
-                                    if (isPresente) {
-                                        this.codefensoraHint.style.color = '#4ADE80';
-                                        this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al historial: Dra. ' + suggestedName;
-                                    } else {
-                                        this.codefensoraHint.style.color = '#FBBF24';
-                                        this.codefensoraHint.textContent = '⚠️ Dra. ' + suggestedName + ' (asignada previamente a este expediente) figura Ausente' + motivo + '. Puede mantenerla o re-asignar a otra Co-Defensora presente.';
-                                    }
-                                }
-                                return;
+                                targetCodefensora = data.suggestedCodefensora;
                             }
                         }
                     } catch(e) {}
+                }
+
+                if (targetCodefensora) {
+                    const selectedVal = this.setSelectValueNormalized(this.newCodefensoraAsignada, targetCodefensora);
+                    const displayName = selectedVal || targetCodefensora.replace(/^Dra\.\s*/i, '');
+
+                    const defObj = this.codefensorasRoster.find(item => item.nombre.toLowerCase() === displayName.toLowerCase());
+                    const isPresente = defObj ? defObj.isPresente : true;
+                    const motivo = (defObj && defObj.motivoAusencia) ? ' (' + defObj.motivoAusencia + ')' : '';
+
+                    if (this.codefensoraHint) {
+                        if (isPresente) {
+                            this.codefensoraHint.style.color = '#4ADE80';
+                            this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al historial' + recordIdRef + ': Dra. ' + displayName;
+                        } else {
+                            this.codefensoraHint.style.color = '#FBBF24';
+                            this.codefensoraHint.textContent = '⚠️ Dra. ' + displayName + recordIdRef + ' figura Ausente' + motivo + '. Puede mantenerla o re-asignar a otra Co-Defensora presente.';
+                        }
+                    }
+                    return;
                 }
 
                 if (this.codefensoraHint) {
@@ -2340,7 +2376,7 @@ const bundleContent = `/* ======================================================
             } else {
                 const proxima = await this.calculateProximoTurno(modo);
                 if (proxima && this.newCodefensoraAsignada) {
-                    this.newCodefensoraAsignada.value = proxima;
+                    this.setSelectValueNormalized(this.newCodefensoraAsignada, proxima);
                 }
                 if (this.codefensoraHint) {
                     this.codefensoraHint.style.color = '#94A3B8';
@@ -2352,15 +2388,21 @@ const bundleContent = `/* ======================================================
         selectHistoryRecordToContinue(dto) {
             if (!dto) return;
 
+            this.linkedHistoryDto = dto;
+
             const banner = document.getElementById('linkedHistoryBanner');
             const bannerText = document.getElementById('linkedHistoryBannerText');
 
             const defensoria = dto.defensoria || dto.defensoriaName || 'CO-DEF. FAMILIA';
-            const codefensora = dto.codefensora_asignada || (dto.atendido_por && dto.atendido_por.startsWith('Dra.') ? dto.atendido_por.replace(/^Dra\.\s*/i, '') : '');
+            let codefensora = dto.codefensora_asignada || dto.codefensoraAsignada || '';
+            if (!codefensora && Array.isArray(this.currentCitizenHistory)) {
+                const rec = this.currentCitizenHistory.find(r => r.codefensora_asignada || r.codefensoraAsignada);
+                if (rec) codefensora = rec.codefensora_asignada || rec.codefensoraAsignada;
+            }
             const expte = dto.expte || '';
 
             if (banner && bannerText) {
-                const label = 'Continuando Trámite Previo (Atención N° ' + dto.id + ' | ' + defensoria + (codefensora ? ' | Dra. ' + codefensora : '') + (expte ? ' | Expte: ' + expte : '') + ')';
+                const label = 'Continuando Trámite Previo (Atención N° ' + dto.id + ' | ' + defensoria + (codefensora ? ' | Dra. ' + codefensora.replace(/^Dra\.\s*/i, '') : '') + (expte ? ' | Expte: ' + expte : '') + ')';
                 bannerText.textContent = label;
                 banner.style.display = 'flex';
             }
@@ -2379,7 +2421,7 @@ const bundleContent = `/* ======================================================
             }
 
             if (codefensora && this.newCodefensoraAsignada) {
-                this.newCodefensoraAsignada.value = codefensora;
+                this.setSelectValueNormalized(this.newCodefensoraAsignada, codefensora);
             }
 
             this.updateFamiliaFormDynamism();
@@ -2394,6 +2436,7 @@ const bundleContent = `/* ======================================================
         }
 
         unlinkHistoryRecord() {
+            this.linkedHistoryDto = null;
             const banner = document.getElementById('linkedHistoryBanner');
             if (banner) banner.style.display = 'none';
 
@@ -2408,6 +2451,7 @@ const bundleContent = `/* ======================================================
 
         async openNewModal() {
             this.editingRecordId = null;
+            this.linkedHistoryDto = null;
             const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
             if (modalTitle) modalTitle.textContent = 'Registrar Nueva Atención';
             const submitBtn = this.newRecordForm ? this.newRecordForm.querySelector('button[type="submit"]') : null;
