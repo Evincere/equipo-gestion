@@ -669,6 +669,8 @@
             this.btnExpandPresence = document.getElementById('btnExpandPresence');
             this.presenceGridModal = document.getElementById('presenceGridModal');
             this.presenceGridContainer = document.getElementById('presenceGridContainer');
+            this.presenceReorderContainer = document.getElementById('presenceReorderContainer');
+            this.dndLiveRegion = document.getElementById('dndLiveRegion');
             this.btnClosePresenceGridModal = document.getElementById('btnClosePresenceGridModal');
             this.currentTurnos = {};
             this.turnIndicatorBadge = document.getElementById('turnIndicatorBadge');
@@ -735,6 +737,18 @@
                     if (e.target === this.presenceGridModal) {
                         this.presenceGridModal.classList.remove('active');
                     }
+                });
+
+                const tabBtns = this.presenceGridModal.querySelectorAll('.modal-tab-btn');
+                tabBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        tabBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const targetId = btn.getAttribute('data-target');
+                        this.presenceGridModal.querySelectorAll('.modal-tab-section').forEach(sec => {
+                            sec.style.display = (sec.id === targetId) ? 'block' : 'none';
+                        });
+                    });
                 });
             }
 
@@ -2244,6 +2258,99 @@
                 this.presenceRosterContainer.innerHTML = singleRosterHtml;
                 attachClickHandlers(this.presenceRosterContainer);
             }
+
+            this.renderDndList();
+        }
+
+        renderDndList() {
+            const container = this.presenceReorderContainer || document.getElementById('presenceReorderContainer');
+            if (!container) return;
+
+            let html = '';
+            this.codefensorasRoster.forEach((c, index) => {
+                const dotClass = c.isPresente ? 'is-present' : '';
+                html += '<div class="dnd-item" draggable="true" data-index="' + index + '" data-nombre="' + c.nombre + '">' +
+                    '<div style="display: flex; align-items: center; gap: 0.5rem;">' +
+                        '<span class="dnd-handle" title="Arrastrar para reordenar"><i class="ri-draggable"></i></span>' +
+                        '<span style="font-weight: 600; font-size: 0.85rem; color: #FFF;">Dra. ' + c.nombre + '</span>' +
+                    '</div>' +
+                    '<span class="presence-dot ' + dotClass + '"></span>' +
+                '</div>';
+            });
+
+            container.innerHTML = html;
+
+            let draggedItem = null;
+            let draggedIndex = -1;
+            const liveRegion = this.dndLiveRegion || document.getElementById('dndLiveRegion');
+
+            container.querySelectorAll('.dnd-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = item;
+                    draggedIndex = parseInt(item.getAttribute('data-index'), 10);
+                    item.classList.add('is-dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', item.getAttribute('data-nombre'));
+
+                    if (liveRegion) {
+                        liveRegion.textContent = 'Se ha seleccionado a Dra. ' + item.getAttribute('data-nombre') + '. Posición actual ' + (draggedIndex + 1) + ' de ' + this.codefensorasRoster.length + '.';
+                    }
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+
+                    container.querySelectorAll('.dnd-item').forEach(el => {
+                        el.classList.remove('drop-target-above', 'drop-target-below');
+                    });
+
+                    const rect = item.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    if (e.clientY < midpoint) {
+                        item.classList.add('drop-target-above');
+                    } else {
+                        item.classList.add('drop-target-below');
+                    }
+                });
+
+                item.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    item.classList.remove('drop-target-above', 'drop-target-below');
+
+                    if (!draggedItem || draggedItem === item) return;
+
+                    const targetIndex = parseInt(item.getAttribute('data-index'), 10);
+                    const rosterCopy = [...this.codefensorasRoster];
+                    const [moved] = rosterCopy.splice(draggedIndex, 1);
+                    rosterCopy.splice(targetIndex, 0, moved);
+
+                    this.codefensorasRoster = rosterCopy;
+
+                    if (liveRegion) {
+                        liveRegion.textContent = 'Dra. ' + moved.nombre + ' reordenada a la posición ' + (targetIndex + 1) + ' de ' + rosterCopy.length + '.';
+                    }
+
+                    const nombresOrdenados = rosterCopy.map(r => r.nombre);
+                    try {
+                        await fetch(getApiUrl('/api/familia/codefensoras/reordenar'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ordenNombres: nombresOrdenados, operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR' })
+                        });
+                    } catch(err) {}
+
+                    this.renderPresenceRoster();
+                    await this.calculateProximoTurno();
+                });
+
+                item.addEventListener('dragend', () => {
+                    if (draggedItem) draggedItem.classList.remove('is-dragging');
+                    container.querySelectorAll('.dnd-item').forEach(el => {
+                        el.classList.remove('drop-target-above', 'drop-target-below');
+                    });
+                });
+            });
         }
 
         async updateCodefensoraPresenceServer(c) {
