@@ -2410,25 +2410,35 @@
             });
 
             container.querySelectorAll('.kanban-defensora-card').forEach(card => {
-                card.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    card.classList.add('drop-target-active');
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    card.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = 'move';
+                        e.currentTarget.classList.add('drop-target-active');
+                    });
                 });
 
-                card.addEventListener('dragleave', () => {
-                    card.classList.remove('drop-target-active');
+                ['dragleave', 'dragend'].forEach(eventName => {
+                    card.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('drop-target-active');
+                    });
                 });
 
                 card.addEventListener('drop', async (e) => {
                     e.preventDefault();
-                    card.classList.remove('drop-target-active');
+                    e.stopPropagation();
+                    const cardEl = e.currentTarget;
+                    cardEl.classList.remove('drop-target-active');
 
-                    const nombreDefensora = card.getAttribute('data-nombre');
-                    if (!draggedCanal || !nombreDefensora) return;
+                    const nombreDefensora = cardEl.getAttribute('data-nombre');
+                    const canalToAssign = draggedCanal || e.dataTransfer.getData('text/plain');
+
+                    if (!canalToAssign || !nombreDefensora) return;
 
                     if (liveRegion) {
-                        liveRegion.textContent = 'Asignando próximo turno de ' + draggedLabel + ' a Dra. ' + nombreDefensora + '.';
+                        liveRegion.textContent = 'Asignando próximo turno de ' + (draggedLabel || canalToAssign) + ' a Dra. ' + nombreDefensora + '.';
                     }
 
                     try {
@@ -2436,7 +2446,7 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                canalKey: draggedCanal,
+                                canalKey: canalToAssign,
                                 nombreDefensora: nombreDefensora,
                                 operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR'
                             })
@@ -2449,14 +2459,58 @@
             });
         }
 
-        renderDndList() {
+        bindSegmentedControlEvents() {
+            const container = document.querySelector('.segmented-control-container');
+            if (!container) return;
+
+            container.querySelectorAll('.segmented-control-btn').forEach(btn => {
+                btn.onclick = () => {
+                    container.querySelectorAll('.segmented-control-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const selectedCanal = btn.getAttribute('data-canal');
+                    this.currentSelectedCanal = selectedCanal;
+                    this.renderDndList(selectedCanal);
+                };
+            });
+        }
+
+        renderDndList(canalKey) {
+            const selectedCanal = canalKey || this.currentSelectedCanal || 'ASESORAMIENTO_GENERAL';
+            this.currentSelectedCanal = selectedCanal;
+
             const container = this.presenceReorderContainer || document.getElementById('presenceReorderContainer');
             if (!container) return;
 
+            this.bindSegmentedControlEvents();
+
+            const segContainer = document.querySelector('.segmented-control-container');
+            if (segContainer) {
+                segContainer.querySelectorAll('.segmented-control-btn').forEach(btn => {
+                    if (btn.getAttribute('data-canal') === selectedCanal) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
             const turnos = this.currentTurnos || {};
 
+            let mePresentes = this.codefensorasRoster.filter(c => c.isPresente);
+
+            if (this.canalOrders && this.canalOrders[selectedCanal]) {
+                const orderArr = this.canalOrders[selectedCanal];
+                mePresentes.sort((a, b) => {
+                    let idxA = orderArr.indexOf(a.nombre);
+                    let idxB = orderArr.indexOf(b.nombre);
+                    if (idxA === -1) idxA = 999;
+                    if (idxB === -1) idxB = 999;
+                    return idxA - idxB;
+                });
+            }
+
             let html = '';
-            this.codefensorasRoster.forEach((c, index) => {
+            mePresentes.forEach((c, index) => {
                 const isPresent = !!c.isPresente;
                 const dotClass = isPresent ? 'is-present' : '';
 
@@ -2477,7 +2531,7 @@
                 const dutyChipHtml = roles.map(r => '<span class="duty-chip ' + r.cls + '">' + r.label + '</span>').join('');
 
                 const isFirst = index === 0;
-                const isLast = index === this.codefensorasRoster.length - 1;
+                const isLast = index === mePresentes.length - 1;
 
                 html += '<div class="dnd-item" draggable="true" data-index="' + index + '" data-nombre="' + c.nombre + '">' +
                     '<div class="dnd-item-content">' +
@@ -2494,7 +2548,37 @@
                 '</div>';
             });
 
+            if (mePresentes.length === 0) {
+                html = '<div style="font-size: 0.8rem; color: #64748B; padding: 0.75rem; text-align: center; font-style: italic;">No hay defensoras presentes para reordenar</div>';
+            }
+
             container.innerHTML = html;
+
+            const reorderCanalList = async (fromIdx, toIdx) => {
+                if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= mePresentes.length || toIdx >= mePresentes.length) return;
+                const listCopy = [...mePresentes];
+                const [moved] = listCopy.splice(fromIdx, 1);
+                listCopy.splice(toIdx, 0, moved);
+
+                const ordenNombres = listCopy.map(c => c.nombre);
+                this.canalOrders = this.canalOrders || {};
+                this.canalOrders[selectedCanal] = ordenNombres;
+
+                try {
+                    await fetch(getApiUrl('/api/familia/codefensoras/reordenar-canal'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            canalKey: selectedCanal,
+                            ordenNombres: ordenNombres,
+                            operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR'
+                        })
+                    });
+                } catch(err) {}
+
+                this.renderPresenceRoster();
+                await this.calculateProximoTurno();
+            };
 
             container.querySelectorAll('.dnd-item').forEach(item => {
                 const index = parseInt(item.getAttribute('data-index'), 10);
@@ -2504,7 +2588,7 @@
                     btnUp.addEventListener('click', async (e) => {
                         e.stopPropagation();
                         if (index > 0) {
-                            await this.reorderDefensoras(index, index - 1);
+                            await reorderCanalList(index, index - 1);
                         }
                     });
                 }
@@ -2513,8 +2597,8 @@
                 if (btnDown) {
                     btnDown.addEventListener('click', async (e) => {
                         e.stopPropagation();
-                        if (index < this.codefensorasRoster.length - 1) {
-                            await this.reorderDefensoras(index, index + 1);
+                        if (index < mePresentes.length - 1) {
+                            await reorderCanalList(index, index + 1);
                         }
                     });
                 }
@@ -2533,7 +2617,7 @@
                     e.dataTransfer.setData('text/plain', item.getAttribute('data-nombre'));
 
                     if (liveRegion) {
-                        liveRegion.textContent = 'Se ha seleccionado a Dra. ' + item.getAttribute('data-nombre') + '. Posición actual ' + (draggedIndex + 1) + ' de ' + this.codefensorasRoster.length + '.';
+                        liveRegion.textContent = 'Se ha seleccionado a Dra. ' + item.getAttribute('data-nombre') + '. Posición actual ' + (draggedIndex + 1) + ' de ' + mePresentes.length + '.';
                     }
                 });
 
@@ -2561,7 +2645,7 @@
                     if (!draggedItem || draggedItem === item) return;
 
                     const targetIndex = parseInt(item.getAttribute('data-index'), 10);
-                    await this.reorderDefensoras(draggedIndex, targetIndex);
+                    await reorderCanalList(draggedIndex, targetIndex);
                 });
 
                 item.addEventListener('dragend', () => {
