@@ -786,21 +786,50 @@
         </div>
     </div>
 
-    <!-- Modal Vista en Cuadrícula (Presentismo Completo) -->
+    <!-- Modal Vista de Operaciones (Presentismo & Reordenamiento Drag & Drop) -->
     <div class="modal-overlay" id="presenceGridModal">
         <div class="modal-content" style="max-width: 680px;">
-            <div class="modal-header">
-                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #FFF; font-size: 1.1rem;">
-                    <i class="ri-team-line" style="color: var(--mpd-red);"></i> Estado de Asistencia y Turnos Rotativos
-                </h4>
-                <button class="modal-close-btn" id="btnClosePresenceGridModal"><i class="ri-close-line"></i></button>
+            <div class="modal-header" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #FFF; font-size: 1.1rem;">
+                        <i class="ri-team-line" style="color: var(--mpd-red);"></i> Panel de Gestión de Turnos & Presentismo
+                    </h4>
+                    <button class="modal-close-btn" id="btnClosePresenceGridModal"><i class="ri-close-line"></i></button>
+                </div>
+                
+                <!-- Pestañas Segmentadas -->
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" id="tabPresenceGrid" data-target="presenceGridSection">
+                        <i class="ri-grid-fill"></i> Control Asistencia
+                    </button>
+                    <button class="modal-tab-btn" id="tabPresenceReorder" data-target="presenceReorderSection">
+                        <i class="ri-drag-drop-line"></i> Reordenar Prioridad (Drag & Drop)
+                    </button>
+                </div>
             </div>
+
             <div class="modal-body">
-                <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1rem;">
-                    Haga clic sobre cualquier profesional para cambiar su estado de asistencia (Presente / Ausente).
-                </p>
-                <div id="presenceGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem; max-height: 420px; overflow-y: auto;">
-                    <!-- Se inyectan las cards en cuadrícula -->
+                <!-- Región Viva ARIA para accesibilidad del Drag and Drop -->
+                <div id="dndLiveRegion" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+                <!-- Sección 1: Cuadrícula de Asistencia -->
+                <div id="presenceGridSection" class="modal-tab-section active">
+                    <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1rem;">
+                        Haga clic sobre cualquier profesional para cambiar su estado de asistencia (Presente / Ausente).
+                    </p>
+                    <div id="presenceGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem; max-height: 420px; overflow-y: auto;">
+                        <!-- Se inyectan las cards en cuadrícula -->
+                    </div>
+                </div>
+
+                <!-- Sección 2: Reordenamiento por Drag & Drop -->
+                <div id="presenceReorderSection" class="modal-tab-section" style="display: none;">
+                    <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1rem;">
+                        Arrastre las filas desde el icono de 6 puntos para establecer la prioridad y orden de asignación rotativa del día.
+                    </p>
+                    <div id="presenceReorderContainer" class="dnd-list-container" style="max-height: 420px; overflow-y: auto;">
+                        <!-- Se inyecta la lista arrastrable -->
+                    </div>
                 </div>
             </div>
         </div>
