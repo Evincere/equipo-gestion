@@ -837,16 +837,25 @@
                         </div>
                     </div>
 
-                    <!-- Bloque 2: Secuencia de Precedencia Rotativa del Día -->
+                    <!-- Bloque 2: Secuencia de Precedencia Rotativa -->
                     <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 1rem;">
                         <h4 style="font-size: 0.88rem; color: #F59E0B; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <i class="ri-sort-asc"></i> Secuencia de Precedencia Rotativa del Día
+                            <i class="ri-sort-asc"></i> Secuencia de Precedencia Rotativa
                         </h4>
                         <p style="font-size: 0.78rem; color: #94A3B8; margin-bottom: 0.85rem;">
-                            Reordene las posiciones rotativas (1°, 2°, 3°...) arrastrando la fila o utilizando las flechas ▲ / ▼.
+                            Seleccione el motivo de derivación para ajustar su orden de precedencia específico (1°, 2°, 3°...).
                         </p>
+
+                        <!-- Segmented Control Estilo Nativo -->
+                        <div class="segmented-control-container" style="margin-bottom: 1rem;">
+                            <button class="segmented-control-btn active" data-canal="ASESORAMIENTO_GENERAL">Asesoramiento General</button>
+                            <button class="segmented-control-btn" data-canal="CAUSA_NUEVA">Causa Nueva</button>
+                            <button class="segmented-control-btn" data-canal="CONTESTACION_DEMANDA">Contestación</button>
+                            <button class="segmented-control-btn" data-canal="ADOPCION">Adopción / Guarda</button>
+                        </div>
+
                         <div id="presenceReorderContainer" class="dnd-list-container">
-                            <!-- Se inyectan las filas ordenables desde JS -->
+                            <!-- Se inyectan las filas ordenables según la pestaña activa -->
                         </div>
                     </div>
                 </div>
