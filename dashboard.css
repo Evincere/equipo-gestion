@@ -390,92 +390,172 @@ body {
 }
 
 /* ==========================================================================
-   PANEL DE PRESENTISMO Y ASISTENCIA (CO-DEFENSORÍA DE FAMILIA)
+   PANEL DE PRESENTISMO Y ASISTENCIA - MARQUEE TICKER REDISEÑADO
    ========================================================================== */
-.presence-panel {
-    background: var(--content-surface);
-    border: 1px solid var(--content-border);
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
+.presence-marquee-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 1rem;
+    height: 44px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.presence-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.85rem;
-}
-
-.presence-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--mpd-magenta);
+.presence-marquee-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding-right: 0.75rem;
 }
 
-.turn-indicator {
-    background: rgba(198, 63, 149, 0.2);
-    color: #F472B6;
-    border: 1px solid rgba(198, 63, 149, 0.4);
-    padding: 0.35rem 0.85rem;
-    border-radius: 20px;
-    font-size: 0.78rem;
+.presence-marquee-title {
+    font-size: 0.8rem;
     font-weight: 600;
-    box-shadow: 0 0 10px rgba(198, 63, 149, 0.2);
-}
-
-.presence-roster {
+    color: #94A3B8;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.presence-pill {
-    background: var(--content-bg);
-    border: 1px solid var(--content-border);
-    padding: 0.45rem 0.85rem;
-    border-radius: 20px;
-    font-size: 0.82rem;
-    font-weight: 500;
+.presence-marquee-wrapper {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+.presence-marquee-track {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: max-content;
+    animation: marqueeLoop 32s linear infinite;
+    will-change: transform;
+}
+
+.presence-marquee-track:hover {
+    animation-play-state: paused;
+}
+
+@keyframes marqueeLoop {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .presence-marquee-track {
+        animation: none;
+        overflow-x: auto;
+    }
+}
+
+.presence-pill-unified {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.78rem;
+    color: #E2E8F0;
     cursor: pointer;
-    transition: all 0.25s ease;
+    white-space: nowrap;
+    transition: all 0.2s ease;
     user-select: none;
 }
 
-.presence-pill.presente {
-    border-color: rgba(34, 197, 94, 0.4);
-    background: rgba(34, 197, 94, 0.1);
-    color: #4ADE80;
+.presence-pill-unified:hover {
+    transform: translateY(-1px);
+    background: rgba(51, 65, 85, 0.9);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.presence-pill.ausente {
-    border-color: rgba(239, 68, 68, 0.4);
-    background: rgba(239, 68, 68, 0.1);
-    color: #F87171;
-    text-decoration: line-through;
-    opacity: 0.75;
-}
-
-.presence-pill .dot {
-    width: 8px;
-    height: 8px;
+.presence-dot {
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: #4ADE80;
-    box-shadow: 0 0 6px #4ADE80;
+    background-color: #64748B;
+    box-shadow: 0 0 4px rgba(100, 116, 139, 0.4);
 }
 
-.presence-pill.ausente .dot {
-    background: #F87171;
-    box-shadow: none;
+.presence-dot.is-present {
+    background-color: #4ADE80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.duty-chip {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* Colores por especialidad */
+.duty-asesoria {
+    border-color: rgba(236, 72, 153, 0.4);
+}
+.duty-asesoria .duty-chip {
+    background: rgba(236, 72, 153, 0.18);
+    color: #F472B6;
+    border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+.duty-causa {
+    border-color: rgba(14, 165, 233, 0.4);
+}
+.duty-causa .duty-chip {
+    background: rgba(14, 165, 233, 0.18);
+    color: #38BDF8;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.duty-contestacion {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+.duty-contestacion .duty-chip {
+    background: rgba(245, 158, 11, 0.18);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.duty-adopcion {
+    border-color: rgba(139, 92, 246, 0.4);
+}
+.duty-adopcion .duty-chip {
+    background: rgba(139, 92, 246, 0.18);
+    color: #A78BFA;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.btn-expand-presence {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94A3B8;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-expand-presence:hover {
+    color: #FFF;
+    background: rgba(51, 65, 85, 0.9);
+    border-color: var(--mpd-red, #EF4444);
 }
 
 /* TARJETAS DE ESTADÍSTICAS */
