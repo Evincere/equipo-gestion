@@ -724,19 +724,21 @@ const bundleContent = `/* ======================================================
 
         bindEvents() {
             if (this.btnExpandPresence && this.presenceGridModal) {
-                this.btnExpandPresence.addEventListener('click', () => {
-                    this.presenceGridModal.style.display = 'flex';
+                this.btnExpandPresence.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.presenceGridModal.classList.add('active');
                 });
             }
             if (this.btnClosePresenceGridModal && this.presenceGridModal) {
-                this.btnClosePresenceGridModal.addEventListener('click', () => {
-                    this.presenceGridModal.style.display = 'none';
+                this.btnClosePresenceGridModal.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.presenceGridModal.classList.remove('active');
                 });
             }
             if (this.presenceGridModal) {
                 this.presenceGridModal.addEventListener('click', (e) => {
                     if (e.target === this.presenceGridModal) {
-                        this.presenceGridModal.style.display = 'none';
+                        this.presenceGridModal.classList.remove('active');
                     }
                 });
             }
