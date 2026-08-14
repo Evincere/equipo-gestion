@@ -822,13 +822,32 @@
                     </div>
                 </div>
 
-                <!-- Sección 2: Reordenamiento por Drag & Drop -->
-                <div id="presenceReorderSection" class="modal-tab-section" style="display: none;">
-                    <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1rem;">
-                        Arrastre las filas desde el icono de 6 puntos para establecer la prioridad y orden de asignación rotativa del día.
-                    </p>
-                    <div id="presenceReorderContainer" class="dnd-list-container" style="max-height: 420px; overflow-y: auto;">
-                        <!-- Se inyecta la lista arrastrable -->
+                <!-- Sección 2: Configuración & Reordenamiento de Turnos -->
+                <div id="presenceReorderSection" class="modal-tab-section" style="display: none; max-height: 460px; overflow-y: auto; padding-right: 0.25rem;">
+                    <!-- Bloque 1: Asignación Directa Kanban -->
+                    <div style="margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 1rem;">
+                        <h4 style="font-size: 0.88rem; color: #38BDF8; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="ri-drag-drop-line"></i> Asignación Directa del Próximo Turno
+                        </h4>
+                        <p style="font-size: 0.78rem; color: #94A3B8; margin-bottom: 0.85rem;">
+                            Arrastre cualquier ficha de especialidad y suéltela sobre la tarjeta de la defensora que desea asignar como próximo turno.
+                        </p>
+                        <div id="kanbanCategoryContainer" class="kanban-category-grid">
+                            <!-- Se inyectan tarjetas de defensora con chips arrastrables desde JS -->
+                        </div>
+                    </div>
+
+                    <!-- Bloque 2: Secuencia de Precedencia Rotativa del Día -->
+                    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 1rem;">
+                        <h4 style="font-size: 0.88rem; color: #F59E0B; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="ri-sort-asc"></i> Secuencia de Precedencia Rotativa del Día
+                        </h4>
+                        <p style="font-size: 0.78rem; color: #94A3B8; margin-bottom: 0.85rem;">
+                            Reordene las posiciones rotativas (1°, 2°, 3°...) arrastrando la fila o utilizando las flechas ▲ / ▼.
+                        </p>
+                        <div id="presenceReorderContainer" class="dnd-list-container">
+                            <!-- Se inyectan las filas ordenables desde JS -->
+                        </div>
                     </div>
                 </div>
             </div>
