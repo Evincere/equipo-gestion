@@ -112,6 +112,13 @@ db.exec(`
         canal TEXT PRIMARY KEY,
         last_index INTEGER DEFAULT -1
     );
+
+    CREATE TABLE IF NOT EXISTS orden_rotacion_canales (
+        canal TEXT NOT NULL,
+        nombre TEXT NOT NULL,
+        orden INTEGER DEFAULT 0,
+        PRIMARY KEY (canal, nombre)
+    );
 `);
 
 db.exec(`
@@ -439,6 +446,10 @@ const server = http.createServer((req, res) => {
 
     if (pathname === '/api/familia/codefensoras/reordenar') {
         if (req.method === 'POST') return handlePostReordenarCodefensora(req, res);
+    }
+
+    if (pathname === '/api/familia/codefensoras/reordenar-canal') {
+        if (req.method === 'POST') return handlePostReordenarCanalCodefensora(req, res);
     }
 
     if (pathname === '/api/familia/turnos/asignar-proximo') {
@@ -1448,6 +1459,40 @@ function handlePostReordenarCodefensora(req, res) {
     });
 }
 
+function handlePostReordenarCanalCodefensora(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            const { canalKey, ordenNombres, operatorName } = data;
+
+            if (!canalKey || !Array.isArray(ordenNombres)) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Parámetros inválidos' }));
+                return;
+            }
+
+            const stmt = db.prepare('INSERT OR REPLACE INTO orden_rotacion_canales (canal, nombre, orden) VALUES (?, ?, ?)');
+            const updateMany = db.transaction((list) => {
+                list.forEach((nombre, idx) => {
+                    stmt.run(canalKey, nombre, idx + 1);
+                });
+            });
+            updateMany(ordenNombres);
+
+            logAudit(0, operatorName || 'OPERADOR', 'REORDEN_CANAL_PRESENTISMO', `Nuevo orden para canal ${canalKey}: ${ordenNombres.join(', ')}`);
+            broadcast('PRESENCE_UPDATED', { reorderedCanal: canalKey, ordenNombres });
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
 function handlePostAsignarProximoTurno(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
@@ -1475,7 +1520,13 @@ function handlePostAsignarProximoTurno(req, res) {
             };
             const mappedCanal = canalMap[canalKey] || canalKey;
 
-            const presentes = db.prepare('SELECT nombre FROM codefensoras_estado WHERE is_presente = 1 ORDER BY orden ASC, id ASC').all();
+            const presentes = db.prepare(`
+                SELECT c.nombre, c.is_presente, COALESCE(o.orden, c.orden) as orden
+                FROM codefensoras_estado c
+                LEFT JOIN orden_rotacion_canales o ON o.canal = ? AND o.nombre = c.nombre
+                WHERE c.is_presente = 1
+                ORDER BY orden ASC, c.id ASC
+            `).all(mappedCanal);
             const targetIdx = presentes.findIndex(p => p.nombre === nombreDefensora);
 
             if (targetIdx === -1) {
@@ -1517,7 +1568,17 @@ function handleGetProximoTurno(req, res, parsedUrl) {
         };
         const canalKey = canalMap[rawCanal] || 'ASESORAMIENTO_GENERAL';
 
-        const presentes = db.prepare('SELECT nombre FROM codefensoras_estado WHERE is_presente = 1 ORDER BY orden ASC, id ASC').all();
+        const getPresentesForCanal = (cKey) => {
+            return db.prepare(`
+                SELECT c.nombre, c.is_presente, COALESCE(o.orden, c.orden) as orden
+                FROM codefensoras_estado c
+                LEFT JOIN orden_rotacion_canales o ON o.canal = ? AND o.nombre = c.nombre
+                WHERE c.is_presente = 1
+                ORDER BY orden ASC, c.id ASC
+            `).all(cKey);
+        };
+
+        const presentes = getPresentesForCanal(canalKey);
         if (presentes.length === 0) {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: false, warning: 'Todas las Co-Defensoras están ausentes.' }));
@@ -1538,10 +1599,13 @@ function handleGetProximoTurno(req, res, parsedUrl) {
 
         const turnos = {};
         canalesList.forEach(c => {
-            const st = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(c.key);
-            let idx = st ? st.last_index : -1;
-            const nxt = (idx + 1) % presentes.length;
-            turnos[c.label] = presentes[nxt].nombre;
+            const presCanal = getPresentesForCanal(c.key);
+            if (presCanal.length > 0) {
+                const st = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(c.key);
+                let idx = st ? st.last_index : -1;
+                const nxt = (idx + 1) % presCanal.length;
+                turnos[c.label] = presCanal[nxt].nombre;
+            }
         });
 
         // Lectura pura sin efectos secundarios en GET
