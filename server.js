@@ -44,7 +44,6 @@ db.exec(`
         orden INTEGER DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
-    try { db.exec("ALTER TABLE codefensoras_estado ADD COLUMN orden INTEGER DEFAULT 0"); } catch(e) {}
 
     CREATE TABLE IF NOT EXISTS rotacion_turnos (
         id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -105,6 +104,7 @@ try { db.exec('ALTER TABLE atenciones ADD COLUMN modo_derivacion_familia TEXT;')
 try { db.exec('ALTER TABLE atenciones ADD COLUMN codefensora_asignada TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN fecha_vencimiento_contestacion TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN detalle_reparticion TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE codefensoras_estado ADD COLUMN orden INTEGER DEFAULT 0;'); } catch (e) {}
 
 // Nueva estructura de rotación de turnos por canal independiente
 db.exec(`
