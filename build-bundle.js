@@ -2319,6 +2319,7 @@ const bundleContent = `/* ======================================================
             }
 
             this.renderDndList();
+            this.renderKanbanCategoryAssignment();
         }
 
         async reorderDefensoras(fromIdx, toIdx) {
@@ -2346,6 +2347,111 @@ const bundleContent = `/* ======================================================
 
             this.renderPresenceRoster();
             await this.calculateProximoTurno();
+        }
+
+        renderKanbanCategoryAssignment() {
+            const container = document.getElementById('kanbanCategoryContainer');
+            if (!container) return;
+
+            const turnos = this.currentTurnos || {};
+
+            let html = '';
+            this.codefensorasRoster.forEach(c => {
+                if (!c.isPresente) return;
+
+                const assignedRoles = [];
+                if (turnos['Ases. General'] === c.nombre || turnos['Asesoramiento General'] === c.nombre) {
+                    assignedRoles.push({ key: 'ASESORAMIENTO_GENERAL', label: 'Asesoría General', cls: 'duty-asesoria', icon: 'ri-file-user-line' });
+                }
+                if (turnos['Causa Nueva'] === c.nombre) {
+                    assignedRoles.push({ key: 'CAUSA_NUEVA', label: 'Causa Nueva', cls: 'duty-causa', icon: 'ri-folder-add-line' });
+                }
+                if (turnos['Contestación'] === c.nombre) {
+                    assignedRoles.push({ key: 'CONTESTACION_DEMANDA', label: 'Contestación', cls: 'duty-contestacion', icon: 'ri-edit-2-line' });
+                }
+                if (turnos['Adopción / Guarda'] === c.nombre || turnos['Adopción'] === c.nombre) {
+                    assignedRoles.push({ key: 'ADOPCION', label: 'Adopción / Guarda', cls: 'duty-adopcion', icon: 'ri-heart-add-line' });
+                }
+
+                let chipsHtml = '';
+                if (assignedRoles.length > 0) {
+                    chipsHtml = assignedRoles.map(r => 
+                        '<div class="draggable-category-chip ' + r.cls + '" draggable="true" data-canal="' + r.key + '" data-label="' + r.label + '">' +
+                            '<i class="' + r.icon + '"></i><span>' + r.label + '</span>' +
+                        '</div>'
+                    ).join('');
+                } else {
+                    chipsHtml = '<div style="font-size: 0.74rem; color: #64748B; font-style: italic;">Sin turnos asignados como próximo</div>';
+                }
+
+                html += '<div class="kanban-defensora-card" data-nombre="' + c.nombre + '">' +
+                    '<div class="kanban-card-header">' +
+                        '<span>Dra. ' + c.nombre + '</span>' +
+                        '<span class="presence-dot is-present"></span>' +
+                    '</div>' +
+                    '<div class="kanban-card-body" style="min-height: 48px; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">' +
+                        chipsHtml +
+                    '</div>' +
+                '</div>';
+            });
+
+            container.innerHTML = html;
+
+            let draggedCanal = null;
+            let draggedLabel = null;
+            const liveRegion = this.dndLiveRegion || document.getElementById('dndLiveRegion');
+
+            container.querySelectorAll('.draggable-category-chip').forEach(chip => {
+                chip.addEventListener('dragstart', (e) => {
+                    draggedCanal = chip.getAttribute('data-canal');
+                    draggedLabel = chip.getAttribute('data-label');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', draggedCanal);
+
+                    if (liveRegion) {
+                        liveRegion.textContent = 'Seleccionada especialidad ' + draggedLabel + ' para reasignar próximo turno.';
+                    }
+                });
+            });
+
+            container.querySelectorAll('.kanban-defensora-card').forEach(card => {
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    card.classList.add('drop-target-active');
+                });
+
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('drop-target-active');
+                });
+
+                card.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drop-target-active');
+
+                    const nombreDefensora = card.getAttribute('data-nombre');
+                    if (!draggedCanal || !nombreDefensora) return;
+
+                    if (liveRegion) {
+                        liveRegion.textContent = 'Asignando próximo turno de ' + draggedLabel + ' a Dra. ' + nombreDefensora + '.';
+                    }
+
+                    try {
+                        await fetch(getApiUrl('/api/familia/turnos/asignar-proximo'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                canalKey: draggedCanal,
+                                nombreDefensora: nombreDefensora,
+                                operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR'
+                            })
+                        });
+                    } catch(err) {}
+
+                    this.renderPresenceRoster();
+                    await this.calculateProximoTurno();
+                });
+            });
         }
 
         renderDndList() {
