@@ -2316,23 +2316,103 @@
             this.renderDndList();
         }
 
+        async reorderDefensoras(fromIdx, toIdx) {
+            if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= this.codefensorasRoster.length || toIdx >= this.codefensorasRoster.length) return;
+
+            const rosterCopy = [...this.codefensorasRoster];
+            const [moved] = rosterCopy.splice(fromIdx, 1);
+            rosterCopy.splice(toIdx, 0, moved);
+
+            this.codefensorasRoster = rosterCopy;
+
+            const liveRegion = this.dndLiveRegion || document.getElementById('dndLiveRegion');
+            if (liveRegion) {
+                liveRegion.textContent = 'Dra. ' + moved.nombre + ' reordenada a la posición ' + (toIdx + 1) + ' de ' + rosterCopy.length + '.';
+            }
+
+            const nombresOrdenados = rosterCopy.map(r => r.nombre);
+            try {
+                await fetch(getApiUrl('/api/familia/codefensoras/reordenar'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ordenNombres: nombresOrdenados, operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR' })
+                });
+            } catch(err) {}
+
+            this.renderPresenceRoster();
+            await this.calculateProximoTurno();
+        }
+
         renderDndList() {
             const container = this.presenceReorderContainer || document.getElementById('presenceReorderContainer');
             if (!container) return;
 
+            const turnos = this.currentTurnos || {};
+
             let html = '';
             this.codefensorasRoster.forEach((c, index) => {
-                const dotClass = c.isPresente ? 'is-present' : '';
+                const isPresent = !!c.isPresente;
+                const dotClass = isPresent ? 'is-present' : '';
+
+                const roles = [];
+                if (turnos['Ases. General'] === c.nombre || turnos['Asesoramiento General'] === c.nombre) {
+                    roles.push({ cls: 'duty-asesoria', label: 'Ases. Gen.' });
+                }
+                if (turnos['Causa Nueva'] === c.nombre) {
+                    roles.push({ cls: 'duty-causa', label: 'Causa Nva.' });
+                }
+                if (turnos['Contestación'] === c.nombre) {
+                    roles.push({ cls: 'duty-contestacion', label: 'Contestación' });
+                }
+                if (turnos['Adopción / Guarda'] === c.nombre || turnos['Adopción'] === c.nombre) {
+                    roles.push({ cls: 'duty-adopcion', label: 'Adopción' });
+                }
+
+                const dutyChipHtml = roles.map(r => '<span class="duty-chip ' + r.cls + '">' + r.label + '</span>').join('');
+
+                const isFirst = index === 0;
+                const isLast = index === this.codefensorasRoster.length - 1;
+
                 html += '<div class="dnd-item" draggable="true" data-index="' + index + '" data-nombre="' + c.nombre + '">' +
-                    '<div style="display: flex; align-items: center; gap: 0.5rem;">' +
+                    '<div class="dnd-item-content">' +
                         '<span class="dnd-handle" title="Arrastrar para reordenar"><i class="ri-draggable"></i></span>' +
-                        '<span style="font-weight: 600; font-size: 0.85rem; color: #FFF;">Dra. ' + c.nombre + '</span>' +
+                        '<span class="priority-badge">' + (index + 1) + '°</span>' +
+                        '<span class="presence-dot ' + dotClass + '"></span>' +
+                        '<span style="font-weight: 600; font-size: 0.88rem; color: #FFF;">Dra. ' + c.nombre + '</span>' +
+                        '<div class="dnd-duty-chips">' + dutyChipHtml + '</div>' +
                     '</div>' +
-                    '<span class="presence-dot ' + dotClass + '"></span>' +
+                    '<div class="dnd-actions">' +
+                        '<button class="btn-move-arrow btn-move-up" title="Subir prioridad" ' + (isFirst ? 'disabled' : '') + '><i class="ri-arrow-up-s-line"></i></button>' +
+                        '<button class="btn-move-arrow btn-move-down" title="Bajar prioridad" ' + (isLast ? 'disabled' : '') + '><i class="ri-arrow-down-s-line"></i></button>' +
+                    '</div>' +
                 '</div>';
             });
 
             container.innerHTML = html;
+
+            container.querySelectorAll('.dnd-item').forEach(item => {
+                const index = parseInt(item.getAttribute('data-index'), 10);
+
+                const btnUp = item.querySelector('.btn-move-up');
+                if (btnUp) {
+                    btnUp.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        if (index > 0) {
+                            await this.reorderDefensoras(index, index - 1);
+                        }
+                    });
+                }
+
+                const btnDown = item.querySelector('.btn-move-down');
+                if (btnDown) {
+                    btnDown.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        if (index < this.codefensorasRoster.length - 1) {
+                            await this.reorderDefensoras(index, index + 1);
+                        }
+                    });
+                }
+            });
 
             let draggedItem = null;
             let draggedIndex = -1;
@@ -2375,27 +2455,7 @@
                     if (!draggedItem || draggedItem === item) return;
 
                     const targetIndex = parseInt(item.getAttribute('data-index'), 10);
-                    const rosterCopy = [...this.codefensorasRoster];
-                    const [moved] = rosterCopy.splice(draggedIndex, 1);
-                    rosterCopy.splice(targetIndex, 0, moved);
-
-                    this.codefensorasRoster = rosterCopy;
-
-                    if (liveRegion) {
-                        liveRegion.textContent = 'Dra. ' + moved.nombre + ' reordenada a la posición ' + (targetIndex + 1) + ' de ' + rosterCopy.length + '.';
-                    }
-
-                    const nombresOrdenados = rosterCopy.map(r => r.nombre);
-                    try {
-                        await fetch(getApiUrl('/api/familia/codefensoras/reordenar'), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ordenNombres: nombresOrdenados, operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR' })
-                        });
-                    } catch(err) {}
-
-                    this.renderPresenceRoster();
-                    await this.calculateProximoTurno();
+                    await this.reorderDefensoras(draggedIndex, targetIndex);
                 });
 
                 item.addEventListener('dragend', () => {
