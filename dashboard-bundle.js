@@ -2244,14 +2244,68 @@
                 });
             };
 
+            const generateMasonryCardHtml = (c) => {
+                const isPresent = !!c.isPresente;
+                const turnos = this.currentTurnos || {};
+                const roles = [];
+
+                if (turnos['Ases. General'] === c.nombre || turnos['Asesoramiento General'] === c.nombre) {
+                    roles.push({ cls: 'duty-asesoria', label: 'Asesoría General', icon: 'ri-file-user-line' });
+                }
+                if (turnos['Causa Nueva'] === c.nombre) {
+                    roles.push({ cls: 'duty-causa', label: 'Causa Nueva', icon: 'ri-folder-add-line' });
+                }
+                if (turnos['Contestación'] === c.nombre) {
+                    roles.push({ cls: 'duty-contestacion', label: 'Contestación de Demanda', icon: 'ri-edit-2-line' });
+                }
+                if (turnos['Adopción / Guarda'] === c.nombre || turnos['Adopción'] === c.nombre) {
+                    roles.push({ cls: 'duty-adopcion', label: 'Adopción / Guarda', icon: 'ri-heart-add-line' });
+                }
+
+                let dutyBlocksHtml = '';
+                if (roles.length > 0) {
+                    dutyBlocksHtml = '<div class="card-duty-list">' +
+                        roles.map(r => '<div class="duty-chip-block ' + r.cls + '"><i class="' + r.icon + '"></i><span>' + r.label + '</span></div>').join('') +
+                    '</div>';
+                } else {
+                    dutyBlocksHtml = '<div style="font-size: 0.72rem; color: #64748B; padding-top: 0.4rem; font-style: italic;">Sin turno asignado hoy</div>';
+                }
+
+                const cardStateClass = isPresent ? 'is-present' : 'is-absent';
+                const statusBadgeClass = isPresent ? 'present' : 'absent';
+                const statusText = isPresent ? '<i class="ri-checkbox-circle-fill"></i> Presente' : '<i class="ri-close-circle-line"></i> Ausente';
+
+                return '<div class="presence-card-masonry ' + cardStateClass + '" data-name="' + c.nombre + '">' +
+                    '<div class="card-header-main">' +
+                        '<div class="card-user-info">' +
+                            '<div class="card-avatar"><i class="ri-user-star-line"></i></div>' +
+                            '<span class="card-name">Dra. ' + c.nombre + '</span>' +
+                        '</div>' +
+                        '<span class="card-status-badge ' + statusBadgeClass + '">' + statusText + '</span>' +
+                    '</div>' +
+                    dutyBlocksHtml +
+                '</div>';
+            };
+
             if (track) {
                 track.innerHTML = singleRosterHtml + singleRosterHtml;
                 attachClickHandlers(track);
             }
 
             if (gridContainer) {
-                gridContainer.innerHTML = singleRosterHtml;
-                attachClickHandlers(gridContainer);
+                gridContainer.innerHTML = this.codefensorasRoster.map(c => generateMasonryCardHtml(c)).join('');
+                gridContainer.querySelectorAll('.presence-card-masonry').forEach(card => {
+                    card.addEventListener('click', async () => {
+                        const nombre = card.getAttribute('data-name');
+                        const c = this.codefensorasRoster.find(item => item.nombre === nombre);
+                        if (c) {
+                            c.isPresente = !c.isPresente;
+                            await this.updateCodefensoraPresenceServer(c);
+                            this.renderPresenceRoster();
+                            await this.calculateProximoTurno();
+                        }
+                    });
+                });
             }
 
             if (this.presenceRosterContainer) {
