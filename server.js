@@ -441,6 +441,10 @@ const server = http.createServer((req, res) => {
         if (req.method === 'POST') return handlePostReordenarCodefensora(req, res);
     }
 
+    if (pathname === '/api/familia/turnos/asignar-proximo') {
+        if (req.method === 'POST') return handlePostAsignarProximoTurno(req, res);
+    }
+
     if (pathname === '/api/familia/proximo-turno') {
         if (req.method === 'GET') return handleGetProximoTurno(req, res, parsedUrl);
     }
@@ -1437,6 +1441,59 @@ function handlePostReordenarCodefensora(req, res) {
             }
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
+function handlePostAsignarProximoTurno(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            const { canalKey, nombreDefensora, operatorName } = data;
+
+            if (!canalKey || !nombreDefensora) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Parámetros faltantes' }));
+                return;
+            }
+
+            const canalMap = {
+                'Asesoramiento General': 'ASESORAMIENTO_GENERAL',
+                'Causa Nueva': 'CAUSA_NUEVA',
+                'Contestación de Demanda': 'CONTESTACION_DEMANDA',
+                'Guarda Judicial / Tutela / Adopción': 'ADOPCION',
+                'Adopción': 'ADOPCION',
+                'ADOPCION': 'ADOPCION',
+                'ASESORAMIENTO_GENERAL': 'ASESORAMIENTO_GENERAL',
+                'CAUSA_NUEVA': 'CAUSA_NUEVA',
+                'CONTESTACION_DEMANDA': 'CONTESTACION_DEMANDA'
+            };
+            const mappedCanal = canalMap[canalKey] || canalKey;
+
+            const presentes = db.prepare('SELECT nombre FROM codefensoras_estado WHERE is_presente = 1 ORDER BY orden ASC, id ASC').all();
+            const targetIdx = presentes.findIndex(p => p.nombre === nombreDefensora);
+
+            if (targetIdx === -1) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'La defensora seleccionada no está presente' }));
+                return;
+            }
+
+            const newLastIndex = (targetIdx - 1 + presentes.length) % presentes.length;
+
+            db.prepare('INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)')
+                .run(mappedCanal, newLastIndex);
+
+            logAudit(0, operatorName || 'OPERADOR', 'ASIGNACION_DIRECTA_TURNO', `Próximo turno de ${mappedCanal} asignado a Dra. ${nombreDefensora}`);
+            broadcast('PRESENCE_UPDATED', { canalKey: mappedCanal, proximaDefensora: nombreDefensora });
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, proximaDefensora: nombreDefensora, canalKey: mappedCanal }));
         } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: err.message }));
