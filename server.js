@@ -41,8 +41,10 @@ db.exec(`
         nombre TEXT UNIQUE NOT NULL,
         is_presente INTEGER DEFAULT 1,
         motivo_ausencia TEXT DEFAULT '',
+        orden INTEGER DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    try { db.exec("ALTER TABLE codefensoras_estado ADD COLUMN orden INTEGER DEFAULT 0"); } catch(e) {}
 
     CREATE TABLE IF NOT EXISTS rotacion_turnos (
         id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -433,6 +435,10 @@ const server = http.createServer((req, res) => {
 
     if (pathname === '/api/familia/codefensoras/estado') {
         if (req.method === 'POST') return handlePostEstadoCodefensora(req, res);
+    }
+
+    if (pathname === '/api/familia/codefensoras/reordenar') {
+        if (req.method === 'POST') return handlePostReordenarCodefensora(req, res);
     }
 
     if (pathname === '/api/familia/proximo-turno') {
@@ -1380,7 +1386,7 @@ function handleAdminGetAuditoria(req, res) {
 
 function handleGetCodefensoras(req, res) {
     try {
-        const rows = db.prepare('SELECT id, nombre, is_presente, motivo_ausencia FROM codefensoras_estado ORDER BY id ASC').all();
+        const rows = db.prepare('SELECT id, nombre, is_presente, motivo_ausencia, orden FROM codefensoras_estado ORDER BY orden ASC, id ASC').all();
         res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
         res.end(JSON.stringify({ success: true, data: rows }));
     } catch (err) {
@@ -1411,6 +1417,33 @@ function handlePostEstadoCodefensora(req, res) {
     });
 }
 
+function handlePostReordenarCodefensora(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            if (Array.isArray(data.ordenNombres)) {
+                const stmt = db.prepare('UPDATE codefensoras_estado SET orden = ? WHERE nombre = ?');
+                const updateMany = db.transaction((list) => {
+                    list.forEach((nombre, idx) => {
+                        stmt.run(idx + 1, nombre);
+                    });
+                });
+                updateMany(data.ordenNombres);
+
+                logAudit(0, data.operatorName || 'OPERADOR', 'REORDEN_PRESENTISMO', `Nuevo orden de turnos establecido: ${data.ordenNombres.join(', ')}`);
+                broadcast('PRESENCE_UPDATED', { reordered: true, ordenNombres: data.ordenNombres });
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
 function handleGetProximoTurno(req, res, parsedUrl) {
     try {
         const rawCanal = parsedUrl ? (parsedUrl.searchParams.get('canal') || 'Asesoramiento General') : 'Asesoramiento General';
@@ -1427,7 +1460,7 @@ function handleGetProximoTurno(req, res, parsedUrl) {
         };
         const canalKey = canalMap[rawCanal] || 'ASESORAMIENTO_GENERAL';
 
-        const presentes = db.prepare('SELECT nombre FROM codefensoras_estado WHERE is_presente = 1 ORDER BY id ASC').all();
+        const presentes = db.prepare('SELECT nombre FROM codefensoras_estado WHERE is_presente = 1 ORDER BY orden ASC, id ASC').all();
         if (presentes.length === 0) {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: false, warning: 'Todas las Co-Defensoras están ausentes.' }));
