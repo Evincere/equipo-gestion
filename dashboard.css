@@ -669,6 +669,154 @@ body {
     background: #0EA5E9;
     border-radius: 2px;
     box-shadow: 0 0 10px #0EA5E9;
+/* ==========================================================================
+   MURO MASONRY Y TARJETAS DE CONTROL DE ASISTENCIA (PINTEREST STYLE)
+   ========================================================================== */
+.presence-masonry-container {
+    column-count: 2;
+    column-gap: 0.85rem;
+    width: 100%;
+}
+
+@supports (grid-template-rows: masonry) {
+    .presence-masonry-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: masonry;
+        gap: 0.85rem;
+        column-count: initial;
+    }
+}
+
+.presence-card-masonry {
+    display: inline-block;
+    width: 100%;
+    break-inside: avoid;
+    margin-bottom: 0.85rem;
+    background: rgba(30, 41, 59, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.presence-card-masonry.is-present {
+    border-color: rgba(74, 222, 128, 0.35);
+    background: rgba(15, 23, 42, 0.85);
+}
+
+.presence-card-masonry.is-absent {
+    border-color: rgba(239, 68, 68, 0.25);
+    background: rgba(30, 41, 59, 0.4);
+    opacity: 0.75;
+}
+
+.presence-card-masonry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.card-header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+
+.card-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.card-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(51, 65, 85, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38BDF8;
+    font-size: 1rem;
+}
+
+.card-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #FFF;
+}
+
+.card-status-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.card-status-badge.present {
+    background: rgba(74, 222, 128, 0.18);
+    color: #4ADE80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.card-status-badge.absent {
+    background: rgba(239, 68, 68, 0.18);
+    color: #F87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.card-duty-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.5rem;
+    margin-top: 0.4rem;
+}
+
+.duty-chip-block {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+}
+
+.duty-chip-block.duty-asesoria {
+    background: rgba(236, 72, 153, 0.15);
+    color: #F472B6;
+    border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+.duty-chip-block.duty-causa {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38BDF8;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.duty-chip-block.duty-contestacion {
+    background: rgba(245, 158, 11, 0.15);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.duty-chip-block.duty-adopcion {
+    background: rgba(139, 92, 246, 0.15);
+    color: #A78BFA;
+    border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 /* TARJETAS DE ESTADÍSTICAS */
