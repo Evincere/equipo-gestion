@@ -669,9 +669,13 @@ const bundleContent = `/* ======================================================
             this.btnNewRecord = document.getElementById('btnNewRecord');
             this.btnNavNuevaAtencion = document.getElementById('btnNavNuevaAtencion');
             this.btnCloseNewModal = document.getElementById('btnCloseNewModal');
-            this.newRecordForm = document.getElementById('newRecordForm');
-            this.btnExportPDF = document.getElementById('btnExportPDF');
-                  this.presenceRosterContainer = document.getElementById('presenceRosterContainer');
+            this.presenceRosterContainer = document.getElementById('presenceRosterContainer');
+            this.presenceMarqueeTrack = document.getElementById('presenceMarqueeTrack');
+            this.btnExpandPresence = document.getElementById('btnExpandPresence');
+            this.presenceGridModal = document.getElementById('presenceGridModal');
+            this.presenceGridContainer = document.getElementById('presenceGridContainer');
+            this.btnClosePresenceGridModal = document.getElementById('btnClosePresenceGridModal');
+            this.currentTurnos = {};
             this.turnIndicatorBadge = document.getElementById('turnIndicatorBadge');
             this.turnIndicatorContainer = document.getElementById('turnIndicatorContainer');
             this.newDefensoriaSelect = document.getElementById('newDefensoria');
@@ -719,6 +723,24 @@ const bundleContent = `/* ======================================================
         }
 
         bindEvents() {
+            if (this.btnExpandPresence && this.presenceGridModal) {
+                this.btnExpandPresence.addEventListener('click', () => {
+                    this.presenceGridModal.style.display = 'flex';
+                });
+            }
+            if (this.btnClosePresenceGridModal && this.presenceGridModal) {
+                this.btnClosePresenceGridModal.addEventListener('click', () => {
+                    this.presenceGridModal.style.display = 'none';
+                });
+            }
+            if (this.presenceGridModal) {
+                this.presenceGridModal.addEventListener('click', (e) => {
+                    if (e.target === this.presenceGridModal) {
+                        this.presenceGridModal.style.display = 'none';
+                    }
+                });
+            }
+
             if (this.btnOnlineUsers && this.onlineUsersPopover) {
                 this.btnOnlineUsers.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -2147,30 +2169,84 @@ const bundleContent = `/* ======================================================
         }
 
         renderPresenceRoster() {
-            if (!this.presenceRosterContainer) return;
-            let html = '';
-            this.codefensorasRoster.forEach(c => {
-                const statusClass = c.isPresente ? 'presente' : 'ausente';
-                const statusText = c.isPresente ? 'Presente' : 'Ausente';
-                html += '<div class="presence-pill ' + statusClass + '" data-name="' + c.nombre + '" title="Clic para cambiar presencia/ausencia">' +
-                    '<span class="dot"></span>' +
-                    '<span>Dra. ' + c.nombre + ' (' + statusText + ')</span>' +
-                '</div>';
-            });
-            this.presenceRosterContainer.innerHTML = html;
+            const track = this.presenceMarqueeTrack || document.getElementById('presenceMarqueeTrack');
+            const gridContainer = this.presenceGridContainer || document.getElementById('presenceGridContainer');
+            if (!track && !gridContainer && !this.presenceRosterContainer) return;
 
-            this.presenceRosterContainer.querySelectorAll('.presence-pill').forEach(pill => {
-                pill.addEventListener('click', async () => {
-                    const nombre = pill.getAttribute('data-name');
-                    const c = this.codefensorasRoster.find(item => item.nombre === nombre);
-                    if (c) {
-                        c.isPresente = !c.isPresente;
-                        await this.updateCodefensoraPresenceServer(c);
-                        this.renderPresenceRoster();
-                        await this.calculateProximoTurno();
-                    }
+            const turnos = this.currentTurnos || {};
+
+            const generatePillHtml = (c) => {
+                const isPresent = !!c.isPresente;
+                let dutyClass = '';
+                const roles = [];
+
+                if (turnos['Ases. General'] === c.nombre || turnos['Asesoramiento General'] === c.nombre) {
+                    roles.push({ cls: 'duty-asesoria', label: 'Ases. Gen.' });
+                }
+                if (turnos['Causa Nueva'] === c.nombre) {
+                    roles.push({ cls: 'duty-causa', label: 'Causa Nva.' });
+                }
+                if (turnos['Contestación'] === c.nombre) {
+                    roles.push({ cls: 'duty-contestacion', label: 'Contestación' });
+                }
+                if (turnos['Adopción / Guarda'] === c.nombre || turnos['Adopción'] === c.nombre) {
+                    roles.push({ cls: 'duty-adopcion', label: 'Adopción' });
+                }
+
+                if (roles.length > 0) {
+                    dutyClass = roles[0].cls;
+                }
+                const dutyLabel = roles.map(r => r.label).join(' | ');
+
+                const statusStr = isPresent ? 'Presente' : 'Ausente';
+                const titleText = 'Dra. ' + c.nombre + ' (' + statusStr + ') - Clic para cambiar presencia';
+
+                let chipHtml = '';
+                if (dutyLabel) {
+                    chipHtml = '<span class="duty-chip">' + dutyLabel + '</span>';
+                }
+
+                const dotClass = isPresent ? 'is-present' : '';
+
+                return '<div class="presence-pill-unified ' + dutyClass + '" data-name="' + c.nombre + '" title="' + titleText + '">' +
+                    '<span class="presence-dot ' + dotClass + '"></span>' +
+                    '<span class="presence-name">Dra. ' + c.nombre + '</span>' +
+                    chipHtml +
+                '</div>';
+            };
+
+            const singleRosterHtml = this.codefensorasRoster.map(c => generatePillHtml(c)).join('');
+
+            const attachClickHandlers = (container) => {
+                if (!container) return;
+                container.querySelectorAll('.presence-pill-unified').forEach(pill => {
+                    pill.addEventListener('click', async () => {
+                        const nombre = pill.getAttribute('data-name');
+                        const c = this.codefensorasRoster.find(item => item.nombre === nombre);
+                        if (c) {
+                            c.isPresente = !c.isPresente;
+                            await this.updateCodefensoraPresenceServer(c);
+                            this.renderPresenceRoster();
+                            await this.calculateProximoTurno();
+                        }
+                    });
                 });
-            });
+            };
+
+            if (track) {
+                track.innerHTML = singleRosterHtml + singleRosterHtml;
+                attachClickHandlers(track);
+            }
+
+            if (gridContainer) {
+                gridContainer.innerHTML = singleRosterHtml;
+                attachClickHandlers(gridContainer);
+            }
+
+            if (this.presenceRosterContainer) {
+                this.presenceRosterContainer.innerHTML = singleRosterHtml;
+                attachClickHandlers(this.presenceRosterContainer);
+            }
         }
 
         async updateCodefensoraPresenceServer(c) {
@@ -2190,22 +2266,8 @@ const bundleContent = `/* ======================================================
                     const data = await res.json();
                     if (data.success) {
                         if (data.turnos) {
-                            let badgesHtml = '';
-                            const styles = {
-                                'Ases. General': 'background: rgba(236, 72, 153, 0.2); border: 1px solid #EC4899; color: #F472B6;',
-                                'Causa Nueva': 'background: rgba(56, 189, 248, 0.2); border: 1px solid #38BDF8; color: #38BDF8;',
-                                'Contestación': 'background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FBBF24;',
-                                'Adopción / Guarda': 'background: rgba(168, 85, 247, 0.2); border: 1px solid #A855F7; color: #C084FC;'
-                            };
-                            for (const [chanLabel, defName] of Object.entries(data.turnos)) {
-                                const st = styles[chanLabel] || 'background: rgba(255,255,255,0.1); color: #FFF;';
-                                badgesHtml += '<span class="turn-indicator" style="' + st + ' font-size: 0.74rem; padding: 0.2rem 0.6rem; border-radius: 14px; font-weight: 600;">' + chanLabel + ': Dra. ' + defName + '</span>';
-                            }
-                            if (this.turnIndicatorContainer) {
-                                this.turnIndicatorContainer.innerHTML = badgesHtml;
-                            } else if (this.turnIndicatorBadge) {
-                                this.turnIndicatorBadge.innerHTML = badgesHtml;
-                            }
+                            this.currentTurnos = data.turnos || {};
+                            this.renderPresenceRoster();
                         }
                         if (data.proximaDefensora) {
                             this.proximaDefensoriaTurno = data.proximaDefensora;
