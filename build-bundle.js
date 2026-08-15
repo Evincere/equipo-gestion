@@ -760,12 +760,18 @@ const bundleContent = `/* ======================================================
             if (this.btnOnlineUsers && this.onlineUsersPopover) {
                 this.btnOnlineUsers.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    const triggerIcon = e.target.closest('#btnIconChatTrigger');
+                    if (triggerIcon) {
+                        this.onlineUsersPopover.style.display = 'none';
+                        this.openChatDrawer();
+                        return;
+                    }
                     const isVisible = this.onlineUsersPopover.style.display === 'block';
                     this.onlineUsersPopover.style.display = isVisible ? 'none' : 'block';
                 });
 
                 document.addEventListener('click', (e) => {
-                    if (this.onlineUsersPopover && !this.onlineUsersPopover.contains(e.target) && e.target !== this.btnOnlineUsers) {
+                    if (this.onlineUsersPopover && !this.onlineUsersPopover.contains(e.target) && !this.btnOnlineUsers.contains(e.target)) {
                         this.onlineUsersPopover.style.display = 'none';
                     }
                 });
@@ -1432,7 +1438,7 @@ const bundleContent = `/* ======================================================
             users.forEach(u => {
                 const isCurrent = this.currentUser && this.currentUser.username === u.username;
                 const roleBadgeClass = u.rol === 'ADMINISTRADOR' ? 'badge-familia' : 'badge-otro';
-                html += '<div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">' +
+                html += '<div class="online-user-item-row" data-username="' + u.username + '" data-name="' + u.nombreCompleto + '" title="' + (isCurrent ? 'Tu usuario' : 'Clic para chatear con ' + u.nombreCompleto) + '">' +
                     '<div style="display: flex; align-items: center; gap: 0.6rem;">' +
                         '<div style="position: relative;">' +
                             '<div class="avatar" style="width: 30px; height: 30px; font-size: 0.75rem; font-weight: 700;">' + (u.avatarInitials || 'OP') + '</div>' +
@@ -1443,9 +1449,21 @@ const bundleContent = `/* ======================================================
                             '<span class="badge ' + roleBadgeClass + '" style="font-size: 0.65rem; padding: 0.1rem 0.35rem;">' + u.rol + '</span>' +
                         '</div>' +
                     '</div>' +
+                    (!isCurrent ? '<i class="ri-chat-3-line" style="color: #38BDF8; font-size: 1rem;"></i>' : '') +
                 '</div>';
             });
             this.onlineUsersList.innerHTML = html;
+
+            this.onlineUsersList.querySelectorAll('.online-user-item-row').forEach(row => {
+                row.addEventListener('click', async () => {
+                    const uname = row.getAttribute('data-username');
+                    const name = row.getAttribute('data-name');
+                    if (this.currentUser && uname === this.currentUser.username) return;
+                    if (this.onlineUsersPopover) this.onlineUsersPopover.style.display = 'none';
+                    await this.openChatDrawer();
+                    await this.openConversation(uname, name);
+                });
+            });
         }
 
         async loadPublicUsersForLogin() {
@@ -1579,8 +1597,10 @@ const bundleContent = `/* ======================================================
                         if (total > 0) {
                             this.chatGlobalUnreadBadge.textContent = total;
                             this.chatGlobalUnreadBadge.style.display = 'inline-block';
+                            if (this.btnOnlineUsers) this.btnOnlineUsers.classList.add('has-unread');
                         } else {
                             this.chatGlobalUnreadBadge.style.display = 'none';
+                            if (this.btnOnlineUsers) this.btnOnlineUsers.classList.remove('has-unread');
                         }
                     }
                 }

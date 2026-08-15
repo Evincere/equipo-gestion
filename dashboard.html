@@ -20,10 +20,28 @@
                 <span>Gestión de Atenciones - Defensoría Pública (Mendoza)</span>
             </div>
             <div class="caption-buttons">
-                <button class="caption-btn" id="btnOpenChatDrawer" title="Chat Interno Directo 1-a-1" style="position: relative; width: auto; padding: 0 0.65rem; display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; color: var(--mpd-cyan); border-color: rgba(56, 189, 248, 0.3);">
-                    <i class="ri-chat-3-line"></i> <span>Chat</span>
-                    <span class="badge" id="chatGlobalUnreadBadge" style="display: none; font-size: 0.65rem; padding: 0.1rem 0.35rem; background: #EF4444; color: #FFF; border-radius: 10px;">0</span>
-                </button>
+                <!-- Widget Unificado Operarios Conectados y Chat en Barra de Título -->
+                <div style="position: relative; display: inline-flex; align-items: center;" id="containerOnlineUsers">
+                    <button class="caption-btn online-users-titlebar-btn" id="btnOnlineUsers" title="Operarios conectados / Abrir Chat" style="position: relative; width: auto; padding: 0 0.65rem; height: 26px; display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.35); color: #4ADE80; border-radius: 4px; cursor: pointer;">
+                        <span class="presence-pulse-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 6px #4ADE80;"></span>
+                        <span id="onlineUsersCountText" style="font-weight: 600; font-size: 0.76rem;">1 Conectado</span>
+                        <span id="btnIconChatTrigger" style="display: inline-flex; align-items: center; justify-content: center; padding: 2px 4px; border-radius: 3px; cursor: pointer; color: #38BDF8; transition: background 0.15s ease;" title="Abrir panel de Chat">
+                            <i class="ri-chat-3-line" style="font-size: 0.92rem;"></i>
+                        </span>
+                        <span class="badge" id="chatGlobalUnreadBadge" style="display: none; font-size: 0.62rem; padding: 0.1rem 0.35rem; background: #EF4444; color: #FFF; border-radius: 10px; font-weight: 700;">0</span>
+                    </button>
+                    <div class="online-users-popover" id="onlineUsersPopover" style="display: none; position: absolute; top: 120%; right: 0; width: 280px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(12px); z-index: 99999;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                            <strong style="color: #FFF; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i class="ri-team-line" style="color: #4ADE80;"></i> Operarios Conectados
+                            </strong>
+                            <span class="badge" style="background: rgba(74, 222, 128, 0.2); color: #4ADE80; font-size: 0.72rem;" id="onlineUsersBadgeCount">1 En línea</span>
+                        </div>
+                        <div id="onlineUsersList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 240px; overflow-y: auto;">
+                            <!-- Renderizado dinámico de usuarios en línea -->
+                        </div>
+                    </div>
+                </div>
                 <button class="caption-btn" title="Minimizar"><i class="ri-subtract-line"></i></button>
                 <button class="caption-btn" title="Maximizar"><i class="ri-checkbox-blank-line"></i></button>
                 <button class="caption-btn btn-close" id="btnCloseApp" title="Cerrar Sesión / Salir"><i class="ri-close-line"></i></button>
@@ -58,19 +76,20 @@
                     <a href="#" class="nav-item" id="navItemConfig" data-tab="config" style="display: none;" title="Configuración (Admin)">
                         <i class="ri-settings-3-line"></i> <span>Configuración (Admin)</span>
                     </a>
+                    
+                    <a href="#" class="nav-item" id="navItemAudit" data-tab="audit" style="display: none;" title="Auditoría">
+                        <i class="ri-shield-check-line"></i> <span>Auditoría</span>
+                    </a>
                 </nav>
 
-                <!-- Perfil Dinámico de Usuario Autenticado + Botón Logout -->
-                <div class="user-profile" id="userProfileWidget" style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div class="avatar" id="userAvatar">SP</div>
-                        <div class="user-info">
-                            <span class="name" id="userName">Sergio M. Pereyra</span>
-                            <span class="role" id="userRole">Administrador</span>
-                        </div>
+                <div class="user-profile">
+                    <div class="avatar" id="userAvatar">OP</div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName">Operador</span>
+                        <span class="user-role" id="userRole">Mesa de Entradas</span>
                     </div>
-                    <button class="btn-logout" id="btnLogoutUser" title="Cerrar Sesión" style="background: rgba(232, 17, 35, 0.2); border: 1px solid rgba(232, 17, 35, 0.4); color: #F87171; border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s ease;">
-                        <i class="ri-logout-box-r-line" style="font-size: 1.1rem;"></i>
+                    <button class="btn-logout" id="btnLogoutUser" title="Cerrar Sesión">
+                        <i class="ri-logout-box-r-line"></i>
                     </button>
                 </div>
             </aside>
@@ -93,26 +112,6 @@
                         </div>
 
                         <div class="topbar-actions">
-                            <!-- Widget Operarios Conectados en Tiempo Real -->
-                            <div style="position: relative;" id="containerOnlineUsers">
-                                <button class="btn btn-secondary" id="btnOnlineUsers" style="background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.4); color: #4ADE80; gap: 0.45rem; padding: 0.45rem 0.85rem; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center;" title="Ver operarios conectados en tiempo real">
-                                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 8px #4ADE80;"></span>
-                                    <span id="onlineUsersCountText">1 Conectado</span>
-                                    <i class="ri-user-shared-line"></i>
-                                </button>
-                                <div class="online-users-popover" id="onlineUsersPopover" style="display: none; position: absolute; top: 120%; right: 0; width: 280px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(12px); z-index: 9999;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
-                                        <strong style="color: #FFF; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem;">
-                                            <i class="ri-team-line" style="color: #4ADE80;"></i> Operarios Conectados
-                                        </strong>
-                                        <span class="badge" style="background: rgba(74, 222, 128, 0.2); color: #4ADE80; font-size: 0.72rem;" id="onlineUsersBadgeCount">1 En línea</span>
-                                    </div>
-                                    <div id="onlineUsersList" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 240px; overflow-y: auto;">
-                                        <!-- Renderizado dinámico de usuarios en línea -->
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="search-box">
                                 <i class="ri-search-line search-icon"></i>
                                 <input type="search" id="searchInput" class="search-input" placeholder="Buscar por DNI, Nombre, Expte o Tarea...">
