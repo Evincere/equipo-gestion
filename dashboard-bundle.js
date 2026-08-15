@@ -2359,18 +2359,25 @@
 
             let html = '';
             this.codefensorasRoster.forEach(c => {
-                if (!c.isPresente) return;
+                const isAbsent = !c.isPresente;
+                const cardCls = isAbsent ? 'kanban-defensora-card is-absent' : 'kanban-defensora-card';
+                const dotCls = isAbsent ? 'presence-dot is-absent' : 'presence-dot is-present';
+                const absentTag = isAbsent ? ' <span style="font-size: 0.72rem; color: #EF4444; font-weight: 700;">(Ausente)</span>' : '';
 
                 const assignedRoles = [];
-                CANALES_ROLES.forEach(r => {
-                    const asignado = turnos[r.key] || turnos[r.label] || (r.key === 'ADOPCION' ? (turnos['Adopción / Guarda'] || turnos['Adopción'] || turnos['Guarda Judicial / Tutela / Adopción']) : null) || (r.key === 'CONTESTACION_DEMANDA' ? turnos['Contestación'] : null) || (r.key === 'ASESORAMIENTO_GENERAL' ? turnos['Ases. General'] : null);
-                    if (asignado === c.nombre) {
-                        assignedRoles.push(r);
-                    }
-                });
+                if (!isAbsent) {
+                    CANALES_ROLES.forEach(r => {
+                        const asignado = turnos[r.key] || turnos[r.label] || (r.key === 'ADOPCION' ? (turnos['Adopción / Guarda'] || turnos['Adopción'] || turnos['Guarda Judicial / Tutela / Adopción']) : null) || (r.key === 'CONTESTACION_DEMANDA' ? turnos['Contestación'] : null) || (r.key === 'ASESORAMIENTO_GENERAL' ? turnos['Ases. General'] : null);
+                        if (asignado === c.nombre) {
+                            assignedRoles.push(r);
+                        }
+                    });
+                }
 
                 let chipsHtml = '';
-                if (assignedRoles.length > 0) {
+                if (isAbsent) {
+                    chipsHtml = '<div style="font-size: 0.74rem; color: #EF4444; font-style: italic; display: flex; align-items: center; gap: 0.3rem;"><i class="ri-user-unfollow-line"></i> No disponible (Ausente)</div>';
+                } else if (assignedRoles.length > 0) {
                     chipsHtml = assignedRoles.map(r => 
                         '<div class="draggable-category-chip ' + r.cls + '" draggable="true" data-canal="' + r.key + '" data-label="' + r.label + '">' +
                             '<i class="' + r.icon + '"></i><span>' + r.label + '</span>' +
@@ -2380,10 +2387,10 @@
                     chipsHtml = '<div style="font-size: 0.74rem; color: #64748B; font-style: italic;">Sin turnos asignados como próximo</div>';
                 }
 
-                html += '<div class="kanban-defensora-card" data-nombre="' + c.nombre + '">' +
+                html += '<div class="' + cardCls + '" data-nombre="' + c.nombre + '" data-presente="' + (isAbsent ? '0' : '1') + '">' +
                     '<div class="kanban-card-header">' +
-                        '<span>Dra. ' + c.nombre + '</span>' +
-                        '<span class="presence-dot is-present"></span>' +
+                        '<span>Dra. ' + c.nombre + absentTag + '</span>' +
+                        '<span class="' + dotCls + '"></span>' +
                     '</div>' +
                     '<div class="kanban-card-body" style="min-height: 48px; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">' +
                         chipsHtml +
@@ -2412,6 +2419,7 @@
 
             container.querySelectorAll('.kanban-defensora-card').forEach(card => {
                 card.addEventListener('dragover', (e) => {
+                    if (card.getAttribute('data-presente') === '0') return;
                     e.preventDefault();
                     e.stopPropagation();
                     e.dataTransfer.dropEffect = 'move';
@@ -2425,6 +2433,7 @@
                 });
 
                 card.addEventListener('drop', async (e) => {
+                    if (card.getAttribute('data-presente') === '0') return;
                     e.preventDefault();
                     e.stopPropagation();
                     card.classList.remove('drop-target-active');
@@ -2491,11 +2500,11 @@
                 });
             }
 
-            let mePresentes = this.codefensorasRoster.filter(c => c.isPresente);
+            let allDefensores = [...this.codefensorasRoster];
 
             if (this.canalOrders && this.canalOrders[selectedCanal]) {
                 const orderArr = this.canalOrders[selectedCanal];
-                mePresentes.sort((a, b) => {
+                allDefensores.sort((a, b) => {
                     let idxA = orderArr.indexOf(a.nombre);
                     let idxB = orderArr.indexOf(b.nombre);
                     if (idxA === -1) idxA = 999;
@@ -2517,56 +2526,31 @@
             const proximaDefensora = turnos[selectedCanal] || (selectedCanal === 'ASESORAMIENTO_GENERAL' ? turnos['Asesoramiento General'] : (selectedCanal === 'CAUSA_NUEVA' ? turnos['Causa Nueva'] : (selectedCanal === 'CONTESTACION_DEMANDA' ? (turnos['Contestación de Demanda'] || turnos['Contestación']) : (turnos['Guarda Judicial / Tutela / Adopción'] || turnos['Adopción / Guarda'] || turnos['Adopción']))));
 
             let html = '';
-            mePresentes.forEach((c, index) => {
+            allDefensores.forEach((c, index) => {
                 const isPresent = !!c.isPresente;
-                const dotClass = isPresent ? 'is-present' : '';
-                const isProxima = (c.nombre === proximaDefensora);
-                const proximaItemClass = isProxima ? (' is-proxima duty-' + currentDutyCls) : '';
+                const dotClass = isPresent ? 'is-present' : 'is-absent';
+                const isProxima = isPresent && (c.nombre === proximaDefensora);
+                const proximaItemClass = isProxima ? (' is-proxima duty-' + currentDutyCls) : (isPresent ? '' : ' is-absent-row');
                 const proximaBadgeHtml = isProxima ? ('<span class="proxima-badge duty-' + currentDutyCls + '"><i class="ri-checkbox-circle-fill"></i> PRÓXIMA</span>') : '';
+                const absentBadgeHtml = !isPresent ? ('<span class="absent-badge-row"><i class="ri-user-unfollow-line"></i> Ausente</span>') : '';
 
                 html += '<div class="dnd-item' + proximaItemClass + '" draggable="true" data-index="' + index + '" data-nombre="' + c.nombre + '">' +
                     '<div class="dnd-item-content">' +
                         '<span class="dnd-handle" title="Arrastrar para reordenar"><i class="ri-draggable"></i></span>' +
                         '<span class="priority-badge">' + (index + 1) + '°</span>' +
                         '<span class="presence-dot ' + dotClass + '"></span>' +
-                        '<span style="font-weight: 600; font-size: 0.88rem; color: #FFF;">Dra. ' + c.nombre + '</span>' +
+                        '<span style="font-weight: 600; font-size: 0.88rem; color: ' + (isPresent ? '#FFF' : '#94A3B8') + ';">Dra. ' + c.nombre + '</span>' +
+                        absentBadgeHtml +
                         proximaBadgeHtml +
                     '</div>' +
                 '</div>';
             });
 
-            if (mePresentes.length === 0) {
-                html = '<div style="font-size: 0.8rem; color: #64748B; padding: 0.75rem; text-align: center; font-style: italic;">No hay defensoras presentes para reordenar</div>';
+            if (allDefensores.length === 0) {
+                html = '<div style="font-size: 0.8rem; color: #64748B; padding: 0.75rem; text-align: center; font-style: italic;">No hay defensoras registradas</div>';
             }
 
             container.innerHTML = html;
-
-            const reorderCanalList = async (fromIdx, toIdx) => {
-                if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= mePresentes.length || toIdx >= mePresentes.length) return;
-                const listCopy = [...mePresentes];
-                const [moved] = listCopy.splice(fromIdx, 1);
-                listCopy.splice(toIdx, 0, moved);
-
-                const ordenNombres = listCopy.map(c => c.nombre);
-                this.canalOrders = this.canalOrders || {};
-                this.canalOrders[selectedCanal] = ordenNombres;
-
-                try {
-                    await fetch(getApiUrl('/api/familia/codefensoras/reordenar-canal'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            canalKey: selectedCanal,
-                            ordenNombres: ordenNombres,
-                            operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR'
-                        })
-                    });
-                } catch(err) {}
-
-                this.renderPresenceRoster();
-                await this.calculateProximoTurno();
-            };
-
 
             let draggedItem = null;
             let draggedNombre = null;
@@ -2599,7 +2583,7 @@
                     e.dataTransfer.setData('text/plain', draggedNombre);
 
                     if (liveRegion) {
-                        liveRegion.textContent = 'Se ha seleccionado a Dra. ' + draggedNombre + '. Posición actual ' + (draggedIndex + 1) + ' de ' + mePresentes.length + '.';
+                        liveRegion.textContent = 'Se ha seleccionado a Dra. ' + draggedNombre + '. Posición actual ' + (draggedIndex + 1) + ' de ' + allDefensores.length + '.';
                     }
                 });
 
@@ -2633,8 +2617,8 @@
                 const children = [...container.children];
                 const placeholderIdx = children.indexOf(placeholder);
 
-                const currentList = mePresentes.map(c => c.nombre).filter(n => n !== draggedNombre);
-                const originalIdx = mePresentes.findIndex(c => c.nombre === draggedNombre);
+                const currentList = allDefensores.map(c => c.nombre).filter(n => n !== draggedNombre);
+                const originalIdx = allDefensores.findIndex(c => c.nombre === draggedNombre);
 
                 let targetIndex = placeholderIdx;
                 if (originalIdx !== -1 && originalIdx < placeholderIdx) {

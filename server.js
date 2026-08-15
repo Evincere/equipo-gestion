@@ -119,6 +119,14 @@ db.exec(`
         orden INTEGER DEFAULT 0,
         PRIMARY KEY (canal, nombre)
     );
+
+    CREATE TABLE IF NOT EXISTS turnos_deficit_canales (
+        canal TEXT NOT NULL,
+        nombre_ausente TEXT NOT NULL,
+        nombre_cubrio TEXT NOT NULL,
+        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (canal, nombre_ausente)
+    );
 `);
 
 db.exec(`
@@ -1419,6 +1427,28 @@ function handlePostEstadoCodefensora(req, res) {
             const stmt = db.prepare('UPDATE codefensoras_estado SET is_presente = ?, motivo_ausencia = ? WHERE id = ? OR nombre = ?');
             stmt.run(data.isPresente ? 1 : 0, data.motivoAusencia || '', data.id || 0, data.nombre || '');
 
+            if (data.isPresente) {
+                const nombreReincorporada = data.nombre;
+                const deficits = db.prepare('SELECT * FROM turnos_deficit_canales WHERE nombre_ausente = ?').all(nombreReincorporada);
+                deficits.forEach(d => {
+                    const allInCanal = db.prepare(`
+                        SELECT c.nombre, c.is_presente, COALESCE(o.orden, c.orden) as orden
+                        FROM codefensoras_estado c
+                        LEFT JOIN orden_rotacion_canales o ON o.canal = ? AND o.nombre = c.nombre
+                        ORDER BY orden ASC, c.id ASC
+                    `).all(d.canal);
+
+                    const myIdx = allInCanal.findIndex(c => c.nombre === nombreReincorporada);
+                    if (myIdx !== -1) {
+                        const compensateLastIndex = (myIdx - 1 + allInCanal.length) % allInCanal.length;
+                        db.prepare('INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES (?, ?)')
+                            .run(d.canal, compensateLastIndex);
+                    }
+                    db.prepare('DELETE FROM turnos_deficit_canales WHERE canal = ? AND nombre_ausente = ?')
+                        .run(d.canal, nombreReincorporada);
+                });
+            }
+
             logAudit(0, data.operatorName || 'OPERADOR', 'CAMBIO_PRESENTISMO', `Co-Defensora ${data.nombre} marcada como ${data.isPresente ? 'Presente' : 'Ausente'}`);
 
             broadcast('PRESENCE_UPDATED', { nombre: data.nombre, isPresente: data.isPresente, motivoAusencia: data.motivoAusencia });
@@ -1615,18 +1645,19 @@ function handleGetProximoTurno(req, res, parsedUrl) {
         };
         const canalKey = canalMap[rawCanal] || 'ASESORAMIENTO_GENERAL';
 
-        const getPresentesForCanal = (cKey) => {
+        const getAllForCanal = (cKey) => {
             return db.prepare(`
                 SELECT c.nombre, c.is_presente, COALESCE(o.orden, c.orden) as orden
                 FROM codefensoras_estado c
                 LEFT JOIN orden_rotacion_canales o ON o.canal = ? AND o.nombre = c.nombre
-                WHERE c.is_presente = 1
                 ORDER BY orden ASC, c.id ASC
             `).all(cKey);
         };
 
-        const presentes = getPresentesForCanal(canalKey);
-        if (presentes.length === 0) {
+        const allInMainCanal = getAllForCanal(canalKey);
+        const presentesInMainCanal = allInMainCanal.filter(c => c.is_presente === 1);
+
+        if (presentesInMainCanal.length === 0) {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: false, warning: 'Todas las Co-Defensoras están ausentes.' }));
             return;
@@ -1634,8 +1665,22 @@ function handleGetProximoTurno(req, res, parsedUrl) {
 
         const rotState = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(canalKey);
         let lastIndex = rotState ? rotState.last_index : -1;
-        const nextIndex = (lastIndex + 1) % presentes.length;
-        const proximaDefensora = presentes[nextIndex].nombre;
+
+        let foundMainIdx = -1;
+        let mainWinner = null;
+        let skippedAbsent = [];
+        for (let i = 1; i <= allInMainCanal.length; i++) {
+            const checkIdx = (lastIndex + i) % allInMainCanal.length;
+            if (allInMainCanal[checkIdx].is_presente === 1) {
+                foundMainIdx = checkIdx;
+                mainWinner = allInMainCanal[checkIdx];
+                break;
+            } else {
+                skippedAbsent.push(allInMainCanal[checkIdx].nombre);
+            }
+        }
+
+        const proximaDefensora = mainWinner ? mainWinner.nombre : presentesInMainCanal[0].nombre;
 
         const canalesList = [
             { key: 'ASESORAMIENTO_GENERAL', label: 'Asesoramiento General', short: 'Ases. General' },
@@ -1646,18 +1691,38 @@ function handleGetProximoTurno(req, res, parsedUrl) {
 
         const turnos = {};
         canalesList.forEach(c => {
-            const presCanal = getPresentesForCanal(c.key);
-            if (presCanal.length > 0) {
+            const allDefs = getAllForCanal(c.key);
+            const presDefs = allDefs.filter(d => d.is_presente === 1);
+            if (presDefs.length > 0) {
                 const st = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(c.key);
                 let idx = st ? st.last_index : -1;
-                const nxt = (idx + 1) % presCanal.length;
-                const nom = presCanal[nxt].nombre;
+
+                let winner = null;
+                let absentInChannel = [];
+                for (let i = 1; i <= allDefs.length; i++) {
+                    const checkIdx = (idx + i) % allDefs.length;
+                    if (allDefs[checkIdx].is_presente === 1) {
+                        winner = allDefs[checkIdx];
+                        break;
+                    } else {
+                        absentInChannel.push(allDefs[checkIdx].nombre);
+                    }
+                }
+
+                if (!winner) winner = presDefs[0];
+                const nom = winner.nombre;
                 turnos[c.key] = nom;
                 turnos[c.label] = nom;
                 turnos[c.short] = nom;
                 if (c.key === 'ADOPCION') {
                     turnos['Adopción'] = nom;
                 }
+
+                // Registrar déficit de turnos por ausencia para compensación
+                absentInChannel.forEach(absName => {
+                    db.prepare('INSERT OR REPLACE INTO turnos_deficit_canales (canal, nombre_ausente, nombre_cubrio) VALUES (?, ?, ?)')
+                        .run(c.key, absName, nom);
+                });
             }
         });
 

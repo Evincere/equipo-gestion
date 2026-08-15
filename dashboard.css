@@ -796,10 +796,47 @@ body {
     transition: all 0.2s ease;
 }
 
+.kanban-defensora-card.is-absent {
+    opacity: 0.55;
+    background: rgba(15, 23, 42, 0.6);
+    border: 2px dashed rgba(239, 68, 68, 0.35);
+    cursor: not-allowed;
+}
+
+.kanban-defensora-card.is-absent .kanban-card-header {
+    color: #94A3B8;
+    border-bottom-color: rgba(239, 68, 68, 0.2);
+}
+
 .kanban-defensora-card.drop-target-active {
     border-color: #38BDF8;
     background: rgba(14, 165, 233, 0.12);
     box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
+}
+
+.presence-dot.is-absent {
+    background: #EF4444 !important;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+}
+
+.dnd-item.is-absent-row {
+    opacity: 0.75;
+    border-color: rgba(239, 68, 68, 0.25);
+    background: rgba(15, 23, 42, 0.65);
+}
+
+.absent-badge-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #F87171;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    margin-left: 0.5rem;
 }
 
 .kanban-card-header {
