@@ -1726,12 +1726,17 @@ function handleGetProximoTurno(req, res, parsedUrl) {
             }
         });
 
+        const nextIndex = foundMainIdx !== -1 ? foundMainIdx : 0;
+        const responsePayload = JSON.stringify({ success: true, proximaDefensora, index: nextIndex, canal: canalKey, turnos });
+
         // Lectura pura sin efectos secundarios en GET
         res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-        res.end(JSON.stringify({ success: true, proximaDefensora, index: nextIndex, canal: canalKey, turnos }));
+        res.end(responsePayload);
     } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: err.message }));
+        if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
     }
 }
 
