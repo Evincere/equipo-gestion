@@ -2350,23 +2350,24 @@
 
             const turnos = this.currentTurnos || {};
 
+            const CANALES_ROLES = [
+                { key: 'ASESORAMIENTO_GENERAL', label: 'Asesoramiento General', cls: 'duty-asesoria', icon: 'ri-file-user-line' },
+                { key: 'CAUSA_NUEVA', label: 'Causa Nueva', cls: 'duty-causa', icon: 'ri-folder-add-line' },
+                { key: 'CONTESTACION_DEMANDA', label: 'Contestación de Demanda', cls: 'duty-contestacion', icon: 'ri-edit-2-line' },
+                { key: 'ADOPCION', label: 'Guarda / Adopción', cls: 'duty-adopcion', icon: 'ri-heart-add-line' }
+            ];
+
             let html = '';
             this.codefensorasRoster.forEach(c => {
                 if (!c.isPresente) return;
 
                 const assignedRoles = [];
-                if (turnos['Ases. General'] === c.nombre || turnos['Asesoramiento General'] === c.nombre) {
-                    assignedRoles.push({ key: 'ASESORAMIENTO_GENERAL', label: 'Asesoría General', cls: 'duty-asesoria', icon: 'ri-file-user-line' });
-                }
-                if (turnos['Causa Nueva'] === c.nombre) {
-                    assignedRoles.push({ key: 'CAUSA_NUEVA', label: 'Causa Nueva', cls: 'duty-causa', icon: 'ri-folder-add-line' });
-                }
-                if (turnos['Contestación'] === c.nombre) {
-                    assignedRoles.push({ key: 'CONTESTACION_DEMANDA', label: 'Contestación', cls: 'duty-contestacion', icon: 'ri-edit-2-line' });
-                }
-                if (turnos['Adopción / Guarda'] === c.nombre || turnos['Adopción'] === c.nombre) {
-                    assignedRoles.push({ key: 'ADOPCION', label: 'Adopción / Guarda', cls: 'duty-adopcion', icon: 'ri-heart-add-line' });
-                }
+                CANALES_ROLES.forEach(r => {
+                    const asignado = turnos[r.key] || turnos[r.label] || (r.key === 'ADOPCION' ? (turnos['Adopción / Guarda'] || turnos['Adopción'] || turnos['Guarda Judicial / Tutela / Adopción']) : null) || (r.key === 'CONTESTACION_DEMANDA' ? turnos['Contestación'] : null) || (r.key === 'ASESORAMIENTO_GENERAL' ? turnos['Ases. General'] : null);
+                    if (asignado === c.nombre) {
+                        assignedRoles.push(r);
+                    }
+                });
 
                 let chipsHtml = '';
                 if (assignedRoles.length > 0) {
@@ -2392,53 +2393,49 @@
 
             container.innerHTML = html;
 
-            let draggedCanal = null;
-            let draggedLabel = null;
+            let activeDraggedCanal = null;
+            let activeDraggedLabel = null;
             const liveRegion = this.dndLiveRegion || document.getElementById('dndLiveRegion');
 
             container.querySelectorAll('.draggable-category-chip').forEach(chip => {
                 chip.addEventListener('dragstart', (e) => {
-                    draggedCanal = chip.getAttribute('data-canal');
-                    draggedLabel = chip.getAttribute('data-label');
+                    activeDraggedCanal = chip.getAttribute('data-canal');
+                    activeDraggedLabel = chip.getAttribute('data-label');
                     e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', draggedCanal);
+                    e.dataTransfer.setData('text/plain', activeDraggedCanal);
 
                     if (liveRegion) {
-                        liveRegion.textContent = 'Seleccionada especialidad ' + draggedLabel + ' para reasignar próximo turno.';
+                        liveRegion.textContent = 'Seleccionada especialidad ' + activeDraggedLabel + ' para reasignar próximo turno.';
                     }
                 });
             });
 
             container.querySelectorAll('.kanban-defensora-card').forEach(card => {
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    card.addEventListener(eventName, (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.dataTransfer.dropEffect = 'move';
-                        e.currentTarget.classList.add('drop-target-active');
-                    });
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'move';
+                    card.classList.add('drop-target-active');
                 });
 
-                ['dragleave', 'dragend'].forEach(eventName => {
-                    card.addEventListener(eventName, (e) => {
-                        e.preventDefault();
-                        e.currentTarget.classList.remove('drop-target-active');
-                    });
+                card.addEventListener('dragleave', (e) => {
+                    if (!card.contains(e.relatedTarget)) {
+                        card.classList.remove('drop-target-active');
+                    }
                 });
 
                 card.addEventListener('drop', async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const cardEl = e.currentTarget;
-                    cardEl.classList.remove('drop-target-active');
+                    card.classList.remove('drop-target-active');
 
-                    const nombreDefensora = cardEl.getAttribute('data-nombre');
-                    const canalToAssign = draggedCanal || e.dataTransfer.getData('text/plain');
+                    const nombreDefensora = card.getAttribute('data-nombre');
+                    const canalToAssign = activeDraggedCanal || e.dataTransfer.getData('text/plain');
 
                     if (!canalToAssign || !nombreDefensora) return;
 
                     if (liveRegion) {
-                        liveRegion.textContent = 'Asignando próximo turno de ' + (draggedLabel || canalToAssign) + ' a Dra. ' + nombreDefensora + '.';
+                        liveRegion.textContent = 'Asignando próximo turno de ' + (activeDraggedLabel || canalToAssign) + ' a Dra. ' + nombreDefensora + '.';
                     }
 
                     try {
@@ -2453,8 +2450,8 @@
                         });
                     } catch(err) {}
 
-                    this.renderPresenceRoster();
                     await this.calculateProximoTurno();
+                    this.renderPresenceRoster();
                 });
             });
         }
@@ -2494,8 +2491,6 @@
                 });
             }
 
-            const turnos = this.currentTurnos || {};
-
             let mePresentes = this.codefensorasRoster.filter(c => c.isPresente);
 
             if (this.canalOrders && this.canalOrders[selectedCanal]) {
@@ -2514,36 +2509,12 @@
                 const isPresent = !!c.isPresente;
                 const dotClass = isPresent ? 'is-present' : '';
 
-                const roles = [];
-                if (turnos['Ases. General'] === c.nombre || turnos['Asesoramiento General'] === c.nombre) {
-                    roles.push({ cls: 'duty-asesoria', label: 'Ases. Gen.' });
-                }
-                if (turnos['Causa Nueva'] === c.nombre) {
-                    roles.push({ cls: 'duty-causa', label: 'Causa Nva.' });
-                }
-                if (turnos['Contestación'] === c.nombre) {
-                    roles.push({ cls: 'duty-contestacion', label: 'Contestación' });
-                }
-                if (turnos['Adopción / Guarda'] === c.nombre || turnos['Adopción'] === c.nombre) {
-                    roles.push({ cls: 'duty-adopcion', label: 'Adopción' });
-                }
-
-                const dutyChipHtml = roles.map(r => '<span class="duty-chip ' + r.cls + '">' + r.label + '</span>').join('');
-
-                const isFirst = index === 0;
-                const isLast = index === mePresentes.length - 1;
-
                 html += '<div class="dnd-item" draggable="true" data-index="' + index + '" data-nombre="' + c.nombre + '">' +
                     '<div class="dnd-item-content">' +
                         '<span class="dnd-handle" title="Arrastrar para reordenar"><i class="ri-draggable"></i></span>' +
                         '<span class="priority-badge">' + (index + 1) + '°</span>' +
                         '<span class="presence-dot ' + dotClass + '"></span>' +
                         '<span style="font-weight: 600; font-size: 0.88rem; color: #FFF;">Dra. ' + c.nombre + '</span>' +
-                        '<div class="dnd-duty-chips">' + dutyChipHtml + '</div>' +
-                    '</div>' +
-                    '<div class="dnd-actions">' +
-                        '<button class="btn-move-arrow btn-move-up" title="Subir prioridad" ' + (isFirst ? 'disabled' : '') + '><i class="ri-arrow-up-s-line"></i></button>' +
-                        '<button class="btn-move-arrow btn-move-down" title="Bajar prioridad" ' + (isLast ? 'disabled' : '') + '><i class="ri-arrow-down-s-line"></i></button>' +
                     '</div>' +
                 '</div>';
             });
@@ -2580,29 +2551,6 @@
                 await this.calculateProximoTurno();
             };
 
-            container.querySelectorAll('.dnd-item').forEach(item => {
-                const index = parseInt(item.getAttribute('data-index'), 10);
-
-                const btnUp = item.querySelector('.btn-move-up');
-                if (btnUp) {
-                    btnUp.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        if (index > 0) {
-                            await reorderCanalList(index, index - 1);
-                        }
-                    });
-                }
-
-                const btnDown = item.querySelector('.btn-move-down');
-                if (btnDown) {
-                    btnDown.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        if (index < mePresentes.length - 1) {
-                            await reorderCanalList(index, index + 1);
-                        }
-                    });
-                }
-            });
 
             let draggedItem = null;
             let draggedIndex = -1;

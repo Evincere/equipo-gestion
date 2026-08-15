@@ -1537,7 +1537,7 @@ function handlePostAsignarProximoTurno(req, res) {
 
             const newLastIndex = (targetIdx - 1 + presentes.length) % presentes.length;
 
-            db.prepare('INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)')
+            db.prepare('INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES (?, ?)')
                 .run(mappedCanal, newLastIndex);
 
             logAudit(0, operatorName || 'OPERADOR', 'ASIGNACION_DIRECTA_TURNO', `Próximo turno de ${mappedCanal} asignado a Dra. ${nombreDefensora}`);
@@ -1591,10 +1591,10 @@ function handleGetProximoTurno(req, res, parsedUrl) {
         const proximaDefensora = presentes[nextIndex].nombre;
 
         const canalesList = [
-            { key: 'ASESORAMIENTO_GENERAL', label: 'Ases. General' },
-            { key: 'CAUSA_NUEVA', label: 'Causa Nueva' },
-            { key: 'CONTESTACION_DEMANDA', label: 'Contestación' },
-            { key: 'ADOPCION', label: 'Adopción / Guarda' }
+            { key: 'ASESORAMIENTO_GENERAL', label: 'Asesoramiento General', short: 'Ases. General' },
+            { key: 'CAUSA_NUEVA', label: 'Causa Nueva', short: 'Causa Nueva' },
+            { key: 'CONTESTACION_DEMANDA', label: 'Contestación de Demanda', short: 'Contestación' },
+            { key: 'ADOPCION', label: 'Guarda Judicial / Tutela / Adopción', short: 'Adopción / Guarda' }
         ];
 
         const turnos = {};
@@ -1604,7 +1604,13 @@ function handleGetProximoTurno(req, res, parsedUrl) {
                 const st = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(c.key);
                 let idx = st ? st.last_index : -1;
                 const nxt = (idx + 1) % presCanal.length;
-                turnos[c.label] = presCanal[nxt].nombre;
+                const nom = presCanal[nxt].nombre;
+                turnos[c.key] = nom;
+                turnos[c.label] = nom;
+                turnos[c.short] = nom;
+                if (c.key === 'ADOPCION') {
+                    turnos['Adopción'] = nom;
+                }
             }
         });
 
