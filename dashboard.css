@@ -744,20 +744,70 @@ body {
 .draggable-category-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.35rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.76rem;
+    gap: 0.45rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
     font-weight: 700;
     cursor: grab;
     user-select: none;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    margin: 0.15rem 0;
 }
 
-.draggable-category-chip:active {
+.draggable-category-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.draggable-category-chip:active,
+.draggable-category-chip.is-dragging {
     cursor: grabbing;
-    transform: scale(1.04);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    opacity: 0.85;
+}
+
+/* Colores temáticos por especialidad */
+.draggable-category-chip.duty-asesoria {
+    background: rgba(236, 72, 153, 0.18);
+    color: #F472B6;
+    border: 1px solid rgba(236, 72, 153, 0.4);
+}
+.draggable-category-chip.duty-asesoria:hover {
+    background: rgba(236, 72, 153, 0.28);
+    border-color: #F472B6;
+}
+
+.draggable-category-chip.duty-causa {
+    background: rgba(14, 165, 233, 0.18);
+    color: #38BDF8;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+}
+.draggable-category-chip.duty-causa:hover {
+    background: rgba(14, 165, 233, 0.28);
+    border-color: #38BDF8;
+}
+
+.draggable-category-chip.duty-contestacion {
+    background: rgba(245, 158, 11, 0.18);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.draggable-category-chip.duty-contestacion:hover {
+    background: rgba(245, 158, 11, 0.28);
+    border-color: #FBBF24;
+}
+
+.draggable-category-chip.duty-adopcion {
+    background: rgba(139, 92, 246, 0.18);
+    color: #A78BFA;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+}
+.draggable-category-chip.duty-adopcion:hover {
+    background: rgba(139, 92, 246, 0.28);
+    border-color: #A78BFA;
 }
 
 /* Línea de inserción brillante */
