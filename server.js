@@ -1473,15 +1473,62 @@ function handlePostReordenarCanalCodefensora(req, res) {
                 return;
             }
 
+            const canalMap = {
+                'Asesoramiento General': 'ASESORAMIENTO_GENERAL',
+                'Causa Nueva': 'CAUSA_NUEVA',
+                'Contestación de Demanda': 'CONTESTACION_DEMANDA',
+                'Guarda Judicial / Tutela / Adopción': 'ADOPCION',
+                'Adopción': 'ADOPCION',
+                'ADOPCION': 'ADOPCION',
+                'ASESORAMIENTO_GENERAL': 'ASESORAMIENTO_GENERAL',
+                'CAUSA_NUEVA': 'CAUSA_NUEVA',
+                'CONTESTACION_DEMANDA': 'CONTESTACION_DEMANDA'
+            };
+            const mappedCanal = canalMap[canalKey] || canalKey;
+
+            // 1. Averiguar quién era la defensora próxima asignada antes del reorden
+            const oldRotState = db.prepare('SELECT last_index FROM rotacion_turnos_canales WHERE canal = ?').get(mappedCanal);
+            const oldPresentes = db.prepare(`
+                SELECT c.nombre, c.is_presente, COALESCE(o.orden, c.orden) as orden
+                FROM codefensoras_estado c
+                LEFT JOIN orden_rotacion_canales o ON o.canal = ? AND o.nombre = c.nombre
+                WHERE c.is_presente = 1
+                ORDER BY orden ASC, c.id ASC
+            `).all(mappedCanal);
+
+            let currentProxima = null;
+            if (oldPresentes.length > 0) {
+                let oldLast = oldRotState ? oldRotState.last_index : -1;
+                let oldNxt = (oldLast + 1) % oldPresentes.length;
+                currentProxima = oldPresentes[oldNxt].nombre;
+            }
+
             db.exec('BEGIN TRANSACTION');
             const stmt = db.prepare('INSERT OR REPLACE INTO orden_rotacion_canales (canal, nombre, orden) VALUES (?, ?, ?)');
             ordenNombres.forEach((nombre, idx) => {
-                stmt.run(canalKey, nombre, idx + 1);
+                stmt.run(mappedCanal, nombre, idx + 1);
             });
+
+            // 2. Si existía una defensora próxima, recalcular su last_index para que siga siendo Próxima en el nuevo orden
+            if (currentProxima) {
+                const newPresentes = db.prepare(`
+                    SELECT c.nombre, c.is_presente, COALESCE(o.orden, c.orden) as orden
+                    FROM codefensoras_estado c
+                    LEFT JOIN orden_rotacion_canales o ON o.canal = ? AND o.nombre = c.nombre
+                    WHERE c.is_presente = 1
+                    ORDER BY orden ASC, c.id ASC
+                `).all(mappedCanal);
+                const targetIdx = newPresentes.findIndex(p => p.nombre === currentProxima);
+                if (targetIdx !== -1) {
+                    const newLastIndex = (targetIdx - 1 + newPresentes.length) % newPresentes.length;
+                    db.prepare('INSERT OR REPLACE INTO rotacion_turnos_canales (canal, last_index) VALUES (?, ?)')
+                        .run(mappedCanal, newLastIndex);
+                }
+            }
             db.exec('COMMIT');
 
-            logAudit(0, operatorName || 'OPERADOR', 'REORDEN_CANAL_PRESENTISMO', `Nuevo orden para canal ${canalKey}: ${ordenNombres.join(', ')}`);
-            broadcast('PRESENCE_UPDATED', { reorderedCanal: canalKey, ordenNombres });
+            logAudit(0, operatorName || 'OPERADOR', 'REORDEN_CANAL_PRESENTISMO', `Nuevo orden para canal ${mappedCanal}: ${ordenNombres.join(', ')}`);
+            broadcast('PRESENCE_UPDATED', { reorderedCanal: mappedCanal, ordenNombres });
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true }));

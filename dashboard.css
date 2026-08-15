@@ -620,16 +620,89 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 0.6rem 0.85rem;
-    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    transition: all 0.2s ease;
     user-select: none;
     position: relative;
 }
 
 .dnd-item.is-dragging {
-    opacity: 0.4;
+    opacity: 0.35;
     border-style: dashed;
     border-color: #38BDF8;
-    background: rgba(14, 165, 233, 0.1);
+    background: rgba(14, 165, 233, 0.08);
+}
+
+/* Resalte sutil de la Defensora Próxima en la secuencia rotativa */
+.dnd-item.is-proxima {
+    border-width: 1.5px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.dnd-item.is-proxima.duty-asesoria {
+    border-color: rgba(236, 72, 153, 0.6);
+    background: linear-gradient(90deg, rgba(236, 72, 153, 0.12) 0%, rgba(30, 41, 59, 0.85) 100%);
+}
+
+.dnd-item.is-proxima.duty-causa {
+    border-color: rgba(14, 165, 233, 0.6);
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.12) 0%, rgba(30, 41, 59, 0.85) 100%);
+}
+
+.dnd-item.is-proxima.duty-contestacion {
+    border-color: rgba(245, 158, 11, 0.6);
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 41, 59, 0.85) 100%);
+}
+
+.dnd-item.is-proxima.duty-adopcion {
+    border-color: rgba(139, 92, 246, 0.6);
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.12) 0%, rgba(30, 41, 59, 0.85) 100%);
+}
+
+.proxima-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    margin-left: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    animation: pulseBadgeGlow 2.5s infinite ease-in-out;
+}
+
+.proxima-badge.duty-asesoria {
+    background: rgba(236, 72, 153, 0.22);
+    color: #F472B6;
+    border: 1px solid rgba(236, 72, 153, 0.6);
+}
+
+.proxima-badge.duty-causa {
+    background: rgba(14, 165, 233, 0.22);
+    color: #38BDF8;
+    border: 1px solid rgba(14, 165, 233, 0.6);
+}
+
+.proxima-badge.duty-contestacion {
+    background: rgba(245, 158, 11, 0.22);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.6);
+}
+
+.proxima-badge.duty-adopcion {
+    background: rgba(139, 92, 246, 0.22);
+    color: #A78BFA;
+    border: 1px solid rgba(139, 92, 246, 0.6);
+}
+
+@keyframes pulseBadgeGlow {
+    0%, 100% {
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.08);
+    }
+    50% {
+        box-shadow: 0 0 14px rgba(255, 255, 255, 0.22);
+    }
 }
 
 .dnd-handle {

@@ -2504,17 +2504,33 @@
                 });
             }
 
+            const turnos = this.currentTurnos || {};
+
+            const dutyClassMap = {
+                'ASESORAMIENTO_GENERAL': 'asesoria',
+                'CAUSA_NUEVA': 'causa',
+                'CONTESTACION_DEMANDA': 'contestacion',
+                'ADOPCION': 'adopcion'
+            };
+            const currentDutyCls = dutyClassMap[selectedCanal] || 'causa';
+
+            const proximaDefensora = turnos[selectedCanal] || (selectedCanal === 'ASESORAMIENTO_GENERAL' ? turnos['Asesoramiento General'] : (selectedCanal === 'CAUSA_NUEVA' ? turnos['Causa Nueva'] : (selectedCanal === 'CONTESTACION_DEMANDA' ? (turnos['Contestación de Demanda'] || turnos['Contestación']) : (turnos['Guarda Judicial / Tutela / Adopción'] || turnos['Adopción / Guarda'] || turnos['Adopción']))));
+
             let html = '';
             mePresentes.forEach((c, index) => {
                 const isPresent = !!c.isPresente;
                 const dotClass = isPresent ? 'is-present' : '';
+                const isProxima = (c.nombre === proximaDefensora);
+                const proximaItemClass = isProxima ? (' is-proxima duty-' + currentDutyCls) : '';
+                const proximaBadgeHtml = isProxima ? ('<span class="proxima-badge duty-' + currentDutyCls + '"><i class="ri-checkbox-circle-fill"></i> PRÓXIMA</span>') : '';
 
-                html += '<div class="dnd-item" draggable="true" data-index="' + index + '" data-nombre="' + c.nombre + '">' +
+                html += '<div class="dnd-item' + proximaItemClass + '" draggable="true" data-index="' + index + '" data-nombre="' + c.nombre + '">' +
                     '<div class="dnd-item-content">' +
                         '<span class="dnd-handle" title="Arrastrar para reordenar"><i class="ri-draggable"></i></span>' +
                         '<span class="priority-badge">' + (index + 1) + '°</span>' +
                         '<span class="presence-dot ' + dotClass + '"></span>' +
                         '<span style="font-weight: 600; font-size: 0.88rem; color: #FFF;">Dra. ' + c.nombre + '</span>' +
+                        proximaBadgeHtml +
                     '</div>' +
                 '</div>';
             });
