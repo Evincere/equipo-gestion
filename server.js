@@ -1439,13 +1439,12 @@ function handlePostReordenarCodefensora(req, res) {
         try {
             const data = JSON.parse(body);
             if (Array.isArray(data.ordenNombres)) {
+                db.exec('BEGIN TRANSACTION');
                 const stmt = db.prepare('UPDATE codefensoras_estado SET orden = ? WHERE nombre = ?');
-                const updateMany = db.transaction((list) => {
-                    list.forEach((nombre, idx) => {
-                        stmt.run(idx + 1, nombre);
-                    });
+                data.ordenNombres.forEach((nombre, idx) => {
+                    stmt.run(idx + 1, nombre);
                 });
-                updateMany(data.ordenNombres);
+                db.exec('COMMIT');
 
                 logAudit(0, data.operatorName || 'OPERADOR', 'REORDEN_PRESENTISMO', `Nuevo orden de turnos establecido: ${data.ordenNombres.join(', ')}`);
                 broadcast('PRESENCE_UPDATED', { reordered: true, ordenNombres: data.ordenNombres });
@@ -1453,6 +1452,7 @@ function handlePostReordenarCodefensora(req, res) {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true }));
         } catch (err) {
+            try { db.exec('ROLLBACK'); } catch(e) {}
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: err.message }));
         }
@@ -1473,13 +1473,12 @@ function handlePostReordenarCanalCodefensora(req, res) {
                 return;
             }
 
+            db.exec('BEGIN TRANSACTION');
             const stmt = db.prepare('INSERT OR REPLACE INTO orden_rotacion_canales (canal, nombre, orden) VALUES (?, ?, ?)');
-            const updateMany = db.transaction((list) => {
-                list.forEach((nombre, idx) => {
-                    stmt.run(canalKey, nombre, idx + 1);
-                });
+            ordenNombres.forEach((nombre, idx) => {
+                stmt.run(canalKey, nombre, idx + 1);
             });
-            updateMany(ordenNombres);
+            db.exec('COMMIT');
 
             logAudit(0, operatorName || 'OPERADOR', 'REORDEN_CANAL_PRESENTISMO', `Nuevo orden para canal ${canalKey}: ${ordenNombres.join(', ')}`);
             broadcast('PRESENCE_UPDATED', { reorderedCanal: canalKey, ordenNombres });
@@ -1487,6 +1486,7 @@ function handlePostReordenarCanalCodefensora(req, res) {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
             res.end(JSON.stringify({ success: true }));
         } catch (err) {
+            try { db.exec('ROLLBACK'); } catch(e) {}
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: err.message }));
         }

@@ -2553,81 +2553,103 @@
 
 
             let draggedItem = null;
-            let draggedIndex = -1;
+            let draggedNombre = null;
             const liveRegion = this.dndLiveRegion || document.getElementById('dndLiveRegion');
+
+            const placeholder = document.createElement('div');
+            placeholder.className = 'dnd-placeholder-slot';
+            placeholder.innerHTML = '<i class="ri-drag-drop-line"></i><span>Soltar aquí para posicionar</span>';
+
+            const getDragAfterElement = (containerEl, y) => {
+                const draggableElements = [...containerEl.querySelectorAll('.dnd-item:not(.is-dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            };
 
             container.querySelectorAll('.dnd-item').forEach(item => {
                 item.addEventListener('dragstart', (e) => {
                     draggedItem = item;
-                    draggedIndex = parseInt(item.getAttribute('data-index'), 10);
+                    draggedNombre = item.getAttribute('data-nombre');
+                    const draggedIndex = parseInt(item.getAttribute('data-index'), 10);
                     item.classList.add('is-dragging');
                     e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', item.getAttribute('data-nombre'));
+                    e.dataTransfer.setData('text/plain', draggedNombre);
 
                     if (liveRegion) {
-                        liveRegion.textContent = 'Se ha seleccionado a Dra. ' + item.getAttribute('data-nombre') + '. Posición actual ' + (draggedIndex + 1) + ' de ' + mePresentes.length + '.';
+                        liveRegion.textContent = 'Se ha seleccionado a Dra. ' + draggedNombre + '. Posición actual ' + (draggedIndex + 1) + ' de ' + mePresentes.length + '.';
                     }
-                });
-
-                item.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-
-                    if (item === draggedItem) return;
-
-                    container.querySelectorAll('.dnd-item').forEach(el => {
-                        if (el !== item) {
-                            el.classList.remove('drop-target-above', 'drop-target-below');
-                        }
-                    });
-
-                    const rect = item.getBoundingClientRect();
-                    const midpoint = rect.top + rect.height / 2;
-                    if (e.clientY < midpoint) {
-                        item.classList.add('drop-target-above');
-                        item.classList.remove('drop-target-below');
-                    } else {
-                        item.classList.add('drop-target-below');
-                        item.classList.remove('drop-target-above');
-                    }
-                });
-
-                item.addEventListener('dragleave', (e) => {
-                    if (!item.contains(e.relatedTarget)) {
-                        item.classList.remove('drop-target-above', 'drop-target-below');
-                    }
-                });
-
-                item.addEventListener('drop', async (e) => {
-                    e.preventDefault();
-                    container.querySelectorAll('.dnd-item').forEach(el => {
-                        el.classList.remove('drop-target-above', 'drop-target-below');
-                    });
-
-                    if (!draggedItem || draggedItem === item) return;
-
-                    const fromIndex = parseInt(draggedItem.getAttribute('data-index'), 10);
-                    let toIndex = parseInt(item.getAttribute('data-index'), 10);
-
-                    const rect = item.getBoundingClientRect();
-                    const midpoint = rect.top + rect.height / 2;
-                    if (e.clientY >= midpoint && fromIndex < toIndex) {
-                        // Dragging down and dropping on lower half -> toIndex
-                    } else if (e.clientY >= midpoint && fromIndex > toIndex) {
-                        toIndex = toIndex + 1;
-                    } else if (e.clientY < midpoint && fromIndex < toIndex) {
-                        toIndex = Math.max(0, toIndex - 1);
-                    }
-
-                    await reorderCanalList(fromIndex, toIndex);
                 });
 
                 item.addEventListener('dragend', () => {
                     if (draggedItem) draggedItem.classList.remove('is-dragging');
-                    container.querySelectorAll('.dnd-item').forEach(el => {
-                        el.classList.remove('drop-target-above', 'drop-target-below');
-                    });
+                    if (placeholder.parentNode) {
+                        placeholder.parentNode.removeChild(placeholder);
+                    }
+                    draggedItem = null;
+                    draggedNombre = null;
                 });
+            });
+
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (!draggedItem) return;
+
+                const afterElement = getDragAfterElement(container, e.clientY);
+                if (afterElement == null) {
+                    container.appendChild(placeholder);
+                } else {
+                    container.insertBefore(placeholder, afterElement);
+                }
+            });
+
+            container.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                if (!draggedItem || !placeholder.parentNode) return;
+
+                const children = [...container.children];
+                const placeholderIdx = children.indexOf(placeholder);
+
+                const currentList = mePresentes.map(c => c.nombre).filter(n => n !== draggedNombre);
+                const originalIdx = mePresentes.findIndex(c => c.nombre === draggedNombre);
+
+                let targetIndex = placeholderIdx;
+                if (originalIdx !== -1 && originalIdx < placeholderIdx) {
+                    targetIndex = placeholderIdx - 1;
+                }
+                if (targetIndex < 0) targetIndex = 0;
+                if (targetIndex > currentList.length) targetIndex = currentList.length;
+
+                currentList.splice(targetIndex, 0, draggedNombre);
+
+                if (placeholder.parentNode) {
+                    placeholder.parentNode.removeChild(placeholder);
+                }
+
+                this.canalOrders = this.canalOrders || {};
+                this.canalOrders[selectedCanal] = currentList;
+
+                try {
+                    await fetch(getApiUrl('/api/familia/codefensoras/reordenar-canal'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            canalKey: selectedCanal,
+                            ordenNombres: currentList,
+                            operatorName: this.currentUser ? this.currentUser.nombreCompleto : 'OPERADOR'
+                        })
+                    });
+                } catch(err) {}
+
+                this.renderPresenceRoster();
+                await this.calculateProximoTurno();
             });
         }
 

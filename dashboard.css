@@ -810,68 +810,33 @@ body {
     border-color: #A78BFA;
 }
 
-/* Hueco y ranura de inserción interactiva al reordenar */
-.dnd-item {
-    transition: margin 0.22s cubic-bezier(0.2, 0, 0, 1), transform 0.22s cubic-bezier(0.2, 0, 0, 1), background 0.18s ease, border-color 0.18s ease;
-}
-
-.dnd-item.drop-target-above {
-    margin-top: 50px !important;
-}
-
-.dnd-item.drop-target-above::before {
-    content: '⇣ Soltar aquí para posicionar';
-    position: absolute;
-    top: -44px;
-    left: 0;
-    right: 0;
-    height: 36px;
+/* Ranura / Placeholder físico para reordenamiento fluido */
+.dnd-placeholder-slot {
+    height: 46px;
+    margin: 0.4rem 0;
+    border-radius: 8px;
+    border: 2px dashed #0EA5E9;
+    background: rgba(14, 165, 233, 0.08);
+    box-shadow: 0 0 16px rgba(14, 165, 233, 0.15) inset;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.76rem;
-    font-weight: 700;
+    gap: 0.5rem;
     color: #38BDF8;
-    background: rgba(14, 165, 233, 0.1);
-    border: 2px dashed rgba(56, 189, 248, 0.7);
-    border-radius: 8px;
-    box-shadow: 0 0 14px rgba(14, 165, 233, 0.18) inset;
-    pointer-events: none;
-    animation: pulseDropSlot 1.2s infinite ease-in-out;
-}
-
-.dnd-item.drop-target-below {
-    margin-bottom: 50px !important;
-}
-
-.dnd-item.drop-target-below::after {
-    content: '⇣ Soltar aquí para posicionar';
-    position: absolute;
-    bottom: -44px;
-    left: 0;
-    right: 0;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     font-weight: 700;
-    color: #38BDF8;
-    background: rgba(14, 165, 233, 0.1);
-    border: 2px dashed rgba(56, 189, 248, 0.7);
-    border-radius: 8px;
-    box-shadow: 0 0 14px rgba(14, 165, 233, 0.18) inset;
-    pointer-events: none;
     animation: pulseDropSlot 1.2s infinite ease-in-out;
+    pointer-events: none;
+    transition: all 0.18s ease;
 }
 
 @keyframes pulseDropSlot {
     0%, 100% {
-        background: rgba(14, 165, 233, 0.08);
+        background: rgba(14, 165, 233, 0.07);
         border-color: rgba(56, 189, 248, 0.6);
     }
     50% {
-        background: rgba(14, 165, 233, 0.18);
+        background: rgba(14, 165, 233, 0.16);
         border-color: #38BDF8;
     }
 }
