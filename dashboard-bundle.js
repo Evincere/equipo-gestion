@@ -2573,27 +2573,53 @@
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
 
+                    if (item === draggedItem) return;
+
                     container.querySelectorAll('.dnd-item').forEach(el => {
-                        el.classList.remove('drop-target-above', 'drop-target-below');
+                        if (el !== item) {
+                            el.classList.remove('drop-target-above', 'drop-target-below');
+                        }
                     });
 
                     const rect = item.getBoundingClientRect();
                     const midpoint = rect.top + rect.height / 2;
                     if (e.clientY < midpoint) {
                         item.classList.add('drop-target-above');
+                        item.classList.remove('drop-target-below');
                     } else {
                         item.classList.add('drop-target-below');
+                        item.classList.remove('drop-target-above');
+                    }
+                });
+
+                item.addEventListener('dragleave', (e) => {
+                    if (!item.contains(e.relatedTarget)) {
+                        item.classList.remove('drop-target-above', 'drop-target-below');
                     }
                 });
 
                 item.addEventListener('drop', async (e) => {
                     e.preventDefault();
-                    item.classList.remove('drop-target-above', 'drop-target-below');
+                    container.querySelectorAll('.dnd-item').forEach(el => {
+                        el.classList.remove('drop-target-above', 'drop-target-below');
+                    });
 
                     if (!draggedItem || draggedItem === item) return;
 
-                    const targetIndex = parseInt(item.getAttribute('data-index'), 10);
-                    await reorderCanalList(draggedIndex, targetIndex);
+                    const fromIndex = parseInt(draggedItem.getAttribute('data-index'), 10);
+                    let toIndex = parseInt(item.getAttribute('data-index'), 10);
+
+                    const rect = item.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    if (e.clientY >= midpoint && fromIndex < toIndex) {
+                        // Dragging down and dropping on lower half -> toIndex
+                    } else if (e.clientY >= midpoint && fromIndex > toIndex) {
+                        toIndex = toIndex + 1;
+                    } else if (e.clientY < midpoint && fromIndex < toIndex) {
+                        toIndex = Math.max(0, toIndex - 1);
+                    }
+
+                    await reorderCanalList(fromIndex, toIndex);
                 });
 
                 item.addEventListener('dragend', () => {
