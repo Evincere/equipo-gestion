@@ -33,7 +33,16 @@ db.exec(`
         atendido_por TEXT,
         derivado_a TEXT,
         escritos TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        tarea_pendiente INTEGER DEFAULT 0,
+        detalle_pendiente TEXT,
+        tarea_cumplida_at DATETIME,
+        modo_derivacion_familia TEXT,
+        codefensora_asignada TEXT,
+        fecha_vencimiento_contestacion TEXT,
+        detalle_reparticion TEXT,
+        plantilla_codigo TEXT,
+        escritos_data TEXT
     );
 
     CREATE TABLE IF NOT EXISTS codefensoras_estado (
@@ -690,7 +699,12 @@ const server = http.createServer((req, res) => {
     }
 
     // Servidor Estático
-    let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'dashboard.html' : pathname);
+    let decodedPathname = pathname;
+    try {
+        decodedPathname = decodeURIComponent(pathname);
+    } catch (e) {}
+
+    let filePath = path.join(PUBLIC_DIR, decodedPathname === '/' ? 'dashboard.html' : decodedPathname);
     filePath = path.normalize(filePath);
 
     if (!filePath.startsWith(PUBLIC_DIR)) {
@@ -973,7 +987,7 @@ function handlePostAtencion(req, res) {
             broadcast('RECORD_CREATED', { record: newRecord, operator: atendidoPorFinal });
 
             res.writeHead(201, { 'Content-Type': 'application/json; charset=UTF-8' });
-            res.end(JSON.stringify({ success: true, id: result.lastInsertRowid }));
+            res.end(JSON.stringify({ success: true, id: Number(result.lastInsertRowid) }));
         } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: err.message }));

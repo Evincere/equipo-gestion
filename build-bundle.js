@@ -4359,20 +4359,22 @@ const bundleContent = `/* ======================================================
                 const elReparticionInput = document.getElementById('newReparticionDetalle');
                 const detalleReparticionVal = elResultadoVal === 'Derivado a otra repartición' && elReparticionInput ? elReparticionInput.value.trim() : '';
 
+                const getFormVal = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+
                 const formData = {
                     id: this.editingRecordId || undefined,
-                    fecha: document.getElementById('newFecha').value,
-                    actividad: document.getElementById('newActividad').value,
-                    dni: document.getElementById('newDni').value,
-                    apellidos: document.getElementById('newApellidos').value,
-                    nombres: document.getElementById('newNombres').value,
-                    celular: document.getElementById('newCelular').value,
-                    expte: document.getElementById('newExpte').value,
+                    fecha: getFormVal('newFecha'),
+                    actividad: getFormVal('newActividad'),
+                    dni: getFormVal('newDni'),
+                    apellidos: getFormVal('newApellidos'),
+                    nombres: getFormVal('newNombres'),
+                    celular: getFormVal('newCelular'),
+                    expte: getFormVal('newExpte'),
                     motivo: motivoFinal,
-                    defensoria: document.getElementById('newDefensoria').value,
+                    defensoria: getFormVal('newDefensoria'),
                     resultado: elResultadoVal,
-                    observaciones: document.getElementById('newObservaciones').value,
-                    atendidoPor: document.getElementById('newAtendidoPor').value,
+                    observaciones: getFormVal('newObservaciones'),
+                    atendidoPor: getFormVal('newAtendidoPor'),
                     tareaPendiente: isTaskPending,
                     detallePendiente: taskDetail,
                     modoDerivacionFamilia: modoFamilia,
