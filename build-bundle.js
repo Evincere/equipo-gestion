@@ -551,8 +551,8 @@ const bundleContent = `/* ======================================================
                     const dniRaw = item.dni ? item.dni.raw : '';
                     const apellidos = norm(item.apellidos);
                     const nombres = norm(item.nombres);
-                    const fullName1 = `${apellidos} ${nombres}`;
-                    const fullName2 = `${nombres} ${apellidos}`;
+                    const fullName1 = apellidos + ' ' + nombres;
+                    const fullName2 = nombres + ' ' + apellidos;
                     const expte = norm(item.expte);
                     const motivo = norm(item.motivo);
                     const defensoriaName = item.defensoriaCategory ? norm(item.defensoriaCategory.name) : '';
@@ -562,7 +562,7 @@ const bundleContent = `/* ======================================================
                     const atendido = norm(item.atendidoPor);
                     const codef = norm(item.codefensoraAsignada);
 
-                    const searchBlob = `${idStr} ${dniClean} ${dniRaw} ${fullName1} ${fullName2} ${expte} ${motivo} ${defensoriaName} ${resName} ${obs} ${detPend} ${atendido} ${codef}`;
+                    const searchBlob = [idStr, dniClean, dniRaw, fullName1, fullName2, expte, motivo, defensoriaName, resName, obs, detPend, atendido, codef].join(' ');
                     const searchBlobClean = searchBlob.replace(/[^a-z0-9]/g, '');
 
                     matchesQuery = (qClean.length > 0 && searchBlobClean.includes(qClean)) ||
