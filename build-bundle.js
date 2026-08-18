@@ -890,6 +890,7 @@ const bundleContent = `/* ======================================================
             this.detailModalBody = document.getElementById('detailModalBody');
             this.btnCloseDetailModal = document.getElementById('btnCloseDetailModal');
             this.newRecordModal = document.getElementById('newRecordModal');
+            this.newRecordForm = document.getElementById('newRecordForm');
             this.btnNewRecord = document.getElementById('btnNewRecord');
             this.btnNavNuevaAtencion = document.getElementById('btnNavNuevaAtencion');
             this.btnCloseNewModal = document.getElementById('btnCloseNewModal');
