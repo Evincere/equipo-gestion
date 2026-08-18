@@ -538,18 +538,38 @@ const bundleContent = `/* ======================================================
 
     class SearchAttendancesUseCase {
         execute(attendances, { query = '', defensoria = '', resultado = '', soloTecnica = false, tecnicaCategory = null }) {
-            const q = query.toLowerCase().trim();
-            const qCleanDni = q.split('.').join('');
-            const filtered = attendances.filter(item => {
-                const matchesQuery = !q ||
-                    item.dni.clean.includes(qCleanDni) ||
-                    item.apellidos.toLowerCase().includes(q) ||
-                    item.nombres.toLowerCase().includes(q) ||
-                    item.expte.toLowerCase().includes(q) ||
-                    item.observaciones.toLowerCase().includes(q) ||
-                    (item.detallePendiente && item.detallePendiente.toLowerCase().includes(q));
+            const norm = (str) => String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const qRaw = norm(query).trim();
+            const qClean = qRaw.replace(/[^a-z0-9]/g, '');
+            const qWords = qRaw.split(/\s+/).filter(Boolean);
 
-                const matchesDefensoria = !defensoria || item.defensoriaCategory.name === defensoria;
+            const filtered = attendances.filter(item => {
+                let matchesQuery = true;
+                if (qRaw) {
+                    const idStr = String(item.id || '');
+                    const dniClean = item.dni ? item.dni.clean : '';
+                    const dniRaw = item.dni ? item.dni.raw : '';
+                    const apellidos = norm(item.apellidos);
+                    const nombres = norm(item.nombres);
+                    const fullName1 = `${apellidos} ${nombres}`;
+                    const fullName2 = `${nombres} ${apellidos}`;
+                    const expte = norm(item.expte);
+                    const motivo = norm(item.motivo);
+                    const defensoriaName = item.defensoriaCategory ? norm(item.defensoriaCategory.name) : '';
+                    const resName = norm(item.resultado);
+                    const obs = norm(item.observaciones);
+                    const detPend = norm(item.detallePendiente);
+                    const atendido = norm(item.atendidoPor);
+                    const codef = norm(item.codefensoraAsignada);
+
+                    const searchBlob = `${idStr} ${dniClean} ${dniRaw} ${fullName1} ${fullName2} ${expte} ${motivo} ${defensoriaName} ${resName} ${obs} ${detPend} ${atendido} ${codef}`;
+                    const searchBlobClean = searchBlob.replace(/[^a-z0-9]/g, '');
+
+                    matchesQuery = (qClean.length > 0 && searchBlobClean.includes(qClean)) ||
+                                   qWords.every(word => searchBlob.includes(word));
+                }
+
+                const matchesDefensoria = !defensoria || (item.defensoriaCategory && item.defensoriaCategory.name === defensoria);
                 
                 let matchesResultado = true;
                 if (resultado === 'PENDIENTE') {
@@ -570,13 +590,8 @@ const bundleContent = `/* ======================================================
                 return matchesQuery && matchesDefensoria && matchesResultado && matchesTecnica;
             });
 
-            // Ordenar por fecha (descendente) y luego por ID
-            filtered.sort((a, b) => {
-                const dateB = parseDate(b.fecha);
-                const dateA = parseDate(a.fecha);
-                if (dateB !== dateA) return dateB - dateA;
-                return b.id - a.id;
-            });
+            // Ordenar por ID descendente (el más reciente siempre primero)
+            filtered.sort((a, b) => b.id - a.id);
             
             return filtered.map(entity => AttendanceDTO.fromEntity(entity));
         }
