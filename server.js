@@ -787,7 +787,7 @@ function handleGetCiudadanoHistorial(req, res, parsedUrl) {
             return;
         }
 
-        const stmt = db.prepare('SELECT * FROM atenciones WHERE dni LIKE ? OR REPLACE(dni, ".", "") = ? ORDER BY id DESC');
+        const stmt = db.prepare("SELECT * FROM atenciones WHERE dni LIKE ? OR REPLACE(COALESCE(dni, ''), '.', '') = ? ORDER BY id DESC");
         const rows = stmt.all(`%${cleanDni}%`, cleanDni);
 
         if (rows.length > 0) {
