@@ -4400,6 +4400,15 @@ const bundleContent = `/* ======================================================
                 this.rawEntities = await this.repository.getAll();
                 await this.calculateProximoTurno();
                 this.currentPage = 1;
+                
+                if (!this.editingRecordId) {
+                    if (this.searchInput) this.searchInput.value = '';
+                    if (this.filterDefensoria) this.filterDefensoria.value = '';
+                    if (this.filterResultado) this.filterResultado.value = '';
+                    this.activeTecnicaFilter = false;
+                    this.activeTecnicaCategory = null;
+                }
+
                 this.updateView();
 
                 this.editingRecordId = null;
