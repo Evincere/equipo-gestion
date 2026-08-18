@@ -104,6 +104,8 @@ try { db.exec('ALTER TABLE atenciones ADD COLUMN modo_derivacion_familia TEXT;')
 try { db.exec('ALTER TABLE atenciones ADD COLUMN codefensora_asignada TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN fecha_vencimiento_contestacion TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE atenciones ADD COLUMN detalle_reparticion TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE atenciones ADD COLUMN plantilla_codigo TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE atenciones ADD COLUMN escritos_data TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE codefensoras_estado ADD COLUMN orden INTEGER DEFAULT 0;'); } catch (e) {}
 
 // Nueva estructura de rotación de turnos por canal independiente
@@ -136,7 +138,7 @@ db.exec(`
     INSERT OR IGNORE INTO rotacion_turnos_canales (canal, last_index) VALUES ('ADOPCION', -1);
 `);
 
-// Índices
+// Índices y Tablas de Catálogos y Plantillas
 db.exec(`
     CREATE TABLE IF NOT EXISTS catalogos_opciones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,7 +148,138 @@ db.exec(`
         orden INTEGER DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_catalogos_cat ON catalogos_opciones(categoria);
+
+    CREATE TABLE IF NOT EXISTS plantillas_escritos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        codigo TEXT UNIQUE NOT NULL,
+        titulo TEXT NOT NULL,
+        categoria TEXT NOT NULL DEFAULT 'PENAL',
+        sumario TEXT NOT NULL,
+        destinatario_default TEXT DEFAULT 'SEÑOR/A DEFENSOR/A OFICIAL',
+        cuerpo_template TEXT NOT NULL,
+        campos_dinamicos TEXT DEFAULT '[]',
+        activo INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_plantillas_cod ON plantillas_escritos(codigo);
 `);
+
+// Sembrado inicial de plantillas de escritos judiciales si está vacío
+try {
+    const seedPlanStmt = db.prepare(`
+        INSERT OR REPLACE INTO plantillas_escritos (codigo, titulo, categoria, sumario, destinatario_default, cuerpo_template, campos_dinamicos, activo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    const plantillasBase = [
+        {
+            codigo: 'cambio_domicilio_penal',
+            titulo: 'Informar Cambio de Domicilio Real (Penal)',
+            categoria: 'PENAL',
+            sumario: 'INFORMA NUEVO DOMICILIO REAL',
+            destinatario_default: 'SEÑOR/A FISCAL DE INSTRUCCIÓN / UNIDAD FISCAL SAN RAFAEL',
+            cuerpo_template: `SEÑOR/A FISCAL DE INSTRUCCIÓN:
+
+{{FUNCIONARIO_DEFENSA}}, en ejercicio de la asistencia y representación técnica de {{CIUDADANO_NOMBRE}}, D.N.I. N° {{DNI}}, en los autos N° {{EXPTE}}, caratulados "{{CARATULA}}", radicados por ante esa Unidad Fiscal, a V.S. respetuosamente me presento y digo:
+
+I.- OBJETO:
+Que por el presente acto vengo en legal tiempo y debida forma a poner en formal conocimiento de ese Ministerio Público Fiscal el CAMBIO DE DOMICILIO REAL de mi asistido/defendido, fijando a partir de la fecha como su nuevo domicilio real y efectivo el siguiente:
+
+- NUEVO DOMICILIO REAL: {{NUEVO_DOMICILIO}}
+- LOCALIDAD / DEPARTAMENTO: {{LOCALIDAD}}
+- ENTRE CALLES Y/O REFERENCIAS: {{ENTRECALLES}}
+- TELÉFONO DE CONTACTO / WHATSAPP: {{TELEFONO_CONTACTO}}
+
+II.- PETITORIO:
+Por todo lo expuesto, a V.S. solicito:
+1. Se tenga por formalmente comunicado en legal tiempo y forma el nuevo domicilio real denunciado precedentemente a todos los efectos procesales.
+2. Se tengan presentes las vías de contacto telefónico y digital aportadas para futuras citaciones y notificaciones de rigor.
+3. Se tome debida razón en los registros informáticos de la causa a fin de evitar declaraciones de rebeldía o comparendos innecesarios.
+
+PROVEER DE CONFORMIDAD,
+SERÁ JUSTICIA.`,
+            campos_dinamicos: JSON.stringify([
+                { key: 'FIRMANTE_DEFENSA', label: 'Funcionario/a que Firma la Presentación', type: 'select', options: ['Defensor/a Oficial Titular', 'Codefensor/a'], default: 'Defensor/a Oficial Titular' },
+                { key: 'CARATULA', label: 'Carátula de la Causa', type: 'text', placeholder: 'Ej: F. c/ Imputado p/ Av. Hecho', default: 'Imputado s/ Causa en Trámite' },
+                { key: 'NUEVO_DOMICILIO', label: 'Nuevo Domicilio Real (Calle, N°, Barrio, Mza/Casa)', type: 'text', required: true, placeholder: 'Ej: Calle Zapata 309' },
+                { key: 'LOCALIDAD', label: 'Localidad / Departamento', type: 'text', required: true, placeholder: 'Ej: San Rafael (Ciudad) / Mendoza', default: 'San Rafael' },
+                { key: 'ENTRECALLES', label: 'Entre Calles / Puntos de Referencia', type: 'text', placeholder: 'Ej: Entre Av. Mitre y calle El Libertador' },
+                { key: 'TELEFONO_CONTACTO', label: 'Teléfono / Celular de Contacto', type: 'text', placeholder: 'Ej: 2604-123456' }
+            ])
+        },
+        {
+            codigo: 'entrega_objetos_secuestrados',
+            titulo: 'Solicitud de Entrega / Devolución de Objetos Secuestrados',
+            categoria: 'PENAL',
+            sumario: 'SOLICITA ENTREGA DE EFECTOS SECUESTRADOS',
+            destinatario_default: 'SEÑOR/A FISCAL DE INSTRUCCIÓN / UNIDAD FISCAL SAN RAFAEL',
+            cuerpo_template: `SEÑOR/A FISCAL DE INSTRUCCIÓN:
+
+{{FUNCIONARIO_DEFENSA}}, en ejercicio de la representación técnica de {{CIUDADANO_NOMBRE}}, D.N.I. N° {{DNI}}, en los autos N° {{EXPTE}}, caratulados "{{CARATULA}}", a V.S. respetuosamente me presento y expongo:
+
+I.- OBJETO:
+Que por medio del presente vengo a solicitar tenga a bien ordenar la inmediata restitución y entrega a favor de mi asistido de los bienes y efectos oportunamente secuestrados en el marco de la presente investigación penal preparatoria, a saber:
+
+- DETALLE DE LOS OBJETOS CUYA RESTITUCIÓN SE SOLICITA:
+{{DETALLE_OBJETOS}}
+
+II.- ACREDITACIÓN DE TITULARIDAD Y DERECHO:
+Que la legítima titularidad y/o tenencia de los elementos individualizados se acredita conforme a las siguientes constancias:
+{{DOCUMENTACION_RESPALDO}}
+
+III.- INEXISTENCIA DE INTERÉS PERICIAL:
+Se hace constar que sobre los efectos detallados no existen pericias pendientes de producción ni constituyen instrumentos prohibidos o sujetos a comiso, no existiendo impedimento legal para su reintegro, ya sea en calidad de depositario judicial o mediante entrega definitiva.
+
+IV.- PETITORIO:
+Por lo manifestado, a V.S. solicito:
+1. Se tenga por formulada en legal tiempo y forma la petición de restitución de efectos secuestrados.
+2. Se corra vista y se ordene la inmediata entrega y reintegro de los bienes individualizados a mi asistido/defendido.
+
+PROVEER DE CONFORMIDAD,
+SERÁ JUSTICIA.`,
+            campos_dinamicos: JSON.stringify([
+                { key: 'FIRMANTE_DEFENSA', label: 'Funcionario/a que Firma la Presentación', type: 'select', options: ['Defensor/a Oficial Titular', 'Codefensor/a'], default: 'Defensor/a Oficial Titular' },
+                { key: 'CARATULA', label: 'Carátula de la Causa', type: 'text', placeholder: 'Ej: F. c/ NN p/ Robo Agravado', default: 'Imputado s/ Causa en Trámite' },
+                { key: 'DETALLE_OBJETOS', label: 'Detalle Exhaustivo de los Objetos Secuestrados', type: 'textarea', required: true, placeholder: 'Ej: 1) Teléfono celular marca Samsung Galaxy A32 color negro con funda azul; 2) Billetera de cuero marrón...' },
+                { key: 'DOCUMENTACION_RESPALDO', label: 'Documentación de Respaldo / Acreditación', type: 'textarea', required: true, placeholder: 'Ej: Factura de compra electrónica / acreditación testimonial...' }
+            ])
+        },
+        {
+            codigo: 'escrito_general',
+            titulo: 'Presentación Judicial General / Escrito Simple',
+            categoria: 'GENERAL',
+            sumario: 'SOLICITA LO QUE INDICA / PRESENTA ESCRITO',
+            destinatario_default: 'SEÑOR/A FISCAL DE INSTRUCCIÓN / JUEZ PENAL COLEGIADO',
+            cuerpo_template: `SEÑOR/A FISCAL / JUEZ:
+
+{{FUNCIONARIO_DEFENSA}}, en ejercicio de la representación y asistencia técnica de {{CIUDADANO_NOMBRE}}, D.N.I. N° {{DNI}}, en los autos N° {{EXPTE}}, caratulados "{{CARATULA}}", a V.S. respetuosamente me presento y digo:
+
+I.- HECHOS Y MANIFESTACIÓN:
+{{CUERPO_MANIFESTACION}}
+
+II.- PETITORIO:
+Por lo expuesto, a V.S. solicito:
+{{PETITORIO_DETALLE}}
+
+PROVEER DE CONFORMIDAD,
+SERÁ JUSTICIA.`,
+            campos_dinamicos: JSON.stringify([
+                { key: 'FIRMANTE_DEFENSA', label: 'Funcionario/a que Firma la Presentación', type: 'select', options: ['Defensor/a Oficial Titular', 'Codefensor/a'], default: 'Defensor/a Oficial Titular' },
+                { key: 'SUMARIO_PERSONALIZADO', label: 'Sumario del Escrito', type: 'text', placeholder: 'Ej: SOLICITA AUDIENCIA / ACOMPAÑA DOCUMENTAL' },
+                { key: 'CARATULA', label: 'Carátula de la Causa', type: 'text', placeholder: 'Ej: Autos principales en trámite', default: 'Autos en trámite' },
+                { key: 'CUERPO_MANIFESTACION', label: 'Manifestación / Exposición de Hechos', type: 'textarea', required: true, placeholder: 'Describa detalladamente lo que se expone o solicita...' },
+                { key: 'PETITORIO_DETALLE', label: 'Puntos del Petitorio', type: 'textarea', required: true, placeholder: '1. Se tenga por presentado...\n2. Se provea lo solicitado...' }
+            ])
+        }
+    ];
+
+    plantillasBase.forEach(p => {
+        seedPlanStmt.run(p.codigo, p.titulo, p.categoria, p.sumario, p.destinatario_default, p.cuerpo_template, p.campos_dinamicos);
+    });
+} catch (err) {
+    console.error('Error al sembrar plantillas_escritos:', err);
+}
 
 // Sembrado dinámico de catálogos de opciones del formulario si está vacío
 const checkCatalogos = db.prepare('SELECT COUNT(*) as count FROM catalogos_opciones').get();
@@ -476,6 +609,23 @@ const server = http.createServer((req, res) => {
         return handleGetPublicUserList(req, res);
     }
 
+    if (pathname === '/api/plantillas-escritos') {
+        if (req.method === 'GET') return handleGetPlantillasEscritos(req, res);
+    }
+
+    if (pathname === '/api/admin/plantillas-escritos') {
+        if (req.method === 'GET') return handleAdminGetPlantillasEscritos(req, res);
+        if (req.method === 'POST') return handleAdminPostPlantillaEscrito(req, res);
+    }
+
+    if (pathname.startsWith('/api/admin/plantillas-escritos/') && req.method === 'PUT') {
+        return handleAdminPutPlantillaEscrito(req, res, pathname);
+    }
+
+    if (pathname.startsWith('/api/admin/plantillas-escritos/') && req.method === 'DELETE') {
+        return handleAdminDeletePlantillaEscrito(req, res, pathname);
+    }
+
     if (pathname === '/api/catalogos' && req.method === 'GET') {
         return handleGetCatalogos(req, res);
     }
@@ -743,8 +893,9 @@ function handlePostAtencion(req, res) {
                 INSERT INTO atenciones (
                     fecha, actividad, dni, apellidos, nombres, celular, expte, motivo,
                     defensoria, resultado, observaciones, atendido_por, derivado_a, escritos,
-                    tarea_pendiente, detalle_pendiente, modo_derivacion_familia, codefensora_asignada, fecha_vencimiento_contestacion, detalle_reparticion
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    tarea_pendiente, detalle_pendiente, modo_derivacion_familia, codefensora_asignada, fecha_vencimiento_contestacion, detalle_reparticion,
+                    plantilla_codigo, escritos_data
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const atendidoPorFinal = data.atendidoPor || 'Secretaría';
@@ -755,6 +906,8 @@ function handlePostAtencion(req, res) {
             const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
             const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
             const detalleReparticion = data.resultado === 'Derivado a otra repartición' ? (data.detalleReparticion || '') : '';
+            const plantillaCodigo = data.plantillaCodigo || data.plantilla_codigo || '';
+            const escritosData = data.escritosData ? (typeof data.escritosData === 'string' ? data.escritosData : JSON.stringify(data.escritosData)) : '';
 
             const result = stmt.run(
                 data.fecha || new Date().toLocaleDateString('es-AR'),
@@ -776,7 +929,9 @@ function handlePostAtencion(req, res) {
                 modoFamilia,
                 codefensora,
                 vencimiento,
-                detalleReparticion
+                detalleReparticion,
+                plantillaCodigo,
+                escritosData
             );
 
             if (data.defensoria === 'CO-DEF. FAMILIA' && modoFamilia && modoFamilia !== 'Causa en Trámite' && data.resultado !== 'Resuelve operador') {
@@ -811,7 +966,9 @@ function handlePostAtencion(req, res) {
                 modo_derivacion_familia: modoFamilia,
                 codefensora_asignada: codefensora,
                 fecha_vencimiento_contestacion: vencimiento,
-                detalle_reparticion: detalleReparticion
+                detalle_reparticion: detalleReparticion,
+                plantilla_codigo: plantillaCodigo,
+                escritos_data: escritosData
             };
             broadcast('RECORD_CREATED', { record: newRecord, operator: atendidoPorFinal });
 
@@ -863,7 +1020,9 @@ function handlePutAtencion(req, res) {
                     modo_derivacion_familia = ?,
                     codefensora_asignada = ?,
                     fecha_vencimiento_contestacion = ?,
-                    detalle_reparticion = ?
+                    detalle_reparticion = ?,
+                    plantilla_codigo = ?,
+                    escritos_data = ?
                 WHERE id = ?
             `);
 
@@ -875,6 +1034,8 @@ function handlePutAtencion(req, res) {
             const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
             const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
             const detalleReparticion = data.resultado === 'Derivado a otra repartición' ? (data.detalleReparticion || '') : '';
+            const plantillaCodigo = data.plantillaCodigo || data.plantilla_codigo || '';
+            const escritosData = data.escritosData ? (typeof data.escritosData === 'string' ? data.escritosData : JSON.stringify(data.escritosData)) : '';
 
             stmt.run(
                 data.fecha || 'S/F',
@@ -897,6 +1058,8 @@ function handlePutAtencion(req, res) {
                 codefensora,
                 vencimiento,
                 detalleReparticion,
+                plantillaCodigo,
+                escritosData,
                 Number(data.id)
             );
 
@@ -922,7 +1085,9 @@ function handlePutAtencion(req, res) {
                 detalle_pendiente: detallePendiente,
                 modo_derivacion_familia: modoFamilia,
                 codefensora_asignada: codefensora,
-                fecha_vencimiento_contestacion: vencimiento
+                fecha_vencimiento_contestacion: vencimiento,
+                plantilla_codigo: plantillaCodigo,
+                escritos_data: escritosData
             };
             broadcast('RECORD_UPDATED', { record: updatedRecord });
 
@@ -933,6 +1098,152 @@ function handlePutAtencion(req, res) {
             res.end(JSON.stringify({ success: false, error: err.message }));
         }
     });
+}
+
+// Handlers de Plantillas de Escritos Judiciales
+function handleGetPlantillasEscritos(req, res) {
+    try {
+        const rows = db.prepare('SELECT id, codigo, titulo, categoria, sumario, destinatario_default, cuerpo_template, campos_dinamicos, activo, created_at, updated_at FROM plantillas_escritos WHERE activo = 1 ORDER BY categoria ASC, titulo ASC').all();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, data: rows }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
+function handleAdminGetPlantillasEscritos(req, res) {
+    try {
+        const rows = db.prepare('SELECT id, codigo, titulo, categoria, sumario, destinatario_default, cuerpo_template, campos_dinamicos, activo, created_at, updated_at FROM plantillas_escritos ORDER BY id ASC').all();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, data: rows }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+}
+
+function handleAdminPostPlantillaEscrito(req, res) {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            const { codigo, titulo, categoria, sumario, destinatarioDefault, cuerpoTemplate, camposDinamicos, adminOperatorName } = data;
+
+            if (!codigo || !titulo || !cuerpoTemplate) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Código, título y cuerpo de plantilla son requeridos.' }));
+                return;
+            }
+
+            const cleanCodigo = String(codigo).toLowerCase().trim().replace(/[^a-z0-9_]/g, '_');
+            const camposStr = typeof camposDinamicos === 'string' ? camposDinamicos : JSON.stringify(camposDinamicos || []);
+
+            const stmt = db.prepare(`
+                INSERT INTO plantillas_escritos (codigo, titulo, categoria, sumario, destinatario_default, cuerpo_template, campos_dinamicos, activo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+            `);
+            const result = stmt.run(
+                cleanCodigo,
+                titulo.trim(),
+                (categoria || 'PENAL').toUpperCase().trim(),
+                (sumario || '').toUpperCase().trim(),
+                destinatarioDefault || 'SEÑOR/A DEFENSOR/A OFICIAL',
+                cuerpoTemplate,
+                camposStr
+            );
+
+            logAudit(0, adminOperatorName || 'Sergio M. Pereyra (ADMIN)', 'CREAR_PLANTILLA_ESCRITO', `Plantilla de escrito creada: "${titulo}" (${cleanCodigo})`);
+
+            res.writeHead(201, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, id: result.lastInsertRowid, message: 'Plantilla creada con éxito' }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
+function handleAdminPutPlantillaEscrito(req, res, pathname) {
+    const id = Number(pathname.split('/').pop());
+    if (!id) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'ID de plantilla inválido.' }));
+        return;
+    }
+
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            const { titulo, categoria, sumario, destinatarioDefault, cuerpoTemplate, camposDinamicos, activo, adminOperatorName } = data;
+
+            const camposStr = typeof camposDinamicos === 'string' ? camposDinamicos : JSON.stringify(camposDinamicos || []);
+            const isActivo = activo !== undefined ? (Boolean(Number(activo)) ? 1 : 0) : 1;
+
+            const stmt = db.prepare(`
+                UPDATE plantillas_escritos SET
+                    titulo = ?,
+                    categoria = ?,
+                    sumario = ?,
+                    destinatario_default = ?,
+                    cuerpo_template = ?,
+                    campos_dinamicos = ?,
+                    activo = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `);
+            stmt.run(
+                titulo.trim(),
+                (categoria || 'PENAL').toUpperCase().trim(),
+                (sumario || '').toUpperCase().trim(),
+                destinatarioDefault || 'SEÑOR/A DEFENSOR/A OFICIAL',
+                cuerpoTemplate,
+                camposStr,
+                isActivo,
+                id
+            );
+
+            logAudit(0, adminOperatorName || 'Sergio M. Pereyra (ADMIN)', 'MODIFICAR_PLANTILLA_ESCRITO', `Plantilla N° ${id} actualizada: "${titulo}"`);
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+            res.end(JSON.stringify({ success: true, message: 'Plantilla actualizada con éxito' }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+    });
+}
+
+function handleAdminDeletePlantillaEscrito(req, res, pathname) {
+    const id = Number(pathname.split('/').pop());
+    if (!id) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'ID de plantilla inválido.' }));
+        return;
+    }
+
+    try {
+        const item = db.prepare('SELECT id, titulo, activo FROM plantillas_escritos WHERE id = ?').get(id);
+        if (!item) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Plantilla no encontrada.' }));
+            return;
+        }
+
+        const newStatus = item.activo ? 0 : 1;
+        db.prepare('UPDATE plantillas_escritos SET activo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(newStatus, id);
+
+        logAudit(0, 'Sergio M. Pereyra (ADMIN)', 'ESTADO_PLANTILLA_ESCRITO', `Plantilla "${item.titulo}" alternada a estado ${newStatus ? 'ACTIVA' : 'INACTIVA'}`);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+        res.end(JSON.stringify({ success: true, activo: newStatus, message: `Plantilla ${newStatus ? 'activada' : 'desactivada'} con éxito` }));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+    }
 }
 
 function handleDeleteAtencion(req, res, parsedUrl) {

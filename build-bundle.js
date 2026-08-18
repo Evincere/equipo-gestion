@@ -175,9 +175,208 @@ const bundleContent = `/* ======================================================
         }
     }
 
+    // 4. Entidad PlantillaEscrito y Servicio DocumentRenderService
+    class PlantillaEscrito {
+        constructor({ id, codigo, titulo, categoria, sumario, destinatario_default, destinatarioDefault, cuerpo_template, cuerpoTemplate, campos_dinamicos, camposDinamicos, activo, created_at, updated_at }) {
+            this.id = id ? Number(id) : null;
+            this.codigo = (codigo || '').toLowerCase().trim();
+            this.titulo = fixMojibake(titulo || '').trim();
+            this.categoria = (categoria || 'PENAL').toUpperCase().trim();
+            this.sumario = fixMojibake(sumario || '').toUpperCase().trim();
+            this.destinatarioDefault = fixMojibake(destinatario_default || destinatarioDefault || 'SEÑOR/A DEFENSOR/A OFICIAL');
+            this.cuerpoTemplate = fixMojibake(cuerpo_template || cuerpoTemplate || '');
+            
+            const rawCampos = campos_dinamicos !== undefined ? campos_dinamicos : camposDinamicos;
+            if (typeof rawCampos === 'string') {
+                try {
+                    this.camposDinamicos = JSON.parse(rawCampos);
+                } catch(e) {
+                    this.camposDinamicos = [];
+                }
+            } else if (Array.isArray(rawCampos)) {
+                this.camposDinamicos = rawCampos;
+            } else {
+                this.camposDinamicos = [];
+            }
+            this.activo = Boolean(Number(activo !== undefined ? activo : 1));
+            this.createdAt = created_at;
+            this.updatedAt = updated_at;
+        }
+    }
+
+    class DocumentRenderService {
+        static formatFechaLegal(dateInput) {
+            let d = dateInput;
+            if (!d) {
+                d = new Date();
+            } else if (typeof d === 'string') {
+                if (d.includes('/')) {
+                    const parts = d.split('/');
+                    if (parts.length === 3) {
+                        d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+                    }
+                } else {
+                    d = new Date(d);
+                }
+            }
+            if (isNaN(d.getTime())) d = new Date();
+
+            const meses = [
+                'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+            ];
+
+            return d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();
+        }
+
+        static getDefensoriaPenalOfficials(defensoriaName, firmanteTipo) {
+            const defStr = (defensoriaName || '').toUpperCase();
+            let defensor = 'Defensor/a Oficial';
+            let codefensora = 'Codefensor/a';
+            let defensorCargo = 'Defensor Oficial';
+            let codefensoraCargo = 'Codefensora Penal';
+
+            if (defStr.includes('1') || defStr.includes('PRIMERA')) {
+                defensor = 'Dr. Jorge Luque';
+                defensorCargo = 'Defensor Oficial - 1ª Defensoría Penal';
+                codefensora = 'Dra. Lourdes Braggio';
+                codefensoraCargo = 'Codefensora - 1ª Defensoría Penal';
+            } else if (defStr.includes('2') || defStr.includes('SEGUNDA')) {
+                defensor = 'Dra. Daniela García';
+                defensorCargo = 'Defensora Oficial - 2ª Defensoría Penal';
+                codefensora = 'Dra. Macarena Orozco';
+                codefensoraCargo = 'Codefensora - 2ª Defensoría Penal';
+            } else if (defStr.includes('3') || defStr.includes('TERCERA')) {
+                defensor = 'Dr. Jorge Miguel Vitale';
+                defensorCargo = 'Defensor Oficial - 3ª Defensoría Penal';
+                codefensora = 'Dra. Sofia Camerucci';
+                codefensoraCargo = 'Codefensora - 3ª Defensoría Penal';
+            }
+
+            let funcionarioTexto = defensor + ', en mi carácter de ' + defensorCargo;
+            let firmaNombre = defensor;
+            let firmaCargo = defensorCargo;
+
+            const fTipo = (firmanteTipo || 'titular').toLowerCase();
+            if (fTipo === 'codefensor' || fTipo === 'codefensora' || fTipo.includes('codefens')) {
+                funcionarioTexto = codefensora + ', en mi carácter de ' + codefensoraCargo;
+                firmaNombre = codefensora;
+                firmaCargo = codefensoraCargo;
+            } else if (fTipo === 'ambos') {
+                funcionarioTexto = defensor + ' y ' + codefensora + ', en ejercicio de la defensa técnica';
+                firmaNombre = defensor + ' / ' + codefensora;
+                firmaCargo = 'Defensa Técnica Oficial';
+            }
+
+            return {
+                defensor: defensor,
+                defensorCargo: defensorCargo,
+                codefensora: codefensora,
+                codefensoraCargo: codefensoraCargo,
+                funcionarioTexto: funcionarioTexto,
+                firmaNombre: firmaNombre,
+                firmaCargo: firmaCargo
+            };
+        }
+
+        static renderTemplate(cuerpoTemplate, data) {
+            if (!cuerpoTemplate) return '';
+            const dataObj = data || {};
+            const ciudadanoNombre = ((dataObj.apellidos || '').trim().toUpperCase() + ' ' + (dataObj.nombres || '').trim().toUpperCase()).trim() || '____________________';
+            const dniFormat = dataObj.dni ? String(dataObj.dni).replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '__________';
+            const expte = dataObj.expte ? dataObj.expte.trim() : 'S/N°';
+            const defensoria = dataObj.defensoria ? dataObj.defensoria.trim() : 'Defensoría Oficial';
+            const celular = dataObj.celular ? dataObj.celular.trim() : (dataObj.TELEFONO_CONTACTO || 'Sin registrar');
+            const operador = dataObj.atendidoPor || dataObj.atendido_por || 'Mesa de Entrada';
+            const fechaLegal = this.formatFechaLegal(dataObj.fecha);
+            const fechaCorta = dataObj.fecha || new Date().toLocaleDateString('es-AR');
+
+            const officials = this.getDefensoriaPenalOfficials(defensoria, dataObj.FIRMANTE_DEFENSA || dataObj.firmante_defensa);
+
+            const context = Object.assign({
+                CIUDADANO_NOMBRE: ciudadanoNombre,
+                DNI: dniFormat,
+                EXPTE: expte,
+                DEFENSORIA: defensoria,
+                CELULAR: celular,
+                OPERADOR: operador,
+                FECHA_LEGAL: fechaLegal,
+                FECHA_CORTA: fechaCorta,
+                FUNCIONARIO_DEFENSA: officials.funcionarioTexto,
+                DEFENSOR_OFICIAL: officials.defensor,
+                CODEFENSORA: officials.codefensora
+            }, dataObj);
+
+            let result = cuerpoTemplate;
+            Object.keys(context).forEach(key => {
+                const regex = new RegExp('\\{\\{' + key + '\\}\\}', 'g');
+                const val = context[key] !== undefined && context[key] !== null ? String(context[key]) : '';
+                result = result.replace(regex, val);
+            });
+
+            // Limpiar cualquier emoji residual para mantener la solemnidad judicial
+            result = result.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+
+            return result;
+        }
+
+        static generatePrintableHtml(params) {
+            const fechaLegal = this.formatFechaLegal(params.fecha);
+            const dniFormat = params.dni ? String(params.dni).replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+            const officials = this.getDefensoriaPenalOfficials(params.defensoria, params.firmanteTipo);
+            const textoLimpio = (params.cuerpoTexto || '').replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+
+            return '<div class="escrito-print-document" style="font-family: Times, serif; color: #111; line-height: 1.5; font-size: 12pt; max-width: 800px; margin: 0 auto; padding: 15mm 15mm; background: #fff;">' +
+                '<div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0b1329; padding-bottom: 12px; margin-bottom: 20px;">' +
+                    '<div style="display: flex; align-items: center; gap: 14px;">' +
+                        '<img src="Logo sin fondo 3-recortado.PNG" alt="MPD Logo" style="height: 60px; object-fit: contain;" onerror="this.onerror=null;this.src=&quot;logo_horizontal.png&quot;;">' +
+                        '<div>' +
+                            '<div style="font-size: 13pt; font-weight: bold; letter-spacing: 0.5px; color: #0b1329; text-transform: uppercase;">Ministerio Público de la Defensa</div>' +
+                            '<div style="font-size: 10.5pt; font-weight: 600; color: #334155;">Poder Judicial de la Provincia de Mendoza</div>' +
+                            '<div style="font-size: 9pt; color: #64748b; font-style: italic;">Segunda Circunscripción Judicial - San Rafael</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="text-align: right; font-size: 9.5pt; color: #475569;">' +
+                        '<div><strong>Expte:</strong> ' + (params.expte || 'S/N°') + '</div>' +
+                        '<div><strong>Defensoría:</strong> ' + (params.defensoria || 'Oficial') + '</div>' +
+                    '</div>' +
+                '</div>' +
+
+                '<div style="display: flex; justify-content: flex-end; margin-bottom: 25px;">' +
+                    '<div style="border: 1.5px solid #000; padding: 8px 16px; font-size: 10.5pt; font-weight: bold; text-transform: uppercase; background: #f8fafc; letter-spacing: 0.5px;">' +
+                        'SUMARIO: ' + (params.sumario || 'PRESENTA ESCRITO JUDICIAL') +
+                    '</div>' +
+                '</div>' +
+
+                '<div style="text-align: center; margin-bottom: 25px;">' +
+                    '<h3 style="margin: 0; font-size: 13.5pt; text-transform: uppercase; text-decoration: underline; letter-spacing: 0.5px;">' +
+                        (params.titulo || 'ESCRITO JUDICIAL') +
+                    '</h3>' +
+                '</div>' +
+
+                '<div style="text-align: justify; white-space: pre-wrap; font-size: 11.5pt; line-height: 1.6; margin-bottom: 45px;">' +
+                    textoLimpio +
+                '</div>' +
+
+                '<div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid;">' +
+                    '<div style="text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 8px;">' +
+                        '<div style="font-weight: bold; font-size: 10pt;">' + (params.ciudadanoNombre || 'COMPARECIENTE / ASISTIDO') + '</div>' +
+                        '<div style="font-size: 9pt;">D.N.I. N° ' + dniFormat + '</div>' +
+                        '<div style="font-size: 8.5pt; color: #64748b; font-style: italic;">Firma del Asistido / Compareciente</div>' +
+                    '</div>' +
+                    '<div style="text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 8px;">' +
+                        '<div style="font-weight: bold; font-size: 10pt;">' + officials.firmaNombre + '</div>' +
+                        '<div style="font-size: 9pt;">' + officials.firmaCargo + '</div>' +
+                        '<div style="font-size: 8.5pt; color: #64748b; font-style: italic;">Ministerio Público de la Defensa</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+    }
+
     // 4. Entidad Attendance
     class Attendance {
-        constructor({ id, fecha, actividad, dni, apellidos, nombres, celular, expte, motivo, defensoria, resultado, observaciones, atendidoPor, atendido_por, derivadoA, escritos, tarea_pendiente, tareaPendiente, detalle_pendiente, detallePendiente, tarea_cumplida_at, tareaCumplidaAt, modo_derivacion_familia, modoDerivacionFamilia, codefensora_asignada, codefensoraAsignada, fecha_vencimiento_contestacion, fechaVencimientoContestacion }) {
+        constructor({ id, fecha, actividad, dni, apellidos, nombres, celular, expte, motivo, defensoria, resultado, observaciones, atendidoPor, atendido_por, derivadoA, escritos, tarea_pendiente, tareaPendiente, detalle_pendiente, detallePendiente, tarea_cumplida_at, tareaCumplidaAt, modo_derivacion_familia, modoDerivacionFamilia, codefensora_asignada, codefensoraAsignada, fecha_vencimiento_contestacion, fechaVencimientoContestacion, plantilla_codigo, plantillaCodigo, escritos_data, escritosData }) {
             this.id = Number(id) || Date.now();
             this.fecha = fecha || 'S/F';
             this.actividad = fixMojibake(actividad) || 'Atención Personal';
@@ -201,6 +400,8 @@ const bundleContent = `/* ======================================================
             this.modoDerivacionFamilia = modo_derivacion_familia || modoDerivacionFamilia || '';
             this.codefensoraAsignada = codefensora_asignada || codefensoraAsignada || '';
             this.fechaVencimientoContestacion = fecha_vencimiento_contestacion || fechaVencimientoContestacion || '';
+            this.plantillaCodigo = plantilla_codigo || plantillaCodigo || '';
+            this.escritosData = escritos_data || escritosData || '';
         }
         get fullName() { return \`\${this.apellidos} \${this.nombres}\`.trim(); }
         isDerivacionTecnica() {
@@ -236,7 +437,9 @@ const bundleContent = `/* ======================================================
                 tareaCumplidaAt: entity.tareaCumplidaAt,
                 modoDerivacionFamilia: entity.modoDerivacionFamilia,
                 codefensoraAsignada: entity.codefensoraAsignada,
-                fechaVencimientoContestacion: entity.fechaVencimientoContestacion
+                fechaVencimientoContestacion: entity.fechaVencimientoContestacion,
+                plantillaCodigo: entity.plantillaCodigo,
+                escritosData: entity.escritosData
             };
         }
     }
@@ -424,7 +627,9 @@ const bundleContent = `/* ======================================================
                             tarea_cumplida_at: row.tarea_cumplida_at,
                             modo_derivacion_familia: row.modo_derivacion_familia,
                             codefensora_asignada: row.codefensora_asignada,
-                            fecha_vencimiento_contestacion: row.fecha_vencimiento_contestacion
+                            fecha_vencimiento_contestacion: row.fecha_vencimiento_contestacion,
+                            plantilla_codigo: row.plantilla_codigo,
+                            escritos_data: row.escritos_data
                         }));
 
                         this.cache.sort((a, b) => b.id - a.id);
@@ -462,6 +667,8 @@ const bundleContent = `/* ======================================================
                         modoDerivacionFamilia: entity.modoDerivacionFamilia,
                         codefensoraAsignada: entity.codefensoraAsignada,
                         fechaVencimientoContestacion: entity.fechaVencimientoContestacion,
+                        plantillaCodigo: entity.plantillaCodigo,
+                        escritosData: entity.escritosData,
                         operatorId: entity.operatorId || 0
                     })
                 });
@@ -505,7 +712,9 @@ const bundleContent = `/* ======================================================
                         detallePendiente: entity.detallePendiente,
                         modoDerivacionFamilia: entity.modoDerivacionFamilia,
                         codefensoraAsignada: entity.codefensoraAsignada,
-                        fechaVencimientoContestacion: entity.fechaVencimientoContestacion
+                        fechaVencimientoContestacion: entity.fechaVencimientoContestacion,
+                        plantillaCodigo: entity.plantillaCodigo,
+                        escritosData: entity.escritosData
                     })
                 });
             } catch(e) {
@@ -703,6 +912,36 @@ const bundleContent = `/* ======================================================
             this.currentDateText = document.getElementById('currentDateText');
             this.currentTimeText = document.getElementById('currentTimeText');
             this.activeCatalogCategory = 'actividad';
+
+            // Módulo de Confección de Escritos Judiciales y Plantillas
+            this.plantillasEscritos = [];
+            this.activePlantilla = null;
+            this.escritoDynamicValues = {};
+
+            this.sectionConfeccionEscrito = document.getElementById('sectionConfeccionEscrito');
+            this.toggleEscritoPanel = document.getElementById('toggleEscritoPanel');
+            this.escritoPanelContent = document.getElementById('escritoPanelContent');
+            this.btnToggleEscrito = document.getElementById('btnToggleEscrito');
+            this.escritoChevronIcon = document.getElementById('escritoChevronIcon');
+            this.escritoStatusBadge = document.getElementById('escritoStatusBadge');
+            this.selectPlantillaEscrito = document.getElementById('selectPlantillaEscrito');
+            this.escritoCamposDinamicosWrapper = document.getElementById('escritoCamposDinamicosWrapper');
+            this.escritoCamposDinamicosContainer = document.getElementById('escritoCamposDinamicosContainer');
+            this.escritoPreviewSection = document.getElementById('escritoPreviewSection');
+            this.previewHeaderExpte = document.getElementById('previewHeaderExpte');
+            this.previewHeaderDefensoria = document.getElementById('previewHeaderDefensoria');
+            this.previewSumarioBadge = document.getElementById('previewSumarioBadge');
+            this.escritoTextoEditor = document.getElementById('escritoTextoEditor');
+            this.btnCopiarTextoEscrito = document.getElementById('btnCopiarTextoEscrito');
+            this.btnImprimirEscrito = document.getElementById('btnImprimirEscrito');
+            this.btnDescargarPdfEscrito = document.getElementById('btnDescargarPdfEscrito');
+            this.btnMarcarPendienteEscrito = document.getElementById('btnMarcarPendienteEscrito');
+
+            this.adminPlantillasTableBody = document.getElementById('adminPlantillasTableBody');
+            this.adminPlantillaForm = document.getElementById('adminPlantillaForm');
+            this.btnAdminNuevaPlantilla = document.getElementById('btnAdminNuevaPlantilla');
+            this.btnCancelEditPlantilla = document.getElementById('btnCancelEditPlantilla');
+            this.printEscritoContainer = document.getElementById('printEscritoContainer');
         }
 
         async init() {
@@ -1069,6 +1308,9 @@ const bundleContent = `/* ======================================================
             if (this.newRecordForm) this.newRecordForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
             if (this.btnExportPDF) this.btnExportPDF.addEventListener('click', (e) => { e.preventDefault(); window.print(); });
 
+            this.setupEscritoEvents();
+            this.setupAdminPlantillaEvents();
+
             // Close modals when clicking outside (on the overlay), except newRecordModal to prevent data loss
             document.querySelectorAll('.modal-overlay').forEach(overlay => {
                 overlay.addEventListener('click', (e) => {
@@ -1281,6 +1523,10 @@ const bundleContent = `/* ======================================================
 
             await this.loadCodefensorasRoster();
             await this.loadCatalogOptions();
+            await this.loadPlantillasEscritos();
+            if (this.currentUser && (this.currentUser.isAdmin() || this.currentUser.username === 'spereyra')) {
+                await this.loadAdminPlantillas();
+            }
             this.rawEntities = await this.repository.getAll();
             this.showDashboardSection();
             this.updateView();
@@ -1932,6 +2178,558 @@ const bundleContent = `/* ======================================================
                 const curVal = elModoFamilia.value;
                 elModoFamilia.innerHTML = this.catalogData.modo_derivacion_familia.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
                 if (curVal) elModoFamilia.value = curVal;
+            }
+        }
+
+        // ==========================================
+        // MÓDULO DE CONFECCIÓN DE ESCRITOS JUDICIALES
+        // ==========================================
+
+        setupEscritoEvents() {
+            if (this.toggleEscritoPanel) {
+                this.toggleEscritoPanel.addEventListener('click', () => {
+                    const isVisible = this.escritoPanelContent && this.escritoPanelContent.style.display === 'block';
+                    if (this.escritoPanelContent) this.escritoPanelContent.style.display = isVisible ? 'none' : 'block';
+                    if (this.escritoChevronIcon) {
+                        this.escritoChevronIcon.className = isVisible ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line';
+                    }
+                });
+            }
+
+            if (this.btnToggleEscrito) {
+                this.btnToggleEscrito.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isVisible = this.escritoPanelContent && this.escritoPanelContent.style.display === 'block';
+                    if (this.escritoPanelContent) this.escritoPanelContent.style.display = isVisible ? 'none' : 'block';
+                    if (this.escritoChevronIcon) {
+                        this.escritoChevronIcon.className = isVisible ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line';
+                    }
+                });
+            }
+
+            if (this.selectPlantillaEscrito) {
+                this.selectPlantillaEscrito.addEventListener('change', () => this.onPlantillaSelectChange());
+            }
+
+            const inputSync = [
+                this.newDniInput, this.newApellidosInput, this.newNombresInput,
+                this.newCelularInput, this.newExpteInput, this.newDefensoriaSelect,
+                document.getElementById('newFecha'), this.newAtendidoPorInput
+            ];
+            inputSync.forEach(input => {
+                if (input) {
+                    input.addEventListener('input', () => { if (this.activePlantilla) this.updateEscritoPreview(); });
+                    input.addEventListener('change', () => { if (this.activePlantilla) this.updateEscritoPreview(); });
+                }
+            });
+
+            if (this.btnCopiarTextoEscrito) {
+                this.btnCopiarTextoEscrito.addEventListener('click', () => this.copiarTextoEscrito());
+            }
+            if (this.btnImprimirEscrito) {
+                this.btnImprimirEscrito.addEventListener('click', () => this.imprimirEscritoOficial());
+            }
+            if (this.btnDescargarPdfEscrito) {
+                this.btnDescargarPdfEscrito.addEventListener('click', () => this.descargarPdfEscrito());
+            }
+            if (this.btnMarcarPendienteEscrito) {
+                this.btnMarcarPendienteEscrito.addEventListener('click', () => this.guardarComoTareaPendienteEscrito());
+            }
+        }
+
+        async loadPlantillasEscritos() {
+            try {
+                const res = await fetch(getApiUrl('/api/plantillas-escritos'));
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        this.plantillasEscritos = json.data.map(d => new PlantillaEscrito(d));
+                        this.populatePlantillasSelect();
+                    }
+                }
+            } catch (e) {
+                console.warn('Error cargando plantillas de escritos:', e.message);
+            }
+        }
+
+        populatePlantillasSelect() {
+            if (!this.selectPlantillaEscrito) return;
+            const currentVal = this.selectPlantillaEscrito.value;
+            let html = '<option value="">-- No confeccionar escrito en este momento --</option>';
+
+            const categories = {};
+            this.plantillasEscritos.forEach(p => {
+                const cat = p.categoria || 'GENERAL';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push(p);
+            });
+
+            Object.keys(categories).forEach(cat => {
+                html += '<optgroup label="Área: ' + cat + '">';
+                categories[cat].forEach(p => {
+                    html += '<option value="' + p.codigo + '">' + p.titulo + '</option>';
+                });
+                html += '</optgroup>';
+            });
+
+            this.selectPlantillaEscrito.innerHTML = html;
+            if (currentVal) this.selectPlantillaEscrito.value = currentVal;
+        }
+
+        onPlantillaSelectChange() {
+            const codigo = this.selectPlantillaEscrito.value;
+            if (!codigo) {
+                this.activePlantilla = null;
+                this.escritoDynamicValues = {};
+                if (this.escritoCamposDinamicosWrapper) this.escritoCamposDinamicosWrapper.style.display = 'none';
+                if (this.escritoPreviewSection) this.escritoPreviewSection.style.display = 'none';
+                if (this.escritoStatusBadge) {
+                    this.escritoStatusBadge.className = 'badge';
+                    this.escritoStatusBadge.style.background = 'rgba(148, 163, 184, 0.15)';
+                    this.escritoStatusBadge.style.color = '#94A3B8';
+                    this.escritoStatusBadge.textContent = 'Sin plantilla';
+                }
+                return;
+            }
+
+            const plantilla = this.plantillasEscritos.find(p => p.codigo === codigo);
+            if (!plantilla) return;
+
+            this.activePlantilla = plantilla;
+            if (this.escritoStatusBadge) {
+                this.escritoStatusBadge.className = 'badge badge-familia';
+                this.escritoStatusBadge.textContent = 'Plantilla: ' + plantilla.categoria;
+            }
+
+            this.buildDynamicFields(plantilla.camposDinamicos);
+            if (this.escritoPreviewSection) this.escritoPreviewSection.style.display = 'block';
+            this.updateEscritoPreview();
+        }
+
+        buildDynamicFields(campos) {
+            if (!this.escritoCamposDinamicosContainer || !this.escritoCamposDinamicosWrapper) return;
+            if (!Array.isArray(campos) || campos.length === 0) {
+                this.escritoCamposDinamicosWrapper.style.display = 'none';
+                this.escritoCamposDinamicosContainer.innerHTML = '';
+                return;
+            }
+
+            this.escritoCamposDinamicosWrapper.style.display = 'block';
+            let html = '';
+            campos.forEach(c => {
+                const isFullWidth = c.type === 'textarea' || c.fullWidth;
+                const defaultVal = this.escritoDynamicValues[c.key] !== undefined ? this.escritoDynamicValues[c.key] : (c.default || '');
+                this.escritoDynamicValues[c.key] = defaultVal;
+
+                html += '<div class="form-group ' + (isFullWidth ? 'full-width' : '') + '">' +
+                    '<label style="color: #38BDF8; font-size: 0.82rem;">' + c.label + (c.required ? ' <span style="color: #F87171;">*</span>' : '') + '</label>';
+
+                if (c.type === 'textarea') {
+                    html += '<textarea class="form-control dynamic-escrito-field" data-key="' + c.key + '" rows="2" placeholder="' + (c.placeholder || '') + '" style="font-size: 0.88rem;">' + defaultVal + '</textarea>';
+                } else if (c.type === 'select' && Array.isArray(c.options)) {
+                    html += '<select class="form-control dynamic-escrito-field" data-key="' + c.key + '" style="font-size: 0.88rem;">';
+                    c.options.forEach(opt => {
+                        const isSel = (opt === defaultVal || (!defaultVal && opt === c.default)) ? ' selected' : '';
+                        html += '<option value="' + opt + '"' + isSel + '>' + opt + '</option>';
+                    });
+                    html += '</select>';
+                } else {
+                    html += '<input type="text" class="form-control dynamic-escrito-field" data-key="' + c.key + '" value="' + defaultVal + '" placeholder="' + (c.placeholder || '') + '" style="font-size: 0.88rem;">';
+                }
+
+                html += '</div>';
+            });
+
+            this.escritoCamposDinamicosContainer.innerHTML = html;
+
+            this.escritoCamposDinamicosContainer.querySelectorAll('.dynamic-escrito-field').forEach(input => {
+                const handler = (e) => {
+                    const key = e.target.getAttribute('data-key');
+                    this.escritoDynamicValues[key] = e.target.value;
+                    this.updateEscritoPreview();
+                };
+                input.addEventListener('input', handler);
+                input.addEventListener('change', handler);
+            });
+        }
+
+        updateEscritoPreview() {
+            if (!this.activePlantilla) return;
+
+            const dniVal = this.newDniInput ? this.newDniInput.value : '';
+            const apellidosVal = this.newApellidosInput ? this.newApellidosInput.value : '';
+            const nombresVal = this.newNombresInput ? this.newNombresInput.value : '';
+            const celularVal = this.newCelularInput ? this.newCelularInput.value : '';
+            const expteVal = this.newExpteInput ? this.newExpteInput.value : '';
+            const defensoriaVal = this.newDefensoriaSelect ? this.newDefensoriaSelect.value : '';
+            const atendidoPorVal = this.newAtendidoPorInput ? this.newAtendidoPorInput.value : '';
+            const elFecha = document.getElementById('newFecha');
+            const fechaVal = elFecha ? elFecha.value : '';
+
+            const renderData = Object.assign({
+                dni: dniVal,
+                apellidos: apellidosVal,
+                nombres: nombresVal,
+                celular: celularVal,
+                expte: expteVal,
+                defensoria: defensoriaVal,
+                atendidoPor: atendidoPorVal,
+                fecha: fechaVal
+            }, this.escritoDynamicValues);
+
+            const renderedText = DocumentRenderService.renderTemplate(this.activePlantilla.cuerpoTemplate, renderData);
+
+            if (this.escritoTextoEditor) {
+                this.escritoTextoEditor.value = renderedText;
+            }
+
+            if (this.previewHeaderExpte) {
+                this.previewHeaderExpte.innerHTML = '<strong>Expte:</strong> ' + (expteVal || 'S/N°');
+            }
+            if (this.previewHeaderDefensoria) {
+                this.previewHeaderDefensoria.innerHTML = '<strong>Defensoría:</strong> ' + (defensoriaVal || 'Oficial');
+            }
+            if (this.previewSumarioBadge) {
+                const customSumario = this.escritoDynamicValues.SUMARIO_PERSONALIZADO || this.activePlantilla.sumario || 'PRESENTA ESCRITO JUDICIAL';
+                this.previewSumarioBadge.textContent = 'SUMARIO: ' + customSumario;
+            }
+        }
+
+        copiarTextoEscrito() {
+            if (!this.escritoTextoEditor || !this.escritoTextoEditor.value.trim()) {
+                showToast('No hay texto para copiar.', 'error');
+                return;
+            }
+            const textToCopy = this.escritoTextoEditor.value;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showToast('¡Texto del escrito copiado al portapapeles!', 'success');
+                }).catch(() => {
+                    this._fallbackCopyText(textToCopy);
+                });
+            } else {
+                this._fallbackCopyText(textToCopy);
+            }
+        }
+
+        _fallbackCopyText(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('¡Texto del escrito copiado al portapapeles!', 'success');
+            } catch (err) {
+                showToast('No se pudo copiar el texto automáticamente.', 'error');
+            }
+            textArea.remove();
+        }
+
+        _printHtmlViaIframe(html) {
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.zIndex = '-9999';
+            document.body.appendChild(iframe);
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Imprimir Escrito - MPD Mendoza</title>' +
+                '<style>' +
+                    '@page { size: A4 portrait; margin: 12mm 15mm; }' +
+                    '* { box-sizing: border-box; }' +
+                    'body { margin: 0; padding: 0; background: #FFF !important; color: #000 !important; font-family: Times, "Times New Roman", serif; }' +
+                    '.escrito-print-document { width: 100% !important; max-width: 100% !important; margin: 0 auto !important; padding: 0 !important; }' +
+                '</style></head><body>' +
+                html +
+                '</body></html>');
+            doc.close();
+
+            iframe.contentWindow.focus();
+            setTimeout(() => {
+                try {
+                    iframe.contentWindow.print();
+                } catch(err) {
+                    console.error('Error al imprimir iframe:', err);
+                }
+                setTimeout(() => {
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                }, 3000);
+            }, 350);
+        }
+
+        imprimirEscritoOficial() {
+            if (!this.escritoTextoEditor || !this.escritoTextoEditor.value.trim()) {
+                showToast('No hay texto para imprimir.', 'error');
+                return;
+            }
+
+            const html = DocumentRenderService.generatePrintableHtml({
+                titulo: this.activePlantilla ? this.activePlantilla.titulo : 'ESCRITO JUDICIAL',
+                sumario: (this.escritoDynamicValues && this.escritoDynamicValues.SUMARIO_PERSONALIZADO) || (this.activePlantilla ? this.activePlantilla.sumario : 'PRESENTA ESCRITO JUDICIAL'),
+                cuerpoTexto: this.escritoTextoEditor.value,
+                ciudadanoNombre: ((this.newApellidosInput ? this.newApellidosInput.value : '') + ' ' + (this.newNombresInput ? this.newNombresInput.value : '')).trim() || 'COMPARECIENTE',
+                dni: this.newDniInput ? this.newDniInput.value : '',
+                expte: this.newExpteInput ? this.newExpteInput.value : '',
+                defensoria: this.newDefensoriaSelect ? this.newDefensoriaSelect.value : '',
+                operador: this.newAtendidoPorInput ? this.newAtendidoPorInput.value : '',
+                fecha: (document.getElementById('newFecha') ? document.getElementById('newFecha').value : ''),
+                firmanteTipo: (this.escritoDynamicValues && this.escritoDynamicValues.FIRMANTE_DEFENSA) || 'titular'
+            });
+
+            this._printHtmlViaIframe(html);
+        }
+
+        descargarPdfEscrito() {
+            if (!this.escritoTextoEditor || !this.escritoTextoEditor.value.trim()) {
+                showToast('No hay texto para descargar.', 'error');
+                return;
+            }
+
+            showToast('Generando archivo PDF...', 'info');
+
+            const ape = ((this.newApellidosInput ? this.newApellidosInput.value : '') || 'Ciudadano').trim().replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_-]/g, '_');
+            const cod = (this.activePlantilla ? this.activePlantilla.codigo : 'escrito').replace(/[^a-zA-Z0-9_-]/g, '');
+            const filename = 'Escrito_' + cod + '_' + ape + '.pdf';
+
+            const html = DocumentRenderService.generatePrintableHtml({
+                titulo: this.activePlantilla ? this.activePlantilla.titulo : 'ESCRITO JUDICIAL',
+                sumario: (this.escritoDynamicValues && this.escritoDynamicValues.SUMARIO_PERSONALIZADO) || (this.activePlantilla ? this.activePlantilla.sumario : 'PRESENTA ESCRITO JUDICIAL'),
+                cuerpoTexto: this.escritoTextoEditor.value,
+                ciudadanoNombre: ((this.newApellidosInput ? this.newApellidosInput.value : '') + ' ' + (this.newNombresInput ? this.newNombresInput.value : '')).trim() || 'COMPARECIENTE',
+                dni: this.newDniInput ? this.newDniInput.value : '',
+                expte: this.newExpteInput ? this.newExpteInput.value : '',
+                defensoria: this.newDefensoriaSelect ? this.newDefensoriaSelect.value : '',
+                operador: this.newAtendidoPorInput ? this.newAtendidoPorInput.value : '',
+                fecha: (document.getElementById('newFecha') ? document.getElementById('newFecha').value : ''),
+                firmanteTipo: (this.escritoDynamicValues && this.escritoDynamicValues.FIRMANTE_DEFENSA) || 'titular'
+            });
+
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.style.width = '210mm';
+            container.style.background = '#ffffff';
+            container.style.color = '#000000';
+            document.body.appendChild(container);
+
+            if (typeof window.html2pdf === 'function') {
+                const opt = {
+                    margin: [10, 12, 12, 12],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                window.html2pdf().set(opt).from(container).save().then(() => {
+                    if (container.parentNode) container.parentNode.removeChild(container);
+                    showToast('¡Archivo PDF descargado exitosamente!', 'success');
+                }).catch(err => {
+                    console.error('Error al generar PDF:', err);
+                    if (container.parentNode) container.parentNode.removeChild(container);
+                    this._printHtmlViaIframe(html);
+                });
+            } else {
+                if (container.parentNode) container.parentNode.removeChild(container);
+                this._printHtmlViaIframe(html);
+            }
+        }
+
+        guardarComoTareaPendienteEscrito() {
+            if (!this.newTareaPendiente) return;
+            this.newTareaPendiente.checked = true;
+            const plantillaTitulo = this.activePlantilla ? this.activePlantilla.titulo : 'Confección de Escrito';
+            if (this.newDetallePendiente && !this.newDetallePendiente.value.trim()) {
+                this.newDetallePendiente.value = 'Confección de Escrito: ' + plantillaTitulo;
+            }
+            showToast('Tarea pendiente marcada. El borrador del escrito se guardará con la atención.', 'info');
+        }
+
+        async loadAdminPlantillas() {
+            if (!this.adminPlantillasTableBody) return;
+            try {
+                const res = await fetch(getApiUrl('/api/admin/plantillas-escritos'));
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        this.renderAdminPlantillasTable(json.data);
+                    }
+                }
+            } catch (e) {
+                console.warn('Error cargando plantillas admin:', e.message);
+            }
+        }
+
+        renderAdminPlantillasTable(items) {
+            if (!this.adminPlantillasTableBody) return;
+            if (!items || items.length === 0) {
+                this.adminPlantillasTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94A3B8;">No hay plantillas registradas.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            items.forEach(p => {
+                const isActivo = Boolean(Number(p.activo));
+                const badgeStatus = isActivo ? '<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid #10B981;">Activa</span>' : '<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #F87171; border: 1px solid #EF4444;">Inactiva</span>';
+                const toggleBtnText = isActivo ? '<i class="ri-eye-off-line"></i> Desactivar' : '<i class="ri-eye-line"></i> Activar';
+                const toggleBtnColor = isActivo ? 'background: rgba(239, 68, 68, 0.15); color: #F87171; border-color: #EF4444;' : 'background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: #10B981;';
+
+                html += '<tr>' +
+                    '<td><code style="color: var(--mpd-cyan); font-weight: 700;">' + p.codigo + '</code></td>' +
+                    '<td style="font-weight: 600;">' + p.titulo + '</td>' +
+                    '<td><span class="badge badge-otro">' + (p.categoria || 'PENAL') + '</span></td>' +
+                    '<td style="font-size: 0.8rem; color: #CBD5E1;">' + (p.sumario || '-') + '</td>' +
+                    '<td>' + badgeStatus + '</td>' +
+                    '<td>' +
+                        '<div style="display: flex; gap: 0.4rem;">' +
+                            '<button class="btn btn-sm btn-admin-edit-plantilla" data-id="' + p.id + '" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; border-color: #38BDF8; font-size: 0.78rem; padding: 0.25rem 0.6rem;">' +
+                                '<i class="ri-edit-line"></i> Editar' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-admin-toggle-plantilla" data-id="' + p.id + '" style="' + toggleBtnColor + ' font-size: 0.78rem; padding: 0.25rem 0.6rem;">' +
+                                toggleBtnText +
+                            '</button>' +
+                        '</div>' +
+                    '</td>' +
+                '</tr>';
+            });
+
+            this.adminPlantillasTableBody.innerHTML = html;
+
+            this.adminPlantillasTableBody.querySelectorAll('.btn-admin-edit-plantilla').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = Number(e.currentTarget.getAttribute('data-id'));
+                    const item = items.find(p => p.id === id);
+                    if (item) this.openAdminEditPlantilla(item);
+                });
+            });
+
+            this.adminPlantillasTableBody.querySelectorAll('.btn-admin-toggle-plantilla').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = Number(e.currentTarget.getAttribute('data-id'));
+                    await this.toggleAdminPlantillaStatus(id);
+                });
+            });
+        }
+
+        openAdminEditPlantilla(p) {
+            if (!this.adminPlantillaForm) return;
+            document.getElementById('adminPlantillaId').value = p.id;
+            document.getElementById('adminPlantillaCodigo').value = p.codigo;
+            document.getElementById('adminPlantillaCodigo').readOnly = true;
+            document.getElementById('adminPlantillaTitulo').value = p.titulo;
+            document.getElementById('adminPlantillaCategoria').value = p.categoria || 'PENAL';
+            document.getElementById('adminPlantillaSumario').value = p.sumario || '';
+            document.getElementById('adminPlantillaDestinatario').value = p.destinatario_default || 'SEÑOR/A DEFENSOR/A OFICIAL';
+            document.getElementById('adminPlantillaCuerpo').value = p.cuerpo_template || '';
+            document.getElementById('adminPlantillaCampos').value = typeof p.campos_dinamicos === 'string' ? p.campos_dinamicos : JSON.stringify(p.campos_dinamicos || []);
+
+            this.adminPlantillaForm.style.display = 'grid';
+            this.adminPlantillaForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async toggleAdminPlantillaStatus(id) {
+            try {
+                const res = await fetch(getApiUrl('/api/admin/plantillas-escritos/' + id), { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('Estado de plantilla actualizado.', 'success');
+                    await this.loadAdminPlantillas();
+                    await this.loadPlantillasEscritos();
+                }
+            } catch (e) {
+                showToast('Error al actualizar estado de plantilla.', 'error');
+            }
+        }
+
+        setupAdminPlantillaEvents() {
+            if (this.btnAdminNuevaPlantilla) {
+                this.btnAdminNuevaPlantilla.addEventListener('click', () => {
+                    if (!this.adminPlantillaForm) return;
+                    this.adminPlantillaForm.reset();
+                    document.getElementById('adminPlantillaId').value = '';
+                    document.getElementById('adminPlantillaCodigo').readOnly = false;
+                    document.getElementById('adminPlantillaCampos').value = '[]';
+                    this.adminPlantillaForm.style.display = 'grid';
+                });
+            }
+
+            if (this.btnCancelEditPlantilla) {
+                this.btnCancelEditPlantilla.addEventListener('click', () => {
+                    if (this.adminPlantillaForm) {
+                        this.adminPlantillaForm.reset();
+                        this.adminPlantillaForm.style.display = 'none';
+                    }
+                });
+            }
+
+            if (this.adminPlantillaForm) {
+                this.adminPlantillaForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const id = document.getElementById('adminPlantillaId').value;
+                    const codigo = document.getElementById('adminPlantillaCodigo').value.trim();
+                    const titulo = document.getElementById('adminPlantillaTitulo').value.trim();
+                    const categoria = document.getElementById('adminPlantillaCategoria').value;
+                    const sumario = document.getElementById('adminPlantillaSumario').value.trim();
+                    const destinatarioDefault = document.getElementById('adminPlantillaDestinatario').value.trim();
+                    const cuerpoTemplate = document.getElementById('adminPlantillaCuerpo').value;
+                    const camposRaw = document.getElementById('adminPlantillaCampos').value.trim();
+
+                    let camposDinamicos = [];
+                    if (camposRaw) {
+                        try {
+                            camposDinamicos = JSON.parse(camposRaw);
+                        } catch (err) {
+                            showToast('El formato de Campos Dinámicos debe ser un JSON válido.', 'error');
+                            return;
+                        }
+                    }
+
+                    const payload = {
+                        codigo,
+                        titulo,
+                        categoria,
+                        sumario,
+                        destinatarioDefault,
+                        cuerpoTemplate,
+                        camposDinamicos,
+                        adminOperatorName: this.currentUser ? this.currentUser.nombreCompleto : 'ADMIN'
+                    };
+
+                    try {
+                        const url = id ? getApiUrl('/api/admin/plantillas-escritos/' + id) : getApiUrl('/api/admin/plantillas-escritos');
+                        const method = id ? 'PUT' : 'POST';
+
+                        const res = await fetch(url, {
+                            method: method,
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (res.ok) {
+                            showToast(id ? '¡Plantilla actualizada correctamente!' : '¡Nueva plantilla creada con éxito!', 'success');
+                            this.adminPlantillaForm.reset();
+                            this.adminPlantillaForm.style.display = 'none';
+                            await this.loadAdminPlantillas();
+                            await this.loadPlantillasEscritos();
+                        } else {
+                            const err = await res.json();
+                            showToast('Error: ' + (err.error || 'No se pudo guardar la plantilla'), 'error');
+                        }
+                    } catch (err) {
+                        showToast('Error de conexión al guardar plantilla.', 'error');
+                    }
+                });
             }
         }
 
@@ -2985,7 +3783,25 @@ const bundleContent = `/* ======================================================
             if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
             if (this.fechaVencimientoGroup) this.fechaVencimientoGroup.style.display = 'none';
 
+            // Reset panel de confección de escritos
+            if (this.selectPlantillaEscrito) this.selectPlantillaEscrito.value = '';
+            this.activePlantilla = null;
+            this.escritoDynamicValues = {};
+            if (this.escritoCamposDinamicosWrapper) this.escritoCamposDinamicosWrapper.style.display = 'none';
+            if (this.escritoCamposDinamicosContainer) this.escritoCamposDinamicosContainer.innerHTML = '';
+            if (this.escritoPreviewSection) this.escritoPreviewSection.style.display = 'none';
+            if (this.escritoTextoEditor) this.escritoTextoEditor.value = '';
+            if (this.escritoPanelContent) this.escritoPanelContent.style.display = 'none';
+            if (this.escritoChevronIcon) this.escritoChevronIcon.className = 'ri-arrow-down-s-line';
+            if (this.escritoStatusBadge) {
+                this.escritoStatusBadge.className = 'badge';
+                this.escritoStatusBadge.style.background = 'rgba(148, 163, 184, 0.15)';
+                this.escritoStatusBadge.style.color = '#94A3B8';
+                this.escritoStatusBadge.textContent = 'Sin plantilla';
+            }
+
             await this.loadCatalogOptions();
+            await this.loadPlantillasEscritos();
             this.newRecordModal.classList.add('active');
         }
 
@@ -2994,6 +3810,7 @@ const bundleContent = `/* ======================================================
             if (!entity) return;
 
             await this.loadCatalogOptions();
+            await this.loadPlantillasEscritos();
 
             this.editingRecordId = dto.id;
             const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
@@ -3056,6 +3873,55 @@ const bundleContent = `/* ======================================================
 
             if (this.newTareaPendiente) this.newTareaPendiente.checked = entity.tareaPendiente;
             if (this.newDetallePendiente) this.newDetallePendiente.value = entity.detallePendiente || '';
+
+            // Cargar estado de confección de escritos
+            if (entity.plantillaCodigo || entity.escritos || entity.escritosData) {
+                if (this.escritoPanelContent) this.escritoPanelContent.style.display = 'block';
+                if (this.escritoChevronIcon) this.escritoChevronIcon.className = 'ri-arrow-up-s-line';
+                
+                if (entity.plantillaCodigo && this.selectPlantillaEscrito) {
+                    this.selectPlantillaEscrito.value = entity.plantillaCodigo;
+                    this.activePlantilla = this.plantillasEscritos.find(p => p.codigo === entity.plantillaCodigo) || null;
+                }
+
+                if (entity.escritosData) {
+                    try {
+                        this.escritoDynamicValues = typeof entity.escritosData === 'string' ? JSON.parse(entity.escritosData) : entity.escritosData;
+                    } catch(e) {
+                        this.escritoDynamicValues = {};
+                    }
+                } else {
+                    this.escritoDynamicValues = {};
+                }
+
+                if (this.activePlantilla) {
+                    this.buildDynamicFields(this.activePlantilla.camposDinamicos);
+                }
+
+                if (this.escritoPreviewSection) this.escritoPreviewSection.style.display = 'block';
+                if (this.escritoTextoEditor) {
+                    this.escritoTextoEditor.value = entity.escritos || '';
+                }
+                if (this.escritoStatusBadge) {
+                    this.escritoStatusBadge.className = 'badge ' + (entity.tareaPendiente ? 'badge-escrito-borrador' : 'badge-escrito-completado');
+                    this.escritoStatusBadge.textContent = entity.tareaPendiente ? 'Borrador Pendiente' : 'Escrito Confeccionado';
+                }
+            } else {
+                if (this.selectPlantillaEscrito) this.selectPlantillaEscrito.value = '';
+                this.activePlantilla = null;
+                this.escritoDynamicValues = {};
+                if (this.escritoCamposDinamicosWrapper) this.escritoCamposDinamicosWrapper.style.display = 'none';
+                if (this.escritoPreviewSection) this.escritoPreviewSection.style.display = 'none';
+                if (this.escritoTextoEditor) this.escritoTextoEditor.value = '';
+                if (this.escritoPanelContent) this.escritoPanelContent.style.display = 'none';
+                if (this.escritoChevronIcon) this.escritoChevronIcon.className = 'ri-arrow-down-s-line';
+                if (this.escritoStatusBadge) {
+                    this.escritoStatusBadge.className = 'badge';
+                    this.escritoStatusBadge.style.background = 'rgba(148, 163, 184, 0.15)';
+                    this.escritoStatusBadge.style.color = '#94A3B8';
+                    this.escritoStatusBadge.textContent = 'Sin plantilla';
+                }
+            }
 
             this.newRecordModal.classList.add('active');
         }
@@ -3359,8 +4225,63 @@ const bundleContent = `/* ======================================================
                     '</div>' +
                 '</div>' +
 
-                (dto.escritos ? '<div style="background: rgba(168, 10, 10, 0.15); padding: 1rem; border-radius: 6px; border: 1px solid rgba(168, 10, 10, 0.3);"><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Escritos Judiciales</span><p style="font-size: 0.9rem; font-weight: 500;">' + dto.escritos + '</p></div>' : '') +
+                (dto.escritos ? '<div style="background: rgba(14, 165, 233, 0.08); padding: 1.25rem; border-radius: 8px; border: 1px solid rgba(14, 165, 233, 0.3); margin-top: 0.5rem;">' +
+                    '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">' +
+                        '<div>' +
+                            '<span style="font-size: 0.75rem; color: #38BDF8; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;"><i class="ri-file-text-line"></i> Escrito Judicial Confeccionado</span>' +
+                            '<span style="font-size: 0.85rem; color: #CBD5E1; font-weight: 600;">' + (dto.plantillaCodigo ? 'Plantilla: ' + dto.plantillaCodigo : 'Documento redactado') + '</span>' +
+                        '</div>' +
+                        '<div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">' +
+                            '<button id="btnDetailCopiarEscrito" class="btn btn-sm" style="background: rgba(255,255,255,0.08); color: #E2E8F0; font-size: 0.78rem; padding: 0.3rem 0.6rem;"><i class="ri-file-copy-line"></i> Copiar Texto</button>' +
+                            '<button id="btnDetailImprimirEscrito" class="btn btn-sm" style="background: rgba(14, 165, 233, 0.2); color: #38BDF8; border: 1px solid #38BDF8; font-size: 0.78rem; padding: 0.3rem 0.6rem;"><i class="ri-printer-line"></i> Imprimir</button>' +
+                            (isPending ? '<button id="btnDetailRetomarEscrito" class="btn btn-sm" style="background: rgba(245, 158, 11, 0.2); color: #FBBF24; border: 1px solid #F59E0B; font-size: 0.78rem; padding: 0.3rem 0.6rem;"><i class="ri-edit-2-line"></i> Retomar / Concluir Escrito</button>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="detailEscritoTextoContainer" style="background: #FFF; color: #0F172A; font-family: Times, serif; font-size: 0.88rem; line-height: 1.5; padding: 1rem; border-radius: 4px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #CBD5E1;">' + dto.escritos + '</div>' +
+                '</div>' : '') +
             '</div>';
+
+            const btnDetailCopiar = document.getElementById('btnDetailCopiarEscrito');
+            if (btnDetailCopiar) {
+                btnDetailCopiar.addEventListener('click', () => {
+                    const txt = dto.escritos || '';
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(txt).then(() => {
+                            showToast('¡Texto del escrito copiado al portapapeles!', 'success');
+                        }).catch(() => {
+                            this._fallbackCopyText(txt);
+                        });
+                    } else {
+                        this._fallbackCopyText(txt);
+                    }
+                });
+            }
+
+            const btnDetailImprimir = document.getElementById('btnDetailImprimirEscrito');
+            if (btnDetailImprimir) {
+                btnDetailImprimir.addEventListener('click', () => {
+                    const html = DocumentRenderService.generatePrintableHtml({
+                        titulo: 'ESCRITO JUDICIAL',
+                        sumario: 'PRESENTA ESCRITO JUDICIAL',
+                        cuerpoTexto: dto.escritos,
+                        ciudadanoNombre: dto.fullName,
+                        dni: dto.dniRaw,
+                        expte: dto.expte,
+                        defensoria: dto.defensoriaName,
+                        operador: dto.atendidoPor,
+                        fecha: dto.fecha
+                    });
+                    this._printHtmlViaIframe(html);
+                });
+            }
+
+            const btnDetailRetomar = document.getElementById('btnDetailRetomarEscrito');
+            if (btnDetailRetomar) {
+                btnDetailRetomar.addEventListener('click', () => {
+                    this.detailModal.classList.remove('active');
+                    this.openEditModal(dto);
+                });
+            }
 
             const btnModalEditRecord = document.getElementById('btnModalEditRecord');
             if (btnModalEditRecord) {
@@ -3458,6 +4379,9 @@ const bundleContent = `/* ======================================================
                     codefensoraAsignada: codefensora,
                     fechaVencimientoContestacion: vencimientoContestacion,
                     detalleReparticion: detalleReparticionVal,
+                    plantillaCodigo: this.activePlantilla ? this.activePlantilla.codigo : (this.selectPlantillaEscrito ? this.selectPlantillaEscrito.value : ''),
+                    escritos: this.escritoTextoEditor ? this.escritoTextoEditor.value.trim() : '',
+                    escritosData: this.escritoDynamicValues ? JSON.stringify(this.escritoDynamicValues) : '',
                     operatorId: this.currentUser ? this.currentUser.id : 0
                 };
 
@@ -3479,6 +4403,21 @@ const bundleContent = `/* ======================================================
                 this.editingRecordId = null;
                 this.newRecordModal.classList.remove('active');
                 if (this.newRecordForm) this.newRecordForm.reset();
+                if (this.selectPlantillaEscrito) this.selectPlantillaEscrito.value = '';
+                this.activePlantilla = null;
+                this.escritoDynamicValues = {};
+                if (this.escritoCamposDinamicosWrapper) this.escritoCamposDinamicosWrapper.style.display = 'none';
+                if (this.escritoCamposDinamicosContainer) this.escritoCamposDinamicosContainer.innerHTML = '';
+                if (this.escritoPreviewSection) this.escritoPreviewSection.style.display = 'none';
+                if (this.escritoTextoEditor) this.escritoTextoEditor.value = '';
+                if (this.escritoPanelContent) this.escritoPanelContent.style.display = 'none';
+                if (this.escritoChevronIcon) this.escritoChevronIcon.className = 'ri-arrow-down-s-line';
+                if (this.escritoStatusBadge) {
+                    this.escritoStatusBadge.className = 'badge';
+                    this.escritoStatusBadge.style.background = 'rgba(148, 163, 184, 0.15)';
+                    this.escritoStatusBadge.style.color = '#94A3B8';
+                    this.escritoStatusBadge.textContent = 'Sin plantilla';
+                }
             } catch (err) {
                 console.error('Error al guardar atención:', err);
                 showToast('Error al guardar atención: ' + (err.message || err), 'error');

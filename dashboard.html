@@ -162,7 +162,7 @@
                             </div>
                         </div>
 
-                        <div class="stat-card stat-gold" style="border-top: 3px solid #F59E0B; position: relative; overflow: visible !important; cursor: pointer;" id="cardTareasPendientes" title="Haga clic para filtrar tareas pendientes | Pasa el mouse para ver desglose por operador">
+                        <div class="stat-card stat-gold" style="position: relative; overflow: visible !important; cursor: pointer;" id="cardTareasPendientes" title="Haga clic para filtrar tareas pendientes | Pasa el mouse para ver desglose por operador">
                             <div class="stat-header">
                                 <span class="stat-label">Tareas Pendientes</span>
                                 <div class="stat-icon" style="color: #F59E0B;"><i class="ri-time-line"></i></div>
@@ -417,6 +417,84 @@
                         <!-- Lista de Opciones Actuales -->
                         <div id="catalogOptionsListContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;">
                             <div style="color: #94A3B8; font-size: 0.85rem;">Cargando opciones...</div>
+                        </div>
+                    </div>
+
+                    <!-- Gestión de Plantillas de Escritos Judiciales -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <h3><i class="ri-file-paper-2-line"></i> Gestión de Plantillas de Escritos Judiciales</h3>
+                                <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.25rem;">Cree, modifique o desactive plantillas judiciales con placeholders dinámicos ({{CIUDADANO_NOMBRE}}, {{DNI}}, {{EXPTE}}, etc.).</p>
+                            </div>
+                            <button type="button" class="btn btn-primary" id="btnAdminNuevaPlantilla" style="font-size: 0.85rem;">
+                                <i class="ri-add-circle-line"></i> Nueva Plantilla
+                            </button>
+                        </div>
+
+                        <!-- Formulario de Creación / Edición de Plantilla -->
+                        <form id="adminPlantillaForm" style="display: none; margin-bottom: 1.5rem; background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px; border: 1px solid rgba(0, 180, 216, 0.35);" class="form-grid">
+                            <input type="hidden" id="adminPlantillaId" value="">
+                            <div class="form-group">
+                                <label>Código Identificador (único)</label>
+                                <input type="text" id="adminPlantillaCodigo" class="form-control" placeholder="Ej: cambio_domicilio_penal" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Título de la Plantilla</label>
+                                <input type="text" id="adminPlantillaTitulo" class="form-control" placeholder="Ej: Informar Cambio de Domicilio Real" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Categoría / Área</label>
+                                <select id="adminPlantillaCategoria" class="form-control">
+                                    <option value="PENAL">PENAL</option>
+                                    <option value="FAMILIA">FAMILIA</option>
+                                    <option value="CIVIL">CIVIL</option>
+                                    <option value="GENERAL">GENERAL</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sumario por Defecto</label>
+                                <input type="text" id="adminPlantillaSumario" class="form-control" placeholder="Ej: INFORMA NUEVO DOMICILIO REAL">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Destinatario por Defecto</label>
+                                <input type="text" id="adminPlantillaDestinatario" class="form-control" placeholder="Ej: SEÑOR/A DEFENSOR/A OFICIAL / JUZGADO PENAL COLEGIADO">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Cuerpo / Estructura de la Plantilla (Placeholders disponibles: {{CIUDADANO_NOMBRE}}, {{DNI}}, {{EXPTE}}, {{DEFENSORIA}}, {{FECHA_LEGAL}})</label>
+                                <textarea id="adminPlantillaCuerpo" class="form-control" rows="8" placeholder="Escriba la estructura del escrito con sus placeholders..." required></textarea>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Campos Dinámicos Requeridos (JSON)</label>
+                                <textarea id="adminPlantillaCampos" class="form-control" rows="3" placeholder='[{"key":"NUEVO_DOMICILIO","label":"Nuevo Domicilio","type":"text","required":true}]'></textarea>
+                                <small style="color: #94A3B8; font-size: 0.72rem;">Defina los campos dinámicos en formato JSON con clave, etiqueta y tipo (text / textarea).</small>
+                            </div>
+                            <div class="form-group full-width" style="display: flex; gap: 0.75rem;">
+                                <button type="submit" class="btn btn-primary" id="btnSavePlantilla" style="flex: 1; justify-content: center;">
+                                    <i class="ri-save-line"></i> Guardar Plantilla
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btnCancelEditPlantilla">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Título</th>
+                                        <th>Categoría</th>
+                                        <th>Sumario</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminPlantillasTableBody">
+                                    <tr><td colspan="6" style="text-align: center;">Cargando plantillas...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -712,9 +790,114 @@
                         <textarea id="newObservaciones" class="form-control" rows="3" placeholder="Detalle sintético del caso..."></textarea>
                     </div>
 
+                    <!-- SECCIÓN EXPANDIBLE: CONFECCIÓN DE ESCRITO JUDICIAL -->
+                    <div class="form-group full-width" id="sectionConfeccionEscrito" style="background: rgba(11, 19, 41, 0.75); border: 1px solid rgba(0, 180, 216, 0.35); border-radius: 10px; padding: 1.25rem; margin-top: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" id="toggleEscritoPanel">
+                            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                <div style="width: 34px; height: 34px; border-radius: 6px; background: rgba(0, 180, 216, 0.2); display: flex; align-items: center; justify-content: center; color: var(--mpd-cyan);">
+                                    <i class="ri-file-edit-line" style="font-size: 1.25rem;"></i>
+                                </div>
+                                <div>
+                                    <h5 style="margin: 0; color: var(--mpd-cyan); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.3px;">
+                                        Confección de Escrito Judicial (Basado en Plantillas)
+                                    </h5>
+                                    <p style="margin: 0; font-size: 0.76rem; color: #94A3B8;">
+                                        Genera escritos oficiales en PDF, imprime con membrete oficial o guarda como tarea pendiente
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="badge" id="escritoStatusBadge" style="background: rgba(148, 163, 184, 0.15); color: #94A3B8;">Sin plantilla</span>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btnToggleEscrito" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">
+                                    <i class="ri-arrow-down-s-line" id="escritoChevronIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Contenido desplegable de redacción -->
+                        <div id="escritoPanelContent" style="display: none; margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1.25rem;">
+                            <!-- Selector de Plantilla -->
+                            <div style="margin-bottom: 1.25rem;">
+                                <label style="color: var(--mpd-cyan); font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem;">
+                                    <i class="ri-file-list-3-line"></i> Seleccionar Plantilla de Trámite Predefinida
+                                </label>
+                                <select id="selectPlantillaEscrito" class="form-control" style="font-weight: 600; border-color: rgba(0, 180, 216, 0.5);">
+                                    <option value="">-- No confeccionar escrito en este momento --</option>
+                                </select>
+                            </div>
+
+                            <!-- Contenedor dinámico para variables específicas de la plantilla -->
+                            <div id="escritoCamposDinamicosWrapper" style="display: none; margin-bottom: 1.25rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
+                                <div style="font-size: 0.8rem; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-input-field"></i> Datos Específicos del Trámite Requerido
+                                </div>
+                                <div class="form-grid" id="escritoCamposDinamicosContainer">
+                                    <!-- Se inyectan dinámicamente según la plantilla seleccionada -->
+                                </div>
+                            </div>
+
+                            <!-- Vista Previa / Editor del Documento Judicial -->
+                            <div id="escritoPreviewSection" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <label style="color: #FBBF24; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+                                        <i class="ri-article-line"></i> Vista Previa del Escrito / Redacción Editable
+                                    </label>
+                                    <div style="font-size: 0.75rem; color: #94A3B8;">
+                                        <i class="ri-information-line"></i> Puede afinar el texto libremente antes de generar PDF o imprimir
+                                    </div>
+                                </div>
+
+                                <!-- Hoja de Papel Judicial A4 -->
+                                <div class="paper-preview-box" style="background: #FFFFFF; color: #0F172A; border-radius: 6px; padding: 1.5rem; box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 1rem; border: 1px solid #E2E8F0;">
+                                    <!-- Encabezado Membrete Oficial -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B1329; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <img src="Logo sin fondo 3-recortado.PNG" alt="MPD" style="height: 48px; object-fit: contain;" onerror="this.src='logo_horizontal.png';">
+                                            <div>
+                                                <div style="font-size: 0.85rem; font-weight: 800; color: #0B1329; text-transform: uppercase; font-family: 'Times New Roman', serif;">Ministerio Público de la Defensa</div>
+                                                <div style="font-size: 0.72rem; font-weight: 600; color: #475569; font-family: 'Times New Roman', serif;">Poder Judicial de Mendoza - 2ª Circunscripción</div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right; font-size: 0.72rem; color: #334155; font-family: 'Times New Roman', serif;">
+                                            <div id="previewHeaderExpte"><strong>Expte:</strong> S/N°</div>
+                                            <div id="previewHeaderDefensoria"><strong>Defensoría:</strong> Oficial</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sumario -->
+                                    <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem;">
+                                        <div id="previewSumarioBadge" style="border: 1px solid #0F172A; background: #F8FAFC; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; font-family: 'Times New Roman', serif;">
+                                            SUMARIO: INFORMA NUEVO DOMICILIO REAL
+                                        </div>
+                                    </div>
+
+                                    <!-- Editor de Texto del Escrito -->
+                                    <textarea id="escritoTextoEditor" rows="12" style="width: 100%; border: 1px dashed #CBD5E1; background: #FAFAFA; color: #1E293B; font-family: 'Times New Roman', Times, serif; font-size: 0.95rem; line-height: 1.55; padding: 0.85rem; border-radius: 4px; resize: vertical; outline: none;"></textarea>
+                                </div>
+
+                                <!-- Toolbar de Acciones de Escrito -->
+                                <div class="escrito-actions-toolbar">
+                                    <button type="button" class="btn btn-secondary escrito-action-btn" id="btnCopiarTextoEscrito">
+                                        <i class="ri-file-copy-line"></i> Copiar Texto
+                                    </button>
+                                    <button type="button" class="btn btn-info-action escrito-action-btn" id="btnImprimirEscrito">
+                                        <i class="ri-printer-line"></i> Imprimir
+                                    </button>
+                                    <button type="button" class="btn btn-success-action escrito-action-btn" id="btnDescargarPdfEscrito">
+                                        <i class="ri-file-pdf-line"></i> Descargar PDF
+                                    </button>
+                                    <button type="button" class="btn btn-warning-action escrito-action-btn" id="btnMarcarPendienteEscrito">
+                                        <i class="ri-time-line"></i> Dejar como Tarea Pendiente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group full-width" style="margin-top: 1rem;">
                         <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 1rem; padding: 0.75rem;">
                             <i class="ri-save-line"></i> Guardar e Incorporar al Historial
+                        </button>
                     </div>
                 </div>
             </form>
@@ -771,8 +954,10 @@
         </div>
     </div>
 
+    <!-- Librería para Descarga Directa de PDF sin pasar por ventana de impresión -->
+    <script src="html2pdf.bundle.min.js"></script>
     <!-- Script de Inicialización -->
-    <script src="dashboard-bundle.js?v=2"></script>
+    <script src="dashboard-bundle.js?v=3"></script>
     <!-- Modal Confirmación Genérico -->
     <div class="modal-overlay" id="confirmModal" style="z-index: 10000;">
         <div class="modal-content" style="max-width: 420px; text-align: center; padding: 1.75rem;">
@@ -861,5 +1046,7 @@
             </div>
         </div>
     </div>
+    <!-- Contenedor oculto para renderizado e impresión de escritos oficiales -->
+    <div id="printEscritoContainer" style="display: none;"></div>
 </body>
 </html>
