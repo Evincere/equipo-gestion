@@ -6,7 +6,7 @@
     <title>Gestión de Atenciones - Ministerio Público de la Defensa (Mendoza)</title>
     <!-- Remix Icons CDN -->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
         <!-- Barra de Título Aero -->
         <div class="aero-titlebar">
             <div class="window-title">
-                <img src="logo_horizontal.png" alt="Ministerio Público de la Defensa">
+                <img src="assets/images/logo_horizontal.png" alt="Ministerio Público de la Defensa">
                 <span>Gestión de Atenciones - Defensoría Pública (Mendoza)</span>
             </div>
             <div class="caption-buttons">
@@ -57,7 +57,7 @@
                     <button class="sidebar-toggle-btn" id="btnToggleSidebar" title="Contraer / Expandir Menú Lateral">
                         <i class="ri-menu-fold-line" id="sidebarToggleIcon"></i>
                     </button>
-                    <img src="logo_icon.png" alt="Logo MPD" class="brand-logo">
+                    <img src="assets/images/logo_icon.png" alt="Logo MPD" class="brand-logo">
                     <span class="brand-subtitle">Defensoría Pública</span>
                 </div>
 
@@ -184,31 +184,16 @@
                             </div>
                         </div>
 
-                        <div class="stat-card stat-magenta" id="cardDerivadasTecnica" style="cursor: pointer; position: relative;">
+                        <div class="stat-card stat-magenta" id="cardAsesoramientoGeneral" style="cursor: pointer; position: relative;">
                             <div class="stat-header">
-                                <span class="stat-label">Derivadas Asist. Técnica</span>
-                                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                                    <button type="button" id="btnToggleTecnicaBreakdown" title="Ver desglose por áreas" style="background: none; border: none; color: #EC4899; cursor: pointer; font-size: 1.1rem; padding: 0.2rem; border-radius: 4px;" onclick="event.stopPropagation();">
-                                        <i class="ri-pie-chart-line"></i>
-                                    </button>
-                                    <div class="stat-icon"><i class="ri-git-pull-request-line"></i></div>
-                                </div>
+                                <span class="stat-label">Asesoramientos Generales</span>
+                                <div class="stat-icon"><i class="ri-user-shared-line"></i></div>
                             </div>
-                            <div class="stat-value" id="kpiTecnica">...</div>
-                            <div id="tecnicaFilterBadge" style="display: none; margin-top: 0.4rem; font-size: 0.75rem; color: #F472B6; background: rgba(236, 72, 153, 0.15); border: 1px solid #EC4899; padding: 0.2rem 0.5rem; border-radius: 12px; align-items: center; justify-content: space-between;">
-                                <span id="tecnicaFilterBadgeText">Filtro: Asistencia Técnica</span>
-                                <i class="ri-close-line" id="btnClearTecnicaFilter" style="cursor: pointer; margin-left: 0.4rem; font-weight: bold;"></i>
-                            </div>
-                            
-                            <!-- Popover Desglose Flotante por Asistente Técnico -->
-                            <div id="tecnicaBreakdownPopover" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; width: 100%; background: rgba(15, 22, 36, 0.95); border: 1px solid #EC4899; border-radius: 8px; padding: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(10px); z-index: 100;" onclick="event.stopPropagation();">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem;">
-                                    <strong style="color: #F472B6; font-size: 0.8rem; text-transform: uppercase;">Por Asistente Técnico</strong>
-                                    <i class="ri-close-line" id="btnCloseTecnicaPopover" style="color: #94A3B8; cursor: pointer; font-size: 1rem;"></i>
-                                </div>
-                                <div id="tecnicaBreakdownList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 180px; overflow-y: auto;">
-                                    <span style="color: #94A3B8; font-size: 0.8rem;">Cargando...</span>
-                                </div>
+                            <div class="stat-value" id="kpiAsesoramiento">...</div>
+                            <div style="display: flex; gap: 0.5rem; font-size: 0.76rem; color: #94A3B8; margin-top: 0.35rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <span>Familia: <strong id="kpiAsesFamilia" style="color: #F472B6;">...</strong></span>
+                                <span>•</span>
+                                <span>Otros: <strong id="kpiAsesOtros" style="color: #38BDF8;">...</strong></span>
                             </div>
                         </div>
 
@@ -236,16 +221,16 @@
                                     <option value="2° DEFENSORIA PENAL">2° Defensoría Penal</option>
                                     <option value="3° DEFENSORIA PENAL">3° Defensoría Penal</option>
                                     <option value="EJECUCIÓN PENAL">Ejecución Penal</option>
-                                    <option value="DEF. MENORES">Defensoría de Menores</option>
+                                    <option value="DEFENSORÍA PENAL JUVENIL">Defensoría Penal Juvenil</option>
                                 </select>
 
                                 <select id="filterResultado" class="filter-select">
                                     <option value="">Todos los Estados</option>
                                     <option value="PENDIENTE">⚠️ Solo Tareas Pendientes</option>
-                                    <option value="Resuelve">Resuelve</option>
-                                    <option value="Deriva a A. Técnica">Deriva a A. Técnica</option>
-                                    <option value="Deriva a CO-DEF- FAMILIA">Deriva a Familia</option>
-                                    <option value="Deriva a otra repartición">Deriva a otra repartición</option>
+                                    <option value="Resuelve en Mesa / Operador">Resuelve en Mesa / Operador</option>
+                                    <option value="Entrevista con Defensor/a">Entrevista con Defensor/a</option>
+                                    <option value="Asesoramiento General">Asesoramiento General</option>
+                                    <option value="Derivado a otra repartición">Derivado a otra repartición</option>
                                 </select>
                             </div>
                         </div>
@@ -548,7 +533,7 @@
     <div class="modal-overlay active" id="loginModal" style="background: rgba(11, 19, 41, 0.92); backdrop-filter: blur(25px);">
         <div class="modal-content" style="max-width: 440px; border: 1px solid var(--mpd-gold); box-shadow: 0 0 40px rgba(0,0,0,0.8);">
             <div class="modal-header" style="text-align: center; justify-content: center; flex-direction: column; gap: 0.5rem;">
-                <img src="logo_icon.png" alt="Logo MPD" style="height: 60px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
+                <img src="assets/images/logo_icon.png" alt="Logo MPD" style="height: 60px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
                 <h4 style="color: var(--mpd-gold); font-size: 1.2rem;">Inicio de Sesión de Operador</h4>
                 <p style="font-size: 0.8rem; color: #94A3B8;">Ministerio Público de la Defensa (Mendoza)</p>
             </div>
@@ -596,229 +581,323 @@
         </div>
     </div>
 
-    <!-- Modal Nueva Atención (Con Marcación de Tarea Pendiente) -->
+    <!-- Modal Nueva Atención (Bloques Visuales Aero Glass) -->
     <div class="modal-overlay" id="newRecordModal">
-        <div class="modal-content" style="max-width: 720px;">
-            <div class="modal-header">
-                <h4>Registrar Nueva Atención</h4>
+        <div class="modal-content" style="max-width: 840px; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(0, 180, 216, 0.15); border: 1px solid var(--mpd-cyan); display: flex; align-items: center; justify-content: center; color: var(--mpd-cyan);">
+                        <i class="ri-user-add-line" style="font-size: 1.25rem;"></i>
+                    </div>
+                    <div>
+                        <h4 id="newRecordModalTitle" style="margin: 0; font-size: 1.15rem; color: #FFF;">Registrar Nueva Atención Ciudadana</h4>
+                        <p style="margin: 0; font-size: 0.76rem; color: #94A3B8;">Complete los bloques secuenciales. Los campos se adaptan según el fuero.</p>
+                    </div>
+                </div>
                 <button class="modal-close-btn" id="btnCloseNewModal"><i class="ri-close-line"></i></button>
             </div>
-            <div class="modal-body">
-                <form id="newRecordForm">
-                <!-- PASO 1: Búsqueda Primaria por DNI -->
-                <div style="background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--mpd-cyan-glow); margin-bottom: 1.5rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <label style="font-weight: 700; color: var(--mpd-cyan); text-transform: uppercase; font-size: 0.85rem;">
-                            <i class="ri-search-2-line"></i> Paso 1: Búsqueda Primaria por DNI del Ciudadano
-                        </label>
-                        <span class="badge badge-otro" id="dniStatusBadge">Ingrese DNI</span>
-                    </div>
-
-                    <div style="display: flex; gap: 0.75rem;">
-                        <input type="text" id="newDni" class="form-control" placeholder="Tipee DNI (Ej: 42209755)..." style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-mono); letter-spacing: 1px;" required>
-                        <button type="button" id="btnSearchDni" class="btn btn-secondary" style="white-space: nowrap;">
-                            <i class="ri-user-search-line"></i> Consultar DNI
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Historial de Atenciones Anteriores -->
-                <div id="citizenHistoryContainer" style="display: none; margin-bottom: 1.5rem;"></div>
-
-                <!-- PASO 2: Formulario de Registro -->
-                <!-- Banner de Vinculación de Trámite Histórico -->
-                <div id="linkedHistoryBanner" class="full-width" style="display: none; background: rgba(0, 180, 216, 0.15); border: 1px solid #00B4D8; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; align-items: center; justify-content: space-between; gap: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 0.6rem; color: #38BDF8; font-weight: 600; font-size: 0.88rem;">
-                        <i class="ri-link-m" style="font-size: 1.2rem;"></i>
-                        <span id="linkedHistoryBannerText">Continuando Trámite Previo...</span>
-                    </div>
-                    <button type="button" id="btnUnlinkHistory" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 0.78rem; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer;">
-                        <i class="ri-link-unlink-m"></i> Desvincular / Trámite Nuevo
-                    </button>
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Apellidos</label>
-                        <input type="text" id="newApellidos" class="form-control" placeholder="Ej: GONZALEZ" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Nombres</label>
-                        <input type="text" id="newNombres" class="form-control" placeholder="Ej: ARIEL" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Celular de Contacto</label>
-                        <input type="text" id="newCelular" class="form-control" placeholder="Ej: 2604560475">
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha de Atención</label>
-                        <input type="text" id="newFecha" class="form-control" placeholder="DD/MM/YYYY" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo de Actividad</label>
-                        <select id="newActividad" class="form-control" required>
-                            <option value="" disabled selected>-- Seleccionar Actividad --</option>
-                            <option value="Atención Personal">Atención Personal</option>
-                            <option value="Atención Telefónica">Atención Telefónica</option>
-                            <option value="Atención Whatsapp">Atención Whatsapp</option>
-                            <option value="Atención Teléfonica DETENIDO">Atención Teléfonica DETENIDO</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>N° Expediente</label>
-                        <input type="text" id="newExpte" class="form-control" placeholder="Ej: P-138253/26">
-                    </div>
-                    <div class="form-group">
-                        <label>Defensoría / Área</label>
-                        <select id="newDefensoria" class="form-control" required>
-                            <option value="" disabled selected>-- Seleccionar Defensoría / Área --</option>
-                            <option value="CO-DEF. FAMILIA">CO-DEF. FAMILIA</option>
-                            <option value="DEF. CIVIL">DEF. CIVIL</option>
-                            <option value="PENAL">PENAL</option>
-                            <option value="1° DEFENSORIA PENAL">1° DEFENSORIA PENAL</option>
-                            <option value="2° DEFENSORIA PENAL">2° DEFENSORIA PENAL</option>
-                            <option value="3° DEFENSORIA PENAL">3° DEFENSORIA PENAL</option>
-                            <option value="EJECUCIÓN PENAL">EJECUCIÓN PENAL</option>
-                            <option value="DEF. MENORES">DEF. MENORES</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
+            
+            <div class="modal-body" style="overflow-y: auto; padding-right: 0.5rem;">
+                <form id="newRecordForm" style="display: flex; flex-direction: column; gap: 1.25rem;">
                     
-                    <!-- Sección Co-Defensoría de Familia -->
-                    <div class="form-group full-width" id="familyDerivacionGroup" style="display: none; background: rgba(198, 63, 149, 0.08); border: 1px solid rgba(198, 63, 149, 0.3); padding: 1rem; border-radius: 8px; flex-direction: column; gap: 0.75rem;">
-                        <h5 style="color: #EC4899; margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
-                            <i class="ri-scales-3-line"></i> Distribución y Derivación Co-Defensoría de Familia
-                        </h5>
-
-                        <div class="form-group full-width">
-                            <label style="color: #F472B6;">Modo / Causa de Derivación a Familia</label>
-                            <select id="newModoDerivacionFamilia" class="form-control" style="border-color: #DB2777; font-weight: 600;">
-                                <option value="Asesoramiento General">Asesoramiento General</option>
-                                <option value="Causa Nueva">Causa Nueva</option>
-                                <option value="Contestación de Demanda">Contestación de Demanda</option>
-                                <option value="Guarda Judicial / Tutela / Adopción">Guarda Judicial / Tutela / Adopción</option>
-                                <option value="Causa en Trámite">Causa en Trámite</option>
-                                <option value="Otro">Otro</option>
-                            </select>
+                    <!-- BLOQUE 1: IDENTIFICACIÓN DEL CIUDADANO -->
+                    <div class="aero-form-block block-citizen">
+                        <div class="block-header">
+                            <div class="block-title">
+                                <span class="block-number">1</span>
+                                <span class="block-name"><i class="ri-user-search-line"></i> Identificación del Ciudadano</span>
+                            </div>
+                            <span class="badge badge-otro" id="dniStatusBadge" style="display: none;"></span>
                         </div>
 
-                        <div class="form-group full-width" id="fechaVencimientoGroup" style="display: none;">
-                            <label style="color: #F87171;"><i class="ri-calendar-event-line"></i> Fecha de Vencimiento / Plazo de Contestación (Obligatorio)</label>
-                            <input type="date" id="newFechaVencimientoContestacion" class="form-control" style="border-color: #EF4444; background: rgba(239, 68, 68, 0.1); color: #FFF; font-weight: 600;">
+                        <div class="block-body">
+                            <!-- Fila de Búsqueda por DNI -->
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: center;">
+                                <div style="flex: 1; position: relative;">
+                                    <input type="text" id="newDni" class="form-control" placeholder="Tipee DNI..." style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-mono); letter-spacing: 1px; border-color: var(--mpd-cyan);" required>
+                                </div>
+                                <button type="button" id="btnSearchDni" class="btn btn-secondary" style="white-space: nowrap; padding: 0.6rem 1rem;">
+                                    <i class="ri-search-2-line"></i> Consultar
+                                </button>
+                            </div>
+
+                            <!-- Botonera de Acción Rápida (Aparece cuando el ciudadano ya existe) -->
+                            <div id="dniQuickActionsBar" class="dni-quick-actions" style="display: none;">
+                                <div style="font-size: 0.78rem; color: #CBD5E1; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem;">
+                                    <i class="ri-history-line" style="color: var(--mpd-gold);"></i> Antecedentes detectados para este ciudadano:
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-sm btn-quick-action active" id="btnQuickNuevaCausa" title="Iniciar un trámite o consulta nueva (limpia fuero y aplica turno rotativo)">
+                                        <i class="ri-add-circle-line"></i> ✨ Nueva Consulta / Asunto
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-quick-action" id="btnQuickContinuarCausa" title="Continuar el trámite abierto más reciente">
+                                        <i class="ri-link-m"></i> 🔗 Continuar Trámite Previo
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-quick-action" id="btnQuickVerHistorial" title="Abrir panel lateral con todos los antecedentes">
+                                        <i class="ri-file-list-3-line"></i> 📜 Ver Historial Completo (<span id="quickHistoryCount">0</span>)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Banner de Trámite Vinculado Activo -->
+                            <div id="linkedHistoryBanner" style="display: none; background: rgba(0, 180, 216, 0.15); border: 1px solid #00B4D8; border-radius: 6px; padding: 0.5rem 0.85rem; margin-top: 0.6rem; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; color: #38BDF8; font-weight: 600; font-size: 0.82rem;">
+                                    <i class="ri-link-m" style="font-size: 1.1rem;"></i>
+                                    <span id="linkedHistoryBannerText">Continuando trámite anterior...</span>
+                                </div>
+                                <button type="button" id="btnUnlinkHistory" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer;">
+                                    <i class="ri-close-line"></i> Desvincular
+                                </button>
+                            </div>
+
+                            <!-- Datos Personales del Ciudadano -->
+                            <div class="form-grid" style="margin-top: 0.75rem;">
+                                <div class="form-group">
+                                    <label>Apellidos <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newApellidos" class="form-control" placeholder="Ej: GONZALEZ" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nombres <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newNombres" class="form-control" placeholder="Ej: ARIEL" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Celular / Teléfono de Contacto</label>
+                                    <input type="text" id="newCelular" class="form-control" placeholder="Ej: 2604560475">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha de Atención <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newFecha" class="form-control" placeholder="DD/MM/YYYY" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Canal / Tipo de Atención <span style="color: #F87171;">*</span></label>
+                                    <select id="newActividad" class="form-control" required>
+                                        <option value="" disabled selected>-- Seleccionar Modalidad --</option>
+                                        <option value="Atención Personal">Mesa de Entradas (Atención Personal)</option>
+                                        <option value="Atención Telefónica">Atención Telefónica</option>
+                                        <option value="Atención Whatsapp">Atención Whatsapp</option>
+                                        <option value="Atención Teléfonica DETENIDO">Atención Teléfonica DETENIDO</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 2: FUERO Y CLASIFICACIÓN JURÍDICA -->
+                    <div class="aero-form-block block-legal">
+                        <div class="block-header">
+                            <div class="block-title">
+                                <span class="block-number">2</span>
+                                <span class="block-name"><i class="ri-scales-3-line"></i> Fuero y Clasificación Jurídica</span>
+                            </div>
+                            <span class="badge badge-civil" id="fueroActiveBadge">Seleccione Fuero</span>
                         </div>
 
-                        <div class="form-group full-width" id="codefensoraAsignadaGroup">
-                            <label style="color: #C63F95;"><i class="ri-user-star-line"></i> Co-Defensora Asignada Receptora</label>
-                            <select id="newCodefensoraAsignada" class="form-control" style="font-weight: 600;">
-                                <option value="">Seleccione o espere sugerencia automática...</option>
-                                <option value="Andrea Lombard">Dra. Andrea Lombard</option>
-                                <option value="Claudia Perruzzi">Dra. Claudia Perruzzi</option>
-                                <option value="Luz Perez">Dra. Luz Perez</option>
-                                <option value="Mariela Fokszek">Dra. Mariela Fokszek</option>
-                            </select>
-                            <span id="codefensoraHint" style="font-size: 0.75rem; color: #94A3B8; margin-top: 0.25rem;"></span>
+                        <div class="block-body">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Defensoría / Fuero <span style="color: #F87171;">*</span></label>
+                                    <select id="newDefensoria" class="form-control" style="font-weight: 600;" required>
+                                        <option value="" disabled selected>-- Seleccionar Defensoría / Fuero --</option>
+                                        <option value="CO-DEF. FAMILIA">CO-DEF. FAMILIA</option>
+                                        <option value="DEF. CIVIL">DEF. CIVIL</option>
+                                        <option value="1° DEFENSORIA PENAL">1° DEFENSORIA PENAL</option>
+                                        <option value="2° DEFENSORIA PENAL">2° DEFENSORIA PENAL</option>
+                                        <option value="3° DEFENSORIA PENAL">3° DEFENSORIA PENAL</option>
+                                        <option value="DEFENSORÍA PENAL JUVENIL">DEFENSORÍA PENAL JUVENIL</option>
+                                        <option value="EJECUCIÓN PENAL">EJECUCIÓN PENAL</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>N° Expediente Judicial (si posee)</label>
+                                    <input type="text" id="newExpte" class="form-control" placeholder="Ej: P-138253/26 o S/N°">
+                                </div>
+                            </div>
+
+                            <!-- SUB-SECCIÓN CONTEXTUAL: FAMILIA -->
+                            <div id="fueroFamiliaSection" style="display: none; margin-top: 1rem; background: rgba(198, 63, 149, 0.08); border: 1px solid rgba(198, 63, 149, 0.3); padding: 1rem; border-radius: 8px;">
+                                <h5 style="color: #EC4899; margin: 0 0 0.75rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-heart-pulse-line"></i> Parámetros de Co-Defensoría de Familia
+                                </h5>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label style="color: #F472B6;">Tipo de Trámite <span style="color: #F87171;">*</span></label>
+                                        <select id="newTipoTramiteFamilia" class="form-control" style="font-weight: 600; border-color: #DB2777;">
+                                            <option value="Causa Nueva">Causa Nueva</option>
+                                            <option value="Causa en Trámite">Causa en Trámite</option>
+                                            <option value="Contestación de Demanda">Contestación de Demanda</option>
+                                            <option value="Asesoramiento General">Asesoramiento General</option>
+                                            <option value="Guarda Judicial / Tutela / Adopción">Guarda Judicial / Tutela / Adopción</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="color: #F472B6;">Materia / Submotivo <span style="color: #F87171;">*</span></label>
+                                        <select id="newMateriaFamilia" class="form-control" style="font-weight: 600; border-color: #DB2777;">
+                                            <option value="Alimentos / Liquidación / Cese">Alimentos / Liquidación / Cese</option>
+                                            <option value="Cuidado Personal / Régimen de Contacto">Cuidado Personal / Régimen de Contacto</option>
+                                            <option value="Prohibición de Acercamiento / Exclusión">Prohibición de Acercamiento / Exclusión</option>
+                                            <option value="Filiación / Presunta Filiación">Filiación / Presunta Filiación</option>
+                                            <option value="Impugnación / Supresión de Apellido">Impugnación / Supresión de Apellido</option>
+                                            <option value="Guarda Judicial / Tutela / Adopción">Guarda Judicial / Tutela / Adopción</option>
+                                            <option value="Medidas de Protección ETI / Vulnerabilidad">Medidas de Protección ETI / Vulnerabilidad</option>
+                                            <option value="Mediación">Mediación</option>
+                                            <option value="Reintegro">Reintegro</option>
+                                            <option value="Otro / Asesoramiento General">Otro / Asesoramiento General</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group full-width" id="fechaVencimientoGroup" style="display: none;">
+                                        <label style="color: #F87171;"><i class="ri-calendar-event-line"></i> Fecha Límite / Vencimiento de Contestación <span style="color: #F87171;">*</span></label>
+                                        <input type="date" id="newFechaVencimientoContestacion" class="form-control" style="border-color: #EF4444; background: rgba(239, 68, 68, 0.1); color: #FFF; font-weight: 600;">
+                                    </div>
+
+                                    <div class="form-group full-width" id="codefensoraAsignadaGroup">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                            <label style="color: #C63F95; margin: 0;"><i class="ri-user-star-line"></i> Co-Defensora Asignada Receptora</label>
+                                            <span class="badge" id="codefensoraBadgeStatus" style="font-size: 0.7rem; background: rgba(198, 63, 149, 0.2); color: #F472B6;">Sugerencia Automática</span>
+                                        </div>
+                                        <select id="newCodefensoraAsignada" class="form-control" style="font-weight: 600;">
+                                            <option value="">-- Seleccione o confirme Co-Defensora --</option>
+                                            <option value="Andrea Lombard">Dra. Andrea Lombard</option>
+                                            <option value="Claudia Perruzzi">Dra. Claudia Perruzzi</option>
+                                            <option value="Luz Perez">Dra. Luz Perez</option>
+                                            <option value="Mariela Fokszek">Dra. Mariela Fokszek</option>
+                                        </select>
+                                        <span id="codefensoraHint" style="font-size: 0.75rem; color: #94A3B8; margin-top: 0.3rem; display: block;"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SUB-SECCIÓN CONTEXTUAL: PENAL -->
+                            <div id="fueroPenalSection" style="display: none; margin-top: 1rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1rem; border-radius: 8px;">
+                                <h5 style="color: #F87171; margin: 0 0 0.75rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-shield-user-line"></i> Parámetros de Defensoría Penal
+                                </h5>
+                                <div class="form-grid">
+                                    <div class="form-group full-width">
+                                        <label style="color: #FCA5A5;">Trámite / Motivo Penal <span style="color: #F87171;">*</span></label>
+                                        <select id="newTramitePenal" class="form-control" style="font-weight: 600; border-color: #EF4444;">
+                                            <option value="Audiencia de Imputación">Audiencia de Imputación</option>
+                                            <option value="Audiencia Fijada">Audiencia Fijada</option>
+                                            <option value="Consulta Detenido / Comisaría">Consulta Detenido / Comisaría</option>
+                                            <option value="Causa en Trámite">Causa en Trámite</option>
+                                            <option value="Presentación de Escrito Judicial">Presentación de Escrito Judicial</option>
+                                            <option value="Turno">Turno</option>
+                                            <option value="Espontánea">Espontánea</option>
+                                            <option value="Ejecución Penal / Beneficios">Ejecución Penal / Beneficios</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SUB-SECCIÓN CONTEXTUAL: CIVIL / OTROS -->
+                            <div id="fueroCivilSection" style="display: none; margin-top: 1rem; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); padding: 1rem; border-radius: 8px;">
+                                <h5 style="color: #38BDF8; margin: 0 0 0.75rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-file-list-line"></i> Parámetros Fuero Civil / Menores
+                                </h5>
+                                <div class="form-grid">
+                                    <div class="form-group full-width">
+                                        <label style="color: #7DD3FC;">Trámite / Materia Civil <span style="color: #F87171;">*</span></label>
+                                        <select id="newTramiteCivil" class="form-control" style="font-weight: 600; border-color: #0284C7;">
+                                            <option value="Espontánea">Espontánea</option>
+                                            <option value="Causa en Trámite">Causa en Trámite</option>
+                                            <option value="Asesoramiento General">Asesoramiento General</option>
+                                            <option value="Determinación de Capacidad">Determinación de Capacidad</option>
+                                            <option value="Medidas Cautelares">Medidas Cautelares</option>
+                                            <option value="Divorcio">Divorcio</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Supuestos Especiales Co-Defensoría de Familia -->
-                    <div class="form-group full-width" id="familySubmotivoGroup">
-                        <label style="color: #C63F95;"><i class="ri-heart-pulse-line"></i> Supuesto Especial / Materia</label>
-                        <select id="newFamilySubmotivo" class="form-control">
-                            <option value="Mediación">Mediación</option>
-                            <option value="Prohibición de Acercamiento / Exclusión">Prohibición de Acercamiento / Exclusión</option>
-                            <option value="Alimentos / Liquidación / Cese">Alimentos / Liquidación / Cese</option>
-                            <option value="Filiación / Presunta Filiación">Filiación / Presunta Filiación</option>
-                            <option value="Impugnación / Supresión de Apellido">Impugnación / Supresión de Apellido</option>
-                            <option value="Guarda Judicial / Tutela / Adopción">Guarda Judicial / Tutela / Adopción</option>
-                            <option value="Medidas de Protección ETI / Vulnerabilidad">Medidas de Protección ETI / Vulnerabilidad</option>
-                            <option value="Cuidado Personal / Régimen de Contacto">Cuidado Personal / Régimen de Contacto</option>
-                            <option value="Determinación de Capacidad">Determinación de Capacidad</option>
-                            <option value="Reintegro">Reintegro</option>
-                            <option value="Otro / Asesoramiento General">Otro / Asesoramiento General</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Motivo General</label>
-                        <select id="newMotivo" class="form-control" required>
-                            <option value="" disabled selected>-- Seleccionar Motivo --</option>
-                            <option value="Espontánea">Espontánea</option>
-                            <option value="Causa Trámite">Causa Trámite</option>
-                            <option value="Aud. Fijada">Aud. Fijada</option>
-                            <option value="Divorcio">Divorcio</option>
-                            <option value="Ejecución">Ejecución</option>
-                            <option value="Turno">Turno</option>
-                            <option value="Aud. Imputación">Aud. Imputación</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Resultado</label>
-                        <select id="newResultado" class="form-control" required>
-                            <option value="" disabled selected>-- Seleccionar Resultado --</option>
-                            <option value="Resuelve">Resuelve</option>
-                            <option value="Deriva a A. Técnica">Deriva a A. Técnica</option>
-                            <option value="Deriva a CO-DEF- FAMILIA">Deriva a CO-DEF- FAMILIA</option>
-                            <option value="Derivado a otra repartición">Derivado a otra repartición</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group full-width" id="reparticionDetalleGroup" style="display: none;">
-                        <label style="color: #38BDF8;"><i class="ri-building-line"></i> Especificar Repartición a la que se Derivó</label>
-                        <input type="text" id="newReparticionDetalle" class="form-control" placeholder="Ej: ETI, Asesoría de Niñez, Registro Civil, etc...">
-                    </div>
-
-                    <!-- SECCIÓN: TAREA PENDIENTE (Marcación Operativa) -->
-                    <div class="form-group full-width" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 1rem; border-radius: 8px;">
-                        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                            <input type="checkbox" id="newTareaPendiente" style="width: 18px; height: 18px; cursor: pointer;">
-                            <label for="newTareaPendiente" style="font-weight: 700; color: #FBBF24; cursor: pointer; margin: 0;">
-                                <i class="ri-time-line"></i> ¿Esta atención requiere cumplir una Tarea Pendiente posterior?
-                            </label>
+                    <!-- BLOQUE 3: RESOLUCIÓN, TAREAS Y OBSERVACIONES -->
+                    <div class="aero-form-block block-resolution">
+                        <div class="block-header">
+                            <div class="block-title">
+                                <span class="block-number">3</span>
+                                <span class="block-name"><i class="ri-checkbox-circle-line"></i> Resolución, Seguimiento y Observaciones</span>
+                            </div>
                         </div>
-                        <input type="text" id="newDetallePendiente" class="form-control" placeholder="Detalle sintético de la tarea a realizar (Ej: Requerir informe a ETI, Esperar partida de nacimiento)..." style="font-size: 0.88rem;">
+
+                        <div class="block-body">
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label>Resultado de la Atención <span style="color: #F87171;">*</span></label>
+                                    <select id="newResultado" class="form-control" style="font-weight: 600;" required>
+                                        <option value="" disabled selected>-- Seleccionar Resultado --</option>
+                                        <option value="Resuelve en Mesa / Operador">Resuelve en Mesa / Operador</option>
+                                        <option value="Entrevista con Defensor/a">Entrevista con Defensor/a</option>
+                                        <option value="Asesoramiento General">Asesoramiento General</option>
+                                        <option value="Derivado a otra repartición">Derivado a otra repartición</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group full-width" id="reparticionDetalleGroup" style="display: none;">
+                                    <label style="color: #38BDF8;"><i class="ri-building-line"></i> Especificar Repartición a la que se Derivó <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newReparticionDetalle" class="form-control" placeholder="Ej: ETI, Registro Civil, Juzgado de Paz, Defensoría de Pobres...">
+                                </div>
+
+                                <!-- SECCIÓN: TAREA PENDIENTE -->
+                                <div class="form-group full-width" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.85rem 1rem; border-radius: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem;">
+                                        <input type="checkbox" id="newTareaPendiente" style="width: 18px; height: 18px; cursor: pointer;">
+                                        <label for="newTareaPendiente" style="font-weight: 700; color: #FBBF24; cursor: pointer; margin: 0; font-size: 0.88rem;">
+                                            <i class="ri-time-line"></i> ¿Esta atención requiere cumplir una Tarea Pendiente posterior?
+                                        </label>
+                                    </div>
+                                    <input type="text" id="newDetallePendiente" class="form-control" placeholder="Detalle sintético de la tarea a realizar (Ej: Requerir informe a ETI, Esperar partida de nacimiento)..." style="font-size: 0.85rem;">
+                                </div>
+
+                                <div class="form-group full-width">
+                                    <label>Operador de Mesa que Atiende</label>
+                                    <input type="text" id="newAtendidoPor" class="form-control" value="Sergio M. Pereyra" readonly style="background: rgba(255,255,255,0.05); color: #C9B07A; font-weight: 600;">
+                                </div>
+
+                                <div class="form-group full-width">
+                                    <label>Observaciones del Caso</label>
+                                    <textarea id="newObservaciones" class="form-control" rows="3" placeholder="Detalle sintético del trámite, documentación aportada o instrucciones dadas al ciudadano..."></textarea>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group full-width">
-                        <label>Operador de Mesa que Atiende (Mesa de Entrada)</label>
-                        <input type="text" id="newAtendidoPor" class="form-control" value="Sergio M. Pereyra" readonly style="background: rgba(255,255,255,0.05); color: #C9B07A; font-weight: 600;">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Observaciones</label>
-                        <textarea id="newObservaciones" class="form-control" rows="3" placeholder="Detalle sintético del caso..."></textarea>
-                    </div>
-
-                    <!-- SECCIÓN EXPANDIBLE: CONFECCIÓN DE ESCRITO JUDICIAL -->
-                    <div class="form-group full-width" id="sectionConfeccionEscrito" style="background: rgba(11, 19, 41, 0.75); border: 1px solid rgba(0, 180, 216, 0.35); border-radius: 10px; padding: 1.25rem; margin-top: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <!-- BLOQUE 4: CONFECCIÓN DE ESCRITO JUDICIAL (ACORDEÓN PLEGABLE) -->
+                    <div class="aero-form-block block-escrito" id="sectionConfeccionEscrito" style="background: rgba(11, 19, 41, 0.75); border: 1px solid rgba(0, 180, 216, 0.35); border-radius: 10px; padding: 1rem 1.25rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" id="toggleEscritoPanel">
                             <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                <div style="width: 34px; height: 34px; border-radius: 6px; background: rgba(0, 180, 216, 0.2); display: flex; align-items: center; justify-content: center; color: var(--mpd-cyan);">
-                                    <i class="ri-file-edit-line" style="font-size: 1.25rem;"></i>
+                                <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(0, 180, 216, 0.2); display: flex; align-items: center; justify-content: center; color: var(--mpd-cyan);">
+                                    <i class="ri-file-edit-line" style="font-size: 1.15rem;"></i>
                                 </div>
                                 <div>
-                                    <h5 style="margin: 0; color: var(--mpd-cyan); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.3px;">
-                                        Confección de Escrito Judicial (Basado en Plantillas)
+                                    <h5 style="margin: 0; color: var(--mpd-cyan); font-size: 0.92rem; font-weight: 700;">
+                                        Confección de Escrito Judicial (Plantillas Opcionales)
                                     </h5>
-                                    <p style="margin: 0; font-size: 0.76rem; color: #94A3B8;">
-                                        Genera escritos oficiales en PDF, imprime con membrete oficial o guarda como tarea pendiente
+                                    <p style="margin: 0; font-size: 0.74rem; color: #94A3B8;">
+                                        Redacte escritos oficiales con membrete o genere PDF
                                     </p>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="badge" id="escritoStatusBadge" style="background: rgba(148, 163, 184, 0.15); color: #94A3B8;">Sin plantilla</span>
-                                <button type="button" class="btn btn-sm btn-secondary" id="btnToggleEscrito" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">
+                                <span class="badge" id="escritoStatusBadge" style="background: rgba(148, 163, 184, 0.15); color: #94A3B8; font-size: 0.72rem;">Sin plantilla</span>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btnToggleEscrito" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
                                     <i class="ri-arrow-down-s-line" id="escritoChevronIcon"></i>
                                 </button>
                             </div>
                         </div>
 
                         <!-- Contenido desplegable de redacción -->
-                        <div id="escritoPanelContent" style="display: none; margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1.25rem;">
+                        <div id="escritoPanelContent" style="display: none; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1rem;">
                             <!-- Selector de Plantilla -->
-                            <div style="margin-bottom: 1.25rem;">
-                                <label style="color: var(--mpd-cyan); font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem;">
+                            <div style="margin-bottom: 1rem;">
+                                <label style="color: var(--mpd-cyan); font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
                                     <i class="ri-file-list-3-line"></i> Seleccionar Plantilla de Trámite Predefinida
                                 </label>
                                 <select id="selectPlantillaEscrito" class="form-control" style="font-weight: 600; border-color: rgba(0, 180, 216, 0.5);">
@@ -826,81 +905,87 @@
                                 </select>
                             </div>
 
-                            <!-- Contenedor dinámico para variables específicas de la plantilla -->
-                            <div id="escritoCamposDinamicosWrapper" style="display: none; margin-bottom: 1.25rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 8px;">
-                                <div style="font-size: 0.8rem; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-                                    <i class="ri-input-field"></i> Datos Específicos del Trámite Requerido
+                            <!-- Contenedor dinámico para variables de la plantilla -->
+                            <div id="escritoCamposDinamicosWrapper" style="display: none; margin-bottom: 1rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); padding: 0.85rem; border-radius: 6px;">
+                                <div style="font-size: 0.78rem; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-input-field"></i> Variables Específicas de la Plantilla
                                 </div>
-                                <div class="form-grid" id="escritoCamposDinamicosContainer">
-                                    <!-- Se inyectan dinámicamente según la plantilla seleccionada -->
-                                </div>
+                                <div class="form-grid" id="escritoCamposDinamicosContainer"></div>
                             </div>
 
                             <!-- Vista Previa / Editor del Documento Judicial -->
                             <div id="escritoPreviewSection" style="display: none;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                    <label style="color: #FBBF24; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
-                                        <i class="ri-article-line"></i> Vista Previa del Escrito / Redacción Editable
+                                    <label style="color: #FBBF24; font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem;">
+                                        <i class="ri-article-line"></i> Vista Previa Editable del Escrito
                                     </label>
-                                    <div style="font-size: 0.75rem; color: #94A3B8;">
-                                        <i class="ri-information-line"></i> Puede afinar el texto libremente antes de generar PDF o imprimir
-                                    </div>
                                 </div>
 
-                                <!-- Hoja de Papel Judicial A4 -->
-                                <div class="paper-preview-box" style="background: #FFFFFF; color: #0F172A; border-radius: 6px; padding: 1.5rem; box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 1rem; border: 1px solid #E2E8F0;">
-                                    <!-- Encabezado Membrete Oficial -->
-                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B1329; padding-bottom: 0.75rem; margin-bottom: 1rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <img src="Logo sin fondo 3-recortado.PNG" alt="MPD" style="height: 48px; object-fit: contain;" onerror="this.src='logo_horizontal.png';">
+                                <div class="paper-preview-box" style="background: #FFFFFF; color: #0F172A; border-radius: 6px; padding: 1.25rem; box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 0.75rem; border: 1px solid #E2E8F0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B1329; padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                            <img src="assets/images/Logo sin fondo 3-recortado.PNG" alt="MPD" style="height: 42px; object-fit: contain;" onerror="this.src='assets/images/logo_horizontal.png';">
                                             <div>
-                                                <div style="font-size: 0.85rem; font-weight: 800; color: #0B1329; text-transform: uppercase; font-family: 'Times New Roman', serif;">Ministerio Público de la Defensa</div>
-                                                <div style="font-size: 0.72rem; font-weight: 600; color: #475569; font-family: 'Times New Roman', serif;">Poder Judicial de Mendoza - 2ª Circunscripción</div>
+                                                <div style="font-size: 0.82rem; font-weight: 800; color: #0B1329; text-transform: uppercase; font-family: 'Times New Roman', serif;">Ministerio Público de la Defensa</div>
+                                                <div style="font-size: 0.7rem; font-weight: 600; color: #475569; font-family: 'Times New Roman', serif;">Poder Judicial de Mendoza - 2ª Circunscripción</div>
                                             </div>
                                         </div>
-                                        <div style="text-align: right; font-size: 0.72rem; color: #334155; font-family: 'Times New Roman', serif;">
+                                        <div style="text-align: right; font-size: 0.7rem; color: #334155; font-family: 'Times New Roman', serif;">
                                             <div id="previewHeaderExpte"><strong>Expte:</strong> S/N°</div>
                                             <div id="previewHeaderDefensoria"><strong>Defensoría:</strong> Oficial</div>
                                         </div>
                                     </div>
 
-                                    <!-- Sumario -->
-                                    <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem;">
-                                        <div id="previewSumarioBadge" style="border: 1px solid #0F172A; background: #F8FAFC; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; font-family: 'Times New Roman', serif;">
-                                            SUMARIO: INFORMA NUEVO DOMICILIO REAL
+                                    <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+                                        <div id="previewSumarioBadge" style="border: 1px solid #0F172A; background: #F8FAFC; padding: 0.2rem 0.6rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; font-family: 'Times New Roman', serif;">
+                                            SUMARIO: ESCRITO JUDICIAL
                                         </div>
                                     </div>
 
-                                    <!-- Editor de Texto del Escrito -->
-                                    <textarea id="escritoTextoEditor" rows="12" style="width: 100%; border: 1px dashed #CBD5E1; background: #FAFAFA; color: #1E293B; font-family: 'Times New Roman', Times, serif; font-size: 0.95rem; line-height: 1.55; padding: 0.85rem; border-radius: 4px; resize: vertical; outline: none;"></textarea>
+                                    <textarea id="escritoTextoEditor" rows="10" style="width: 100%; border: 1px dashed #CBD5E1; background: #FAFAFA; color: #1E293B; font-family: 'Times New Roman', Times, serif; font-size: 0.92rem; line-height: 1.5; padding: 0.75rem; border-radius: 4px; resize: vertical; outline: none;"></textarea>
                                 </div>
 
-                                <!-- Toolbar de Acciones de Escrito -->
-                                <div class="escrito-actions-toolbar">
-                                    <button type="button" class="btn btn-secondary escrito-action-btn" id="btnCopiarTextoEscrito">
-                                        <i class="ri-file-copy-line"></i> Copiar Texto
-                                    </button>
-                                    <button type="button" class="btn btn-info-action escrito-action-btn" id="btnImprimirEscrito">
-                                        <i class="ri-printer-line"></i> Imprimir
-                                    </button>
-                                    <button type="button" class="btn btn-success-action escrito-action-btn" id="btnDescargarPdfEscrito">
-                                        <i class="ri-file-pdf-line"></i> Descargar PDF
-                                    </button>
-                                    <button type="button" class="btn btn-warning-action escrito-action-btn" id="btnMarcarPendienteEscrito">
-                                        <i class="ri-time-line"></i> Dejar como Tarea Pendiente
-                                    </button>
+                                <div class="escrito-actions-toolbar" style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary escrito-action-btn" id="btnCopiarTextoEscrito"><i class="ri-file-copy-line"></i> Copiar</button>
+                                    <button type="button" class="btn btn-info-action escrito-action-btn" id="btnImprimirEscrito"><i class="ri-printer-line"></i> Imprimir</button>
+                                    <button type="button" class="btn btn-success-action escrito-action-btn" id="btnDescargarPdfEscrito"><i class="ri-file-pdf-line"></i> Descargar PDF</button>
+                                    <button type="button" class="btn btn-warning-action escrito-action-btn" id="btnMarcarPendienteEscrito"><i class="ri-time-line"></i> Dejar Pendiente</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-group full-width" style="margin-top: 1rem;">
-                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 1rem; padding: 0.75rem;">
-                            <i class="ri-save-line"></i> Guardar e Incorporar al Historial
+                    <!-- Botón Principal de Envío -->
+                    <div style="padding-top: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" id="btnSubmitRecord" style="width: 100%; justify-content: center; font-size: 1.05rem; font-weight: 700; padding: 0.85rem; border-radius: 6px; box-shadow: 0 4px 15px rgba(0, 180, 216, 0.4);">
+                            <i class="ri-save-line"></i> Guardar e Incorporar Atención
                         </button>
                     </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER LATERAL DE ANTECEDENTES HISTÓRICOS 360° -->
+    <div class="history-drawer-overlay" id="citizenHistoryDrawerOverlay">
+        <div class="history-drawer" id="citizenHistoryDrawer">
+            <div class="history-drawer-header">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(245, 158, 11, 0.2); color: var(--mpd-gold); display: flex; align-items: center; justify-content: center;">
+                        <i class="ri-history-line" style="font-size: 1.2rem;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: #FFF;" id="drawerCitizenName">Historial Ciudadano</h4>
+                        <span style="font-size: 0.74rem; color: var(--mpd-cyan);" id="drawerCitizenDni">DNI: -</span>
+                    </div>
                 </div>
-            </form>
+                <button class="modal-close-btn" id="btnCloseHistoryDrawer"><i class="ri-close-line"></i></button>
+            </div>
+            
+            <div class="history-drawer-body">
+                <div id="drawerHistoryList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <!-- Se inyectan las tarjetas cronológicas desde JS -->
+                </div>
             </div>
         </div>
     </div>
@@ -955,9 +1040,9 @@
     </div>
 
     <!-- Librería para Descarga Directa de PDF sin pasar por ventana de impresión -->
-    <script src="html2pdf.bundle.min.js"></script>
+    <script src="js/html2pdf.bundle.min.js"></script>
     <!-- Script de Inicialización -->
-    <script src="dashboard-bundle.js?v=8"></script>
+    <script src="js/dashboard-bundle.js?v=8"></script>
     <!-- Modal Confirmación Genérico -->
     <div class="modal-overlay" id="confirmModal" style="z-index: 10000;">
         <div class="modal-content" style="max-width: 420px; text-align: center; padding: 1.75rem;">

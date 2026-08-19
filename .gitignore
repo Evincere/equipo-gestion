@@ -5,3 +5,4 @@ node_modules/
 data/*.db
 data/*.csv
 data/*-journal
+data/backup_root/

@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Detectar dónde está la base de datos realmente
-let dbPath = path.join(__dirname, 'data', 'atenciones.db');
-let csvPath = path.join(__dirname, 'data', 'atenciones.csv');
+let dbPath = path.join(__dirname, "../data", "atenciones.db");
+let csvPath = path.join(__dirname, "../data", "atenciones.csv");
 
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
     fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const csvContent = fs.readFileSync(path.join(__dirname, 'data', 'atenciones.csv'), 'utf8');
+const csvContent = fs.readFileSync(path.join(__dirname, '../data', 'atenciones.csv'), 'utf8');
 
 const bundleContent = `/* ==========================================================================
    JUSTICIA & GESTIÓN - BUNDLE AUTÓNOMO CON MÓDULO DE TAREAS PENDIENTES Y CUMPLIMIENTO
@@ -251,6 +251,16 @@ const bundleContent = `/* ======================================================
                 defensorCargo = 'Defensor Oficial - 3ª Defensoría Penal';
                 codefensora = 'Dra. Sofia Camerucci';
                 codefensoraCargo = 'Codefensora - 3ª Defensoría Penal';
+            } else if (defStr.includes('JUVENIL') || defStr.includes('MENOR')) {
+                defensor = 'Dr. Facundo Rodriguez';
+                defensorCargo = 'Defensor Oficial - Defensoría Penal Juvenil';
+                codefensora = 'Dra. Silvina Agüero';
+                codefensoraCargo = 'Codefensora - Defensoría Penal Juvenil';
+            } else if (defStr.includes('EJECUCI')) {
+                defensor = 'Dr. Facundo Rodriguez';
+                defensorCargo = 'Defensor Oficial - Ejecución Penal';
+                codefensora = '';
+                codefensoraCargo = '';
             }
 
             let funcionarioTexto = defensor + ', en mi carácter de ' + defensorCargo;
@@ -283,7 +293,7 @@ const bundleContent = `/* ======================================================
             if (!cuerpoTemplate) return '';
             const dataObj = data || {};
             const ciudadanoNombre = ((dataObj.apellidos || '').trim().toUpperCase() + ' ' + (dataObj.nombres || '').trim().toUpperCase()).trim() || '____________________';
-            const dniFormat = dataObj.dni ? String(dataObj.dni).replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '__________';
+            const dniFormat = dataObj.dni ? String(dataObj.dni).replace(/[^0-9]/g, '').replace(/\\B(?=([0-9]{3})+(?![0-9]))/g, '.') : '__________';
             const expte = dataObj.expte ? dataObj.expte.trim() : 'S/N°';
             const defensoria = dataObj.defensoria ? dataObj.defensoria.trim() : 'Defensoría Oficial';
             const celular = dataObj.celular ? dataObj.celular.trim() : (dataObj.TELEFONO_CONTACTO || 'Sin registrar');
@@ -322,14 +332,14 @@ const bundleContent = `/* ======================================================
 
         static generatePrintableHtml(params) {
             const fechaLegal = this.formatFechaLegal(params.fecha);
-            const dniFormat = params.dni ? String(params.dni).replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+            const dniFormat = params.dni ? String(params.dni).replace(/[^0-9]/g, '').replace(/\\B(?=([0-9]{3})+(?![0-9]))/g, '.') : '';
             const officials = this.getDefensoriaPenalOfficials(params.defensoria, params.firmanteTipo);
             const textoLimpio = (params.cuerpoTexto || '').replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
             return '<div class="escrito-print-document" style="font-family: Times, serif; color: #111; line-height: 1.5; font-size: 12pt; max-width: 800px; margin: 0 auto; padding: 15mm 15mm; background: #fff;">' +
                 '<div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0b1329; padding-bottom: 12px; margin-bottom: 20px;">' +
                     '<div style="display: flex; align-items: center; gap: 14px;">' +
-                        '<img src="Logo sin fondo 3-recortado.PNG" alt="MPD Logo" style="height: 60px; object-fit: contain;" onerror="this.onerror=null;this.src=&quot;logo_horizontal.png&quot;;">' +
+                        '<img src="assets/images/Logo sin fondo 3-recortado.PNG" alt="MPD Logo" style="height: 60px; object-fit: contain;" onerror="this.onerror=null;this.src=&quot;assets/images/logo_horizontal.png&quot;;">' +
                         '<div>' +
                             '<div style="font-size: 13pt; font-weight: bold; letter-spacing: 0.5px; color: #0b1329; text-transform: uppercase;">Ministerio Público de la Defensa</div>' +
                             '<div style="font-size: 10.5pt; font-weight: 600; color: #334155;">Poder Judicial de la Provincia de Mendoza</div>' +
@@ -509,11 +519,28 @@ const bundleContent = `/* ======================================================
             });
 
             const tecnicaBreakdown = {};
+            let totalAsesoramientos = 0;
+            let asesFamilia = 0;
+            let asesOtros = 0;
 
             attendances.forEach(a => {
                 if (a.isDerivacionTecnica()) {
                     const dest = (a.derivadoA && a.derivadoA.trim()) ? a.derivadoA.trim() : 'Sin Especificar';
                     tecnicaBreakdown[dest] = (tecnicaBreakdown[dest] || 0) + 1;
+                }
+
+                const resStr = String(a.resultado || '');
+                const modoStr = String(a.modoDerivacionFamilia || '');
+                const motStr = String(a.motivo || '');
+                const isAses = (resStr.includes('Asesoramiento') || modoStr.includes('Asesoramiento') || motStr.includes('Asesoramiento General'));
+                if (isAses) {
+                    totalAsesoramientos++;
+                    const def = a.defensoriaCategory ? a.defensoriaCategory.name : (a.defensoria || '');
+                    if (def === 'CO-DEF. FAMILIA') {
+                        asesFamilia++;
+                    } else {
+                        asesOtros++;
+                    }
                 }
             });
 
@@ -523,6 +550,9 @@ const bundleContent = `/* ======================================================
                 totalMonth,
                 totalWeek,
                 totalToday,
+                totalAsesoramientos,
+                asesFamilia,
+                asesOtros,
                 derivacionesTecnica: attendances.filter(a => a.isDerivacionTecnica()).length,
                 escritosCount: attendances.filter(a => a.hasEscritos()).length,
                 pendientesCount: attendances.filter(a => a.tareaPendiente).length,
@@ -541,7 +571,7 @@ const bundleContent = `/* ======================================================
             const norm = (str) => String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             const qRaw = norm(query).trim();
             const qClean = qRaw.replace(/[^a-z0-9]/g, '');
-            const qWords = qRaw.split(/\s+/).filter(Boolean);
+            const qWords = qRaw.split(/\\s+/).filter(Boolean);
 
             const filtered = attendances.filter(item => {
                 let matchesQuery = true;
@@ -839,12 +869,53 @@ const bundleContent = `/* ======================================================
             this.newDniInput = document.getElementById('newDni');
             this.btnSearchDni = document.getElementById('btnSearchDni');
             this.dniStatusBadge = document.getElementById('dniStatusBadge');
-            this.citizenHistoryContainer = document.getElementById('citizenHistoryContainer');
+            this.dniQuickActionsBar = document.getElementById('dniQuickActionsBar');
+            this.btnQuickNuevaCausa = document.getElementById('btnQuickNuevaCausa');
+            this.btnQuickContinuarCausa = document.getElementById('btnQuickContinuarCausa');
+            this.btnQuickVerHistorial = document.getElementById('btnQuickVerHistorial');
+            this.quickHistoryCount = document.getElementById('quickHistoryCount');
+            this.linkedHistoryBanner = document.getElementById('linkedHistoryBanner');
+            this.linkedHistoryBannerText = document.getElementById('linkedHistoryBannerText');
+            this.btnUnlinkHistory = document.getElementById('btnUnlinkHistory');
+
+            this.citizenHistoryDrawerOverlay = document.getElementById('citizenHistoryDrawerOverlay');
+            this.citizenHistoryDrawer = document.getElementById('citizenHistoryDrawer');
+            this.btnCloseHistoryDrawer = document.getElementById('btnCloseHistoryDrawer');
+            this.drawerCitizenName = document.getElementById('drawerCitizenName');
+            this.drawerCitizenDni = document.getElementById('drawerCitizenDni');
+            this.drawerHistoryList = document.getElementById('drawerHistoryList');
+
             this.newApellidosInput = document.getElementById('newApellidos');
             this.newNombresInput = document.getElementById('newNombres');
             this.newCelularInput = document.getElementById('newCelular');
+            this.newFechaInput = document.getElementById('newFecha');
+            this.newActividadSelect = document.getElementById('newActividad');
+            this.newDefensoriaSelect = document.getElementById('newDefensoria');
+            this.newExpteInput = document.getElementById('newExpte');
+
+            this.fueroActiveBadge = document.getElementById('fueroActiveBadge');
+            this.fueroFamiliaSection = document.getElementById('fueroFamiliaSection');
+            this.fueroPenalSection = document.getElementById('fueroPenalSection');
+            this.fueroCivilSection = document.getElementById('fueroCivilSection');
+
+            this.newTipoTramiteFamilia = document.getElementById('newTipoTramiteFamilia');
+            this.newMateriaFamilia = document.getElementById('newMateriaFamilia');
+            this.newTramitePenal = document.getElementById('newTramitePenal');
+            this.newTramiteCivil = document.getElementById('newTramiteCivil');
+
+            this.codefensoraBadgeStatus = document.getElementById('codefensoraBadgeStatus');
+            this.newCodefensoraAsignada = document.getElementById('newCodefensoraAsignada');
+            this.codefensoraHint = document.getElementById('codefensoraHint');
+            this.fechaVencimientoGroup = document.getElementById('fechaVencimientoGroup');
+            this.newFechaVencimientoContestacion = document.getElementById('newFechaVencimientoContestacion');
+
+            this.newResultadoSelect = document.getElementById('newResultado');
+            this.reparticionDetalleGroup = document.getElementById('reparticionDetalleGroup');
+            this.newReparticionDetalle = document.getElementById('newReparticionDetalle');
             this.newTareaPendiente = document.getElementById('newTareaPendiente');
             this.newDetallePendiente = document.getElementById('newDetallePendiente');
+            this.newAtendidoPorInput = document.getElementById('newAtendidoPor');
+            this.newObservacionesInput = document.getElementById('newObservaciones');
 
             this.tableBody = document.getElementById('tableBody');
             this.searchInput = document.getElementById('searchInput');
@@ -857,18 +928,12 @@ const bundleContent = `/* ======================================================
             this.cardTotalAtenciones = document.getElementById('cardTotalAtenciones');
             this.operatorTooltip = document.getElementById('operatorTooltip');
             this.operatorBreakdownList = document.getElementById('operatorBreakdownList');
-            this.kpiTecnica = document.getElementById('kpiTecnica');
-            this.cardDerivadasTecnica = document.getElementById('cardDerivadasTecnica');
-            this.btnToggleTecnicaBreakdown = document.getElementById('btnToggleTecnicaBreakdown');
-            this.tecnicaBreakdownPopover = document.getElementById('tecnicaBreakdownPopover');
-            this.tecnicaBreakdownList = document.getElementById('tecnicaBreakdownList');
-            this.tecnicaFilterBadge = document.getElementById('tecnicaFilterBadge');
-            this.tecnicaFilterBadgeText = document.getElementById('tecnicaFilterBadgeText');
-            this.btnClearTecnicaFilter = document.getElementById('btnClearTecnicaFilter');
-            this.btnCloseTecnicaPopover = document.getElementById('btnCloseTecnicaPopover');
+            
+            this.kpiAsesoramiento = document.getElementById('kpiAsesoramiento');
+            this.kpiAsesFamilia = document.getElementById('kpiAsesFamilia');
+            this.kpiAsesOtros = document.getElementById('kpiAsesOtros');
+            this.cardAsesoramientoGeneral = document.getElementById('cardAsesoramientoGeneral');
 
-            this.activeTecnicaFilter = false;
-            this.activeTecnicaCategory = null;
             this.kpiEscritos = document.getElementById('kpiEscritos');
             this.kpiPendientes = document.getElementById('kpiPendientes');
             this.cardTareasPendientes = document.getElementById('cardTareasPendientes');
@@ -905,19 +970,6 @@ const bundleContent = `/* ======================================================
             this.currentTurnos = {};
             this.turnIndicatorBadge = document.getElementById('turnIndicatorBadge');
             this.turnIndicatorContainer = document.getElementById('turnIndicatorContainer');
-            this.newDefensoriaSelect = document.getElementById('newDefensoria');
-            this.familySubmotivoGroup = document.getElementById('familySubmotivoGroup');
-            this.newFamilySubmotivoSelect = document.getElementById('newFamilySubmotivo');
-            this.newAtendidoPorInput = document.getElementById('newAtendidoPor');
-
-            this.familyDerivacionGroup = document.getElementById('familyDerivacionGroup');
-            this.newModoDerivacionFamilia = document.getElementById('newModoDerivacionFamilia');
-            this.fechaVencimientoGroup = document.getElementById('fechaVencimientoGroup');
-            this.newFechaVencimientoContestacion = document.getElementById('newFechaVencimientoContestacion');
-            this.codefensoraAsignadaGroup = document.getElementById('codefensoraAsignadaGroup');
-            this.newCodefensoraAsignada = document.getElementById('newCodefensoraAsignada');
-            this.codefensoraHint = document.getElementById('codefensoraHint');
-            this.newExpteInput = document.getElementById('newExpte');
 
             this.btnOnlineUsers = document.getElementById('btnOnlineUsers');
             this.onlineUsersPopover = document.getElementById('onlineUsersPopover');
@@ -1175,22 +1227,84 @@ const bundleContent = `/* ======================================================
             if (this.btnSearchDni) {
                 this.btnSearchDni.addEventListener('click', () => {
                     this.performDniLookup();
-                    this.updateFamiliaAssignmentLogic();
                 });
             }
 
             if (this.newDniInput) {
                 this.newDniInput.addEventListener('input', () => {
-                    const clean = this.newDniInput.value.replace(/[^\d]/g, '');
+                    const clean = this.newDniInput.value.replace(/[^0-9]/g, '');
                     if (clean.length >= 7 && clean.length <= 9) {
                         this.performDniLookup();
-                        this.updateFamiliaAssignmentLogic();
+                    } else if (clean.length === 0) {
+                        if (this.dniStatusBadge) this.dniStatusBadge.style.display = 'none';
+                        if (this.dniQuickActionsBar) this.dniQuickActionsBar.style.display = 'none';
                     }
                 });
             }
 
+            if (this.btnQuickNuevaCausa) {
+                this.btnQuickNuevaCausa.addEventListener('click', () => this.handleQuickNuevaCausa(true));
+            }
+
+            if (this.btnQuickContinuarCausa) {
+                this.btnQuickContinuarCausa.addEventListener('click', () => this.handleQuickContinuarCausa());
+            }
+
+            if (this.btnQuickVerHistorial) {
+                this.btnQuickVerHistorial.addEventListener('click', () => this.openCitizenHistoryDrawer());
+            }
+
+            if (this.btnCloseHistoryDrawer) {
+                this.btnCloseHistoryDrawer.addEventListener('click', () => this.closeCitizenHistoryDrawer());
+            }
+
+            if (this.citizenHistoryDrawerOverlay) {
+                this.citizenHistoryDrawerOverlay.addEventListener('click', (e) => {
+                    if (e.target === this.citizenHistoryDrawerOverlay) {
+                        this.closeCitizenHistoryDrawer();
+                    }
+                });
+            }
+
+            const btnUnlink = document.getElementById('btnUnlinkHistory');
+            if (btnUnlink) {
+                btnUnlink.addEventListener('click', () => this.unlinkHistoryRecord());
+            }
+
+            if (this.newDefensoriaSelect) {
+                this.newDefensoriaSelect.addEventListener('change', () => {
+                    if (this.newAtendidoPorInput && this.currentUser) {
+                        this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
+                    }
+                    this.handleFueroChange();
+                });
+            }
+
+            if (this.newTipoTramiteFamilia) {
+                this.newTipoTramiteFamilia.addEventListener('change', () => {
+                    this.handleTipoTramiteFamiliaChange();
+                });
+            }
+
+            if (this.newMateriaFamilia) {
+                this.newMateriaFamilia.addEventListener('change', () => {
+                    this.updateFamiliaAssignmentLogic();
+                });
+            }
+
+            const elResultadoSelect = document.getElementById('newResultado');
+            if (elResultadoSelect) {
+                elResultadoSelect.addEventListener('change', () => {
+                    this.handleResultadoChange();
+                });
+            }
+
             if (this.newExpteInput) {
-                this.newExpteInput.addEventListener('change', () => this.updateFamiliaAssignmentLogic());
+                this.newExpteInput.addEventListener('change', () => {
+                    if (this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA') {
+                        this.updateFamiliaAssignmentLogic();
+                    }
+                });
             }
 
             this.searchInput.addEventListener('input', () => {
@@ -1208,89 +1322,12 @@ const bundleContent = `/* ======================================================
                 this.updateView();
             });
 
-            if (this.newDefensoriaSelect) {
-                this.newDefensoriaSelect.addEventListener('change', () => {
-                    const isFamilia = this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
-                    if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = isFamilia ? 'flex' : 'none';
-                    if (this.newAtendidoPorInput && this.currentUser) {
-                        this.newAtendidoPorInput.value = this.currentUser.nombreCompleto;
-                    }
-                    this.updateFamiliaFormDynamism();
-                    if (isFamilia) {
-                        this.updateFamiliaAssignmentLogic();
-                    }
-                });
-            }
-
-            if (this.newModoDerivacionFamilia) {
-                this.newModoDerivacionFamilia.addEventListener('change', () => {
-                    const modo = this.newModoDerivacionFamilia.value;
-                    if (this.fechaVencimientoGroup) {
-                        this.fechaVencimientoGroup.style.display = (modo === 'Contestación de Demanda') ? 'flex' : 'none';
-                    }
-                    this.updateFamiliaFormDynamism();
-                    this.updateFamiliaAssignmentLogic();
-                });
-            }
-
-            const elResultadoSelect = document.getElementById('newResultado');
-            if (elResultadoSelect) {
-                elResultadoSelect.addEventListener('change', () => {
-                    this.updateFamiliaFormDynamism();
-                });
-            }
-
-            const btnUnlink = document.getElementById('btnUnlinkHistory');
-            if (btnUnlink) {
-                btnUnlink.addEventListener('click', () => this.unlinkHistoryRecord());
-            }
-
-            if (this.newFamilySubmotivoSelect) {
-                this.newFamilySubmotivoSelect.addEventListener('change', () => {
-                    if (this.newFamilySubmotivoSelect.value === 'Guarda Judicial / Tutela / Adopción') {
-                        if (this.newModoDerivacionFamilia) {
-                            this.newModoDerivacionFamilia.value = 'Guarda Judicial / Tutela / Adopción';
-                        }
-                        this.updateFamiliaFormDynamism();
-                        this.updateFamiliaAssignmentLogic();
-                    }
-                });
-            }
-
             if (this.cardTotalAtenciones && this.operatorTooltip) {
                 this.cardTotalAtenciones.addEventListener('mouseenter', () => {
                     this.operatorTooltip.style.display = 'block';
                 });
                 this.cardTotalAtenciones.addEventListener('mouseleave', () => {
                     this.operatorTooltip.style.display = 'none';
-                });
-            }
-
-            if (this.cardDerivadasTecnica) {
-                this.cardDerivadasTecnica.addEventListener('click', (e) => {
-                    if (e.target.closest('#btnToggleTecnicaBreakdown') || e.target.closest('#tecnicaBreakdownPopover')) return;
-                    this.toggleTecnicaFilter();
-                });
-            }
-
-            if (this.btnToggleTecnicaBreakdown) {
-                this.btnToggleTecnicaBreakdown.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.toggleTecnicaPopover();
-                });
-            }
-
-            if (this.btnClearTecnicaFilter) {
-                this.btnClearTecnicaFilter.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.clearTecnicaFilter();
-                });
-            }
-
-            if (this.btnCloseTecnicaPopover) {
-                this.btnCloseTecnicaPopover.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (this.tecnicaBreakdownPopover) this.tecnicaBreakdownPopover.style.display = 'none';
                 });
             }
 
@@ -1345,7 +1382,7 @@ const bundleContent = `/* ======================================================
                 const day = now.getDate();
                 const month = now.toLocaleDateString('es-AR', { month: 'long' });
                 const year = now.getFullYear();
-                this.currentDateText.textContent = \`San Rafael, \${day} de \${month} de \${year}\`;
+                this.currentDateText.textContent = 'San Rafael, ' + day + ' de ' + month + ' de ' + year;
                 this.currentTimeText.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             };
             
@@ -1354,126 +1391,179 @@ const bundleContent = `/* ======================================================
         }
 
         async performDniLookup() {
-            const dniVal = this.newDniInput.value.trim();
-            const cleanDni = dniVal.replace(/[^\\d]/g, '');
+            const dniVal = this.newDniInput ? this.newDniInput.value.trim() : '';
+            const cleanDni = dniVal.replace(/[^0-9]/g, '');
 
-            if (!cleanDni || cleanDni.length < 5) {
-                this.dniStatusBadge.className = 'badge badge-otro';
-                this.dniStatusBadge.textContent = 'Ingrese DNI Válido';
-                this.citizenHistoryContainer.style.display = 'none';
+            if (!cleanDni || cleanDni.length < 7 || cleanDni.length > 9) {
+                if (this.dniStatusBadge) {
+                    this.dniStatusBadge.style.display = 'inline-block';
+                    this.dniStatusBadge.className = 'badge badge-otro';
+                    this.dniStatusBadge.textContent = '⚠️ Ingrese un DNI válido (7 u 8 dígitos)';
+                }
+                if (this.dniQuickActionsBar) this.dniQuickActionsBar.style.display = 'none';
                 return;
             }
 
-            this.dniStatusBadge.className = 'badge badge-civil';
-            this.dniStatusBadge.textContent = 'Buscando...';
+            if (this.dniStatusBadge) {
+                this.dniStatusBadge.style.display = 'inline-block';
+                this.dniStatusBadge.className = 'badge badge-civil';
+                this.dniStatusBadge.textContent = 'Buscando...';
+            }
+
+            let foundHistory = [];
+            let personalData = null;
 
             try {
-                const res = await fetch(getApiUrl(\`/api/ciudadanos/historial?dni=\${encodeURIComponent(cleanDni)}\`));
+                const res = await fetch(getApiUrl('/api/ciudadanos/historial?dni=' + encodeURIComponent(cleanDni)));
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success && data.found) {
-                        this.dniStatusBadge.className = 'badge badge-familia';
-                        this.dniStatusBadge.textContent = \`¡Registrado! (\${data.historyCount} atenciones previas)\`;
-
-                        if (data.personalData) {
-                            if (this.newApellidosInput) this.newApellidosInput.value = data.personalData.apellidos || '';
-                            if (this.newNombresInput) this.newNombresInput.value = data.personalData.nombres || '';
-                            if (this.newCelularInput && data.personalData.celular) this.newCelularInput.value = data.personalData.celular;
-                        }
-
-                        this.currentCitizenHistory = data.history || [];
-                        this.renderCitizenHistoryPanel(data.history);
-                        return;
+                        foundHistory = data.history || [];
+                        personalData = data.personalData || null;
                     }
                 }
             } catch(e) {}
 
-            const matchedEntities = this.rawEntities.filter(ent => ent.dni && ent.dni.clean === cleanDni);
+            if (foundHistory.length === 0) {
+                const matchedEntities = this.rawEntities.filter(ent => ent.dni && ent.dni.clean === cleanDni);
+                if (matchedEntities.length > 0) {
+                    const latest = matchedEntities[0];
+                    personalData = {
+                        apellidos: latest.apellidos,
+                        nombres: latest.nombres,
+                        celular: latest.celular
+                    };
+                    foundHistory = matchedEntities.map(e => AttendanceDTO.fromEntity(e));
+                }
+            }
 
-            if (matchedEntities.length > 0) {
-                const latest = matchedEntities[0];
-                this.dniStatusBadge.className = 'badge badge-familia';
-                this.dniStatusBadge.textContent = '¡Registrado! (' + matchedEntities.length + ' atenciones previas)';
+            if (foundHistory.length > 0) {
+                this.currentCitizenHistory = foundHistory;
 
-                if (this.newApellidosInput) this.newApellidosInput.value = latest.apellidos || '';
-                if (this.newNombresInput) this.newNombresInput.value = latest.nombres || '';
-                if (this.newCelularInput && latest.celular) this.newCelularInput.value = latest.celular;
+                if (this.dniStatusBadge) {
+                    this.dniStatusBadge.style.display = 'inline-block';
+                    this.dniStatusBadge.className = 'badge badge-familia';
+                    this.dniStatusBadge.textContent = '¡Registrado! (' + foundHistory.length + ' atención' + (foundHistory.length > 1 ? 'es' : '') + ' previa' + (foundHistory.length > 1 ? 's' : '') + ')';
+                }
 
-                const dtos = matchedEntities.map(e => AttendanceDTO.fromEntity(e));
-                this.currentCitizenHistory = dtos;
-                this.renderCitizenHistoryPanel(dtos);
+                if (personalData) {
+                    if (this.newApellidosInput) this.newApellidosInput.value = personalData.apellidos || '';
+                    if (this.newNombresInput) this.newNombresInput.value = personalData.nombres || '';
+                    if (this.newCelularInput && personalData.celular) this.newCelularInput.value = personalData.celular;
+                }
+
+                if (this.dniQuickActionsBar) {
+                    this.dniQuickActionsBar.style.display = 'block';
+                    if (this.quickHistoryCount) this.quickHistoryCount.textContent = foundHistory.length;
+                    if (this.btnQuickNuevaCausa) this.btnQuickNuevaCausa.classList.add('active');
+                    if (this.btnQuickContinuarCausa) this.btnQuickContinuarCausa.classList.remove('active');
+                }
+
+                this.renderCitizenHistoryDrawer(foundHistory, personalData);
             } else {
-                this.dniStatusBadge.className = 'badge badge-civil';
-                this.dniStatusBadge.textContent = '✨ Ciudadano Nuevo (Primer Registro)';
-                this.citizenHistoryContainer.style.display = 'none';
+                this.currentCitizenHistory = [];
+                if (this.dniStatusBadge) {
+                    this.dniStatusBadge.style.display = 'inline-block';
+                    this.dniStatusBadge.className = 'badge badge-civil';
+                    this.dniStatusBadge.textContent = '✨ Ciudadano Nuevo (Primer Registro)';
+                }
+                if (this.dniQuickActionsBar) this.dniQuickActionsBar.style.display = 'none';
+                if (this.linkedHistoryBanner) this.linkedHistoryBanner.style.display = 'none';
+                this.linkedHistoryDto = null;
             }
         }
 
-        renderCitizenHistoryPanel(historyList) {
-            if (!historyList || historyList.length === 0) {
-                this.citizenHistoryContainer.style.display = 'none';
-                return;
+        handleQuickNuevaCausa(notify = true) {
+            this.linkedHistoryDto = null;
+            if (this.linkedHistoryBanner) this.linkedHistoryBanner.style.display = 'none';
+
+            if (this.btnQuickNuevaCausa) this.btnQuickNuevaCausa.classList.add('active');
+            if (this.btnQuickContinuarCausa) this.btnQuickContinuarCausa.classList.remove('active');
+
+            if (this.newExpteInput) this.newExpteInput.value = '';
+
+            if (this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA') {
+                if (this.newTipoTramiteFamilia) this.newTipoTramiteFamilia.value = 'Causa Nueva';
+                this.updateFamiliaAssignmentLogic();
             }
 
-            let cardsHtml = '';
-            historyList.slice(0, 5).forEach((item) => {
-                const fecha = item.fecha || 's/f';
-                const defensoria = item.defensoria || item.defensoriaName || 'General';
-                const expte = item.expte ? ('Expte: ' + item.expte) : (item.motivo || 'Atención Spontánea');
-                const obs = item.observaciones ? ('<p style="font-size:0.8rem; color:#CBD5E1; margin-top:0.25rem;">"...' + item.observaciones.substring(0, 120) + '..."</p>') : '';
-                const taskBadge = item.tarea_pendiente || item.tareaPendiente ? '<span style="color:#FBBF24; font-size:0.75rem; font-weight:700;"> ⚠️ Tarea Pendiente</span>' : '';
-                const atendidoText = item.atendidoPor || item.atendido_por || 'Secretaría';
+            if (notify) {
+                showToast('Modo activo: Nueva Consulta / Asunto Nuevo para este ciudadano', 'info');
+            }
+        }
 
-                cardsHtml += '<div class="history-card" data-history-id="' + item.id + '" style="background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; transition: background 0.2s ease;">' +
-                    '<div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem;">' +
-                        '<span style="color: #00B4D8;"><i class="ri-calendar-line"></i> ' + fecha + ' | ' + defensoria + '</span>' +
-                        '<span style="color: #F472B6;">' + (item.resultado || 'Resuelve') + ' ' + taskBadge + '</span>' +
+        handleQuickContinuarCausa() {
+            if (!this.currentCitizenHistory || this.currentCitizenHistory.length === 0) {
+                showToast('No se encontraron trámites previos para continuar.', 'warning');
+                return;
+            }
+            const latest = this.currentCitizenHistory[0];
+            this.selectHistoryRecordToContinue(latest);
+        }
+
+        openCitizenHistoryDrawer() {
+            if (!this.citizenHistoryDrawerOverlay) return;
+            this.citizenHistoryDrawerOverlay.classList.add('active');
+        }
+
+        closeCitizenHistoryDrawer() {
+            if (!this.citizenHistoryDrawerOverlay) return;
+            this.citizenHistoryDrawerOverlay.classList.remove('active');
+        }
+
+        renderCitizenHistoryDrawer(historyList, personalData) {
+            if (this.drawerCitizenName) {
+                const name = (personalData && personalData.apellidos) ? (personalData.apellidos + ' ' + (personalData.nombres || '')) : 'Ciudadano';
+                this.drawerCitizenName.textContent = name;
+            }
+            if (this.drawerCitizenDni && this.newDniInput) {
+                this.drawerCitizenDni.textContent = 'DNI: ' + this.newDniInput.value.trim();
+            }
+
+            if (!this.drawerHistoryList) return;
+
+            let html = '';
+            historyList.forEach(item => {
+                const def = item.defensoria || item.defensoriaName || 'Defensoría';
+                const fecha = item.fecha || 's/f';
+                const expte = item.expte ? ('Expte: ' + item.expte) : (item.motivo || 'Atención en Mesa');
+                const obs = item.observaciones ? ('<div class="history-card-obs">"' + item.observaciones + '"</div>') : '';
+                const task = (item.tarea_pendiente || item.tareaPendiente) ? '<span style="color:#FBBF24; font-size:0.72rem; font-weight:700;">⚠️ Tarea Pendiente: ' + (item.detalle_pendiente || item.detallePendiente || '') + '</span>' : '';
+                const codef = item.codefensora_asignada || item.codefensoraAsignada || '';
+
+                let borderClass = 'is-civil';
+                if (def.includes('FAMILIA')) borderClass = 'is-family';
+                else if (def.includes('PENAL')) borderClass = 'is-penal';
+
+                html += '<div class="history-item-card ' + borderClass + '">' +
+                    '<div class="history-card-header">' +
+                        '<span class="badge" style="font-size:0.7rem; background:rgba(0,180,216,0.15); color:#38BDF8;">' + def + '</span>' +
+                        '<span class="history-card-date"><i class="ri-calendar-line"></i> ' + fecha + '</span>' +
                     '</div>' +
-                    '<div style="font-size: 0.85rem; font-weight: 600; color: #FFF;">' + expte + '</div>' +
+                    '<div class="history-card-meta">' + expte + '</div>' +
+                    (codef ? '<div style="font-size:0.76rem; color:#EC4899;"><i class="ri-user-star-line"></i> Co-Defensora: Dra. ' + codef.replace(/^Dra\\.\\s*/i, '') + '</div>' : '') +
+                    '<div style="font-size:0.75rem; color:#94A3B8;">Resultado: <strong style="color:#FFF;">' + (item.resultado || 'Resuelve') + '</strong></div>' +
+                    task +
                     obs +
-                    '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">' +
-                        '<div style="font-size: 0.72rem; color: #94A3B8;">Atendido por: ' + atendidoText + '</div>' +
-                        '<div style="display: flex; gap: 0.4rem;">' +
-                            '<button type="button" class="btn-view-history-detail" data-history-id="' + item.id + '" style="background: rgba(51, 65, 85, 0.8); color: #94A3B8; border: 1px solid #475569; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer;">' +
-                                '<i class="ri-eye-line"></i> Ver Ficha' +
-                            '</button>' +
-                            '<button type="button" class="btn-continue-history-record" data-history-id="' + item.id + '" style="background: rgba(0, 180, 216, 0.2); color: #38BDF8; border: 1px solid #00B4D8; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 600; cursor: pointer;">' +
-                                '<i class="ri-link-m"></i> Continuar este Trámite' +
-                            '</button>' +
-                        '</div>' +
-                    '</div>' +
+                    '<button type="button" class="btn-select-history-card" data-history-id="' + item.id + '">' +
+                        '<i class="ri-link-m"></i> Continuar este Trámite' +
+                    '</button>' +
                 '</div>';
             });
 
-            this.citizenHistoryContainer.innerHTML = '<div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--mpd-gold); border-radius: 8px; padding: 1rem;">' +
-                '<h5 style="color: var(--mpd-gold); font-size: 0.88rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' +
-                    '<i class="ri-history-line"></i> Historial de Atenciones Anteriores del Ciudadano (' + historyList.length + ' Registros)' +
-                '</h5>' +
-                '<div style="max-height: 240px; overflow-y: auto;">' +
-                    cardsHtml +
-                '</div>' +
-            '</div>';
-            
-            const container = this.citizenHistoryContainer;
-            container.querySelectorAll('.btn-view-history-detail').forEach(btn => {
+            this.drawerHistoryList.innerHTML = html;
+
+            this.drawerHistoryList.querySelectorAll('.btn-select-history-card').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const id = Number(btn.getAttribute('data-history-id'));
-                    const dto = historyList.find(i => i.id === id);
-                    if (dto) this.openDetailModal(dto);
+                    const item = historyList.find(h => h.id === id);
+                    if (item) {
+                        this.selectHistoryRecordToContinue(item);
+                        this.closeCitizenHistoryDrawer();
+                    }
                 });
             });
-
-            container.querySelectorAll('.btn-continue-history-record').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = Number(btn.getAttribute('data-history-id'));
-                    const dto = historyList.find(i => i.id === id);
-                    if (dto) this.selectHistoryRecordToContinue(dto);
-                });
-            });
-
-            this.citizenHistoryContainer.style.display = 'block';
         }
 
         async handleLoginSubmit(e) {
@@ -2153,16 +2243,21 @@ const bundleContent = `/* ======================================================
             const elActividad = document.getElementById('newActividad');
             if (elActividad && this.catalogData.actividad) {
                 const curVal = elActividad.value;
-                elActividad.innerHTML = '<option value="" disabled selected>-- Seleccionar Actividad --</option>' +
-                    this.catalogData.actividad.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                elActividad.innerHTML = '<option value="" disabled selected>-- Seleccionar Modalidad --</option>' +
+                    this.catalogData.actividad.map(function(item) { 
+                        const label = item.valor === 'Atención Personal' ? 'Mesa de Entradas (Atención Personal)' : item.valor;
+                        return '<option value="' + item.valor + '">' + label + '</option>'; 
+                    }).join('');
                 if (curVal) elActividad.value = curVal;
             }
 
             const elDefensoria = document.getElementById('newDefensoria');
             if (elDefensoria && this.catalogData.defensoria) {
                 const curVal = elDefensoria.value;
-                elDefensoria.innerHTML = '<option value="" disabled selected>-- Seleccionar Defensoría / Área --</option>' +
-                    this.catalogData.defensoria.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
+                elDefensoria.innerHTML = '<option value="" disabled selected>-- Seleccionar Defensoría / Fuero --</option>' +
+                    this.catalogData.defensoria.map(function(item) { 
+                        return '<option value="' + item.valor + '">' + item.valor + '</option>'; 
+                    }).join('');
                 if (curVal) elDefensoria.value = curVal;
             }
 
@@ -2174,12 +2269,8 @@ const bundleContent = `/* ======================================================
                 if (curVal) elMotivo.value = curVal;
             }
 
-            const elResultado = document.getElementById('newResultado');
-            if (elResultado && this.catalogData.resultado) {
-                const curVal = elResultado.value;
-                elResultado.innerHTML = '<option value="" disabled selected>-- Seleccionar Resultado --</option>' +
-                    this.catalogData.resultado.map(function(item) { return '<option value="' + item.valor + '">' + item.valor + '</option>'; }).join('');
-                if (curVal) elResultado.value = curVal;
+            if (this.updateResultadoOptions) {
+                this.updateResultadoOptions(this.newDefensoriaSelect ? this.newDefensoriaSelect.value : '');
             }
 
             const elFamilySubmotivo = document.getElementById('newFamilySubmotivo');
@@ -3528,87 +3619,113 @@ const bundleContent = `/* ======================================================
             return '';
         }
 
-        updateFamiliaFormDynamism() {
-            const isFamilia = this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
-            const elMotivo = document.getElementById('newMotivo');
-            const elResultado = document.getElementById('newResultado');
-            const elReparticionGroup = document.getElementById('reparticionDetalleGroup');
+        handleFueroChange() {
+            const defVal = this.newDefensoriaSelect ? this.newDefensoriaSelect.value : '';
+            
+            const isFamilia = defVal === 'CO-DEF. FAMILIA';
+            const isPenal = defVal === 'PENAL' || defVal.includes('DEFENSORIA PENAL') || defVal === 'EJECUCIÓN PENAL' || defVal.includes('PENAL JUVENIL');
+            const isCivil = defVal === 'DEF. CIVIL';
+            const isOtro = defVal === 'Otro';
 
-            if (isFamilia) {
-                if (elMotivo) {
-                    const curMotivo = elMotivo.value;
-                    const familiaMotivos = ['Espontánea', 'Causa en Trámite', 'Turno', 'Otro'];
-                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Motivo --</option>';
-                    familiaMotivos.forEach(m => {
-                        optionsHtml += '<option value="' + m + '">' + m + '</option>';
-                    });
-                    elMotivo.innerHTML = optionsHtml;
-                    if (curMotivo && familiaMotivos.includes(curMotivo)) {
-                        elMotivo.value = curMotivo;
-                    }
-                }
+            if (this.fueroFamiliaSection) this.fueroFamiliaSection.style.display = isFamilia ? 'block' : 'none';
+            if (this.fueroPenalSection) this.fueroPenalSection.style.display = isPenal ? 'block' : 'none';
+            if (this.fueroCivilSection) this.fueroCivilSection.style.display = isCivil ? 'block' : 'none';
 
-                if (elResultado) {
-                    const curResultado = elResultado.value;
-                    const familiaResultados = ['Resuelve operador', 'Entrevista con Codefensor', 'Derivado a otra repartición', 'Otro'];
-                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Resultado --</option>';
-                    familiaResultados.forEach(r => {
-                        optionsHtml += '<option value="' + r + '">' + r + '</option>';
-                    });
-                    elResultado.innerHTML = optionsHtml;
-                    if (curResultado && familiaResultados.includes(curResultado)) {
-                        elResultado.value = curResultado;
-                    }
-                }
-
-                const modo = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : '';
-                if (modo === 'Guarda Judicial / Tutela / Adopción') {
-                    if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
-                    if (this.newFamilySubmotivoSelect) this.newFamilySubmotivoSelect.value = 'Guarda Judicial / Tutela / Adopción';
+            if (this.fueroActiveBadge) {
+                if (isFamilia) {
+                    this.fueroActiveBadge.className = 'badge badge-familia';
+                    this.fueroActiveBadge.textContent = 'Familia';
+                } else if (isPenal) {
+                    this.fueroActiveBadge.className = 'badge badge-penal';
+                    this.fueroActiveBadge.textContent = defVal.includes('JUVENIL') ? 'Penal Juvenil' : 'Penal';
+                } else if (isCivil) {
+                    this.fueroActiveBadge.className = 'badge badge-civil';
+                    this.fueroActiveBadge.textContent = 'Civil';
                 } else {
-                    if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'flex';
+                    this.fueroActiveBadge.className = 'badge badge-otro';
+                    this.fueroActiveBadge.textContent = isOtro ? 'Otro Fuero / Trámite' : 'Seleccione Fuero';
                 }
-            } else {
-                if (elMotivo) {
-                    const curMotivo = elMotivo.value;
-                    const genericMotivos = ['Espontánea', 'Causa Trámite', 'Aud. Fijada', 'Divorcio', 'Ejecución', 'Turno', 'Aud. Imputación', 'Otro'];
-                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Motivo --</option>';
-                    genericMotivos.forEach(m => {
-                        optionsHtml += '<option value="' + m + '">' + m + '</option>';
-                    });
-                    elMotivo.innerHTML = optionsHtml;
-                    if (curMotivo && genericMotivos.includes(curMotivo)) elMotivo.value = curMotivo;
-                }
-
-                if (elResultado) {
-                    const curResultado = elResultado.value;
-                    const genericResultados = ['Resuelve', 'Deriva a A. Técnica', 'Deriva a CO-DEF- FAMILIA', 'Derivado a otra repartición', 'Otro'];
-                    let optionsHtml = '<option value="" disabled selected>-- Seleccionar Resultado --</option>';
-                    genericResultados.forEach(r => {
-                        optionsHtml += '<option value="' + r + '">' + r + '</option>';
-                    });
-                    elResultado.innerHTML = optionsHtml;
-                    if (curResultado && genericResultados.includes(curResultado)) elResultado.value = curResultado;
-                }
-
-                if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
             }
 
-            if (elResultado && elResultado.value === 'Derivado a otra repartición') {
-                if (elReparticionGroup) elReparticionGroup.style.display = 'flex';
+            this.updateResultadoOptions(defVal);
+
+            if (isFamilia) {
+                this.handleTipoTramiteFamiliaChange();
+                this.updateFamiliaAssignmentLogic();
+            }
+        }
+
+        updateResultadoOptions(fueroVal) {
+            if (!this.newResultadoSelect) return;
+            const currentVal = this.newResultadoSelect.value;
+            
+            let options = [];
+            if (fueroVal === 'CO-DEF. FAMILIA') {
+                options = [
+                    { value: 'Resuelve en Mesa / Operador', label: 'Resuelve en Mesa / Operador' },
+                    { value: 'Entrevista con Defensor/a', label: 'Entrevista con Co-Defensora de Familia' },
+                    { value: 'Asesoramiento General', label: 'Asesoramiento General' },
+                    { value: 'Derivado a otra repartición', label: 'Derivado a otra repartición' }
+                ];
+            } else if (fueroVal === 'DEF. CIVIL') {
+                options = [
+                    { value: 'Resuelve en Mesa / Operador', label: 'Resuelve en Mesa / Operador' },
+                    { value: 'Entrevista con Defensor/a', label: 'Entrevista con Defensor/a Civil' },
+                    { value: 'Asesoramiento General', label: 'Asesoramiento General' },
+                    { value: 'Derivado a otra repartición', label: 'Derivado a otra repartición' }
+                ];
+            } else if (fueroVal && (fueroVal.includes('PENAL') || fueroVal === 'EJECUCIÓN PENAL')) {
+                options = [
+                    { value: 'Resuelve en Mesa / Operador', label: 'Resuelve en Mesa / Operador' },
+                    { value: 'Entrevista con Defensor/a', label: fueroVal.includes('JUVENIL') ? 'Entrevista con Defensor Penal Juvenil' : 'Entrevista con Defensor/a Penal' },
+                    { value: 'Asesoramiento General', label: 'Asesoramiento General' },
+                    { value: 'Derivado a otra repartición', label: 'Derivado a otra repartición' }
+                ];
             } else {
-                if (elReparticionGroup) elReparticionGroup.style.display = 'none';
+                options = [
+                    { value: 'Resuelve en Mesa / Operador', label: 'Resuelve en Mesa / Operador' },
+                    { value: 'Asesoramiento General', label: 'Asesoramiento General' },
+                    { value: 'Derivado a otra repartición', label: 'Derivado a otra repartición' }
+                ];
+            }
+
+            let html = '<option value="" disabled' + (!currentVal ? ' selected' : '') + '>-- Seleccionar Resultado --</option>';
+            let hasCurrent = false;
+            options.forEach(opt => {
+                const isSelected = (opt.value === currentVal);
+                if (isSelected) hasCurrent = true;
+                html += '<option value="' + opt.value + '"' + (isSelected ? ' selected' : '') + '>' + opt.label + '</option>';
+            });
+            this.newResultadoSelect.innerHTML = html;
+            if (!hasCurrent && currentVal) {
+                this.newResultadoSelect.value = '';
+            }
+            this.handleResultadoChange();
+        }
+
+        handleTipoTramiteFamiliaChange() {
+            const tipo = this.newTipoTramiteFamilia ? this.newTipoTramiteFamilia.value : 'Causa Nueva';
+            if (this.fechaVencimientoGroup) {
+                this.fechaVencimientoGroup.style.display = (tipo === 'Contestación de Demanda') ? 'block' : 'none';
+            }
+            this.updateFamiliaAssignmentLogic();
+        }
+
+        handleResultadoChange() {
+            const resVal = this.newResultadoSelect ? this.newResultadoSelect.value : '';
+            if (this.reparticionDetalleGroup) {
+                this.reparticionDetalleGroup.style.display = (resVal === 'Derivado a otra repartición') ? 'block' : 'none';
             }
         }
 
         setSelectValueNormalized(selectElement, targetValue) {
             if (!selectElement || !targetValue) return '';
-            const cleanTarget = targetValue.replace(/^Dra\.\s*/i, '').replace(/^Dr\.\s*/i, '').trim();
+            const cleanTarget = targetValue.replace(/^Dra\\.\\s*/i, '').replace(/^Dr\\.\\s*/i, '').trim();
             if (!cleanTarget) return '';
 
             for (let i = 0; i < selectElement.options.length; i++) {
-                const optVal = selectElement.options[i].value.replace(/^Dra\.\s*/i, '').trim();
-                const optText = selectElement.options[i].text.replace(/^Dra\.\s*/i, '').trim();
+                const optVal = selectElement.options[i].value.replace(/^Dra\\.\\s*/i, '').trim();
+                const optText = selectElement.options[i].text.replace(/^Dra\\.\\s*/i, '').trim();
                 if (optVal.toLowerCase() === cleanTarget.toLowerCase() || optText.toLowerCase().includes(cleanTarget.toLowerCase()) || cleanTarget.toLowerCase().includes(optVal.toLowerCase())) {
                     selectElement.selectedIndex = i;
                     return selectElement.options[i].value;
@@ -3620,9 +3737,9 @@ const bundleContent = `/* ======================================================
         async updateFamiliaAssignmentLogic() {
             if (!this.newDefensoriaSelect || this.newDefensoriaSelect.value !== 'CO-DEF. FAMILIA') return;
 
-            const modo = this.newModoDerivacionFamilia ? this.newModoDerivacionFamilia.value : 'Asesoramiento General';
+            const tipo = this.newTipoTramiteFamilia ? this.newTipoTramiteFamilia.value : 'Causa Nueva';
 
-            if (modo === 'Causa en Trámite') {
+            if (tipo === 'Causa en Trámite' || this.linkedHistoryDto) {
                 let targetCodefensora = '';
                 let recordIdRef = '';
 
@@ -3639,7 +3756,7 @@ const bundleContent = `/* ======================================================
                     }
                 }
 
-                const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^\d]/g, '') : '';
+                const dniClean = this.newDniInput ? this.newDniInput.value.replace(/[^0-9]/g, '') : '';
                 const expteClean = this.newExpteInput ? this.newExpteInput.value.trim() : '';
 
                 if (!targetCodefensora && (dniClean || expteClean)) {
@@ -3656,16 +3773,22 @@ const bundleContent = `/* ======================================================
 
                 if (targetCodefensora) {
                     const selectedVal = this.setSelectValueNormalized(this.newCodefensoraAsignada, targetCodefensora);
-                    const displayName = selectedVal || targetCodefensora.replace(/^Dra\.\s*/i, '');
+                    const displayName = selectedVal || targetCodefensora.replace(/^Dra\\.\\s*/i, '');
 
                     const defObj = this.codefensorasRoster.find(item => item.nombre.toLowerCase() === displayName.toLowerCase());
                     const isPresente = defObj ? defObj.isPresente : true;
                     const motivo = (defObj && defObj.motivoAusencia) ? ' (' + defObj.motivoAusencia + ')' : '';
 
+                    if (this.codefensoraBadgeStatus) {
+                        this.codefensoraBadgeStatus.textContent = isPresente ? 'Causa en Trámite (Presente)' : 'Causa en Trámite (Ausente)';
+                        this.codefensoraBadgeStatus.style.background = isPresente ? 'rgba(74, 222, 128, 0.2)' : 'rgba(245, 158, 11, 0.2)';
+                        this.codefensoraBadgeStatus.style.color = isPresente ? '#4ADE80' : '#FBBF24';
+                    }
+
                     if (this.codefensoraHint) {
                         if (isPresente) {
                             this.codefensoraHint.style.color = '#4ADE80';
-                            this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al historial' + recordIdRef + ': Dra. ' + displayName;
+                            this.codefensoraHint.textContent = '✓ Co-Defensora previa vinculada al expediente' + recordIdRef + ': Dra. ' + displayName;
                         } else {
                             this.codefensoraHint.style.color = '#FBBF24';
                             this.codefensoraHint.textContent = '⚠️ Dra. ' + displayName + recordIdRef + ' figura Ausente' + motivo + '. Puede mantenerla o re-asignar a otra Co-Defensora presente.';
@@ -3674,18 +3797,28 @@ const bundleContent = `/* ======================================================
                     return;
                 }
 
+                if (this.codefensoraBadgeStatus) {
+                    this.codefensoraBadgeStatus.textContent = 'Causa en Trámite';
+                    this.codefensoraBadgeStatus.style.background = 'rgba(245, 158, 11, 0.2)';
+                    this.codefensoraBadgeStatus.style.color = '#FBBF24';
+                }
                 if (this.codefensoraHint) {
                     this.codefensoraHint.style.color = '#FBBF24';
                     this.codefensoraHint.textContent = '⚠️ Causa en Trámite: Sin antecedente previo. Seleccione la Co-Defensora asignada manualmente.';
                 }
             } else {
-                const proxima = await this.calculateProximoTurno(modo);
+                const proxima = await this.calculateProximoTurno(tipo);
                 if (proxima && this.newCodefensoraAsignada) {
                     this.setSelectValueNormalized(this.newCodefensoraAsignada, proxima);
                 }
+                if (this.codefensoraBadgeStatus) {
+                    this.codefensoraBadgeStatus.textContent = 'Turno Rotativo (' + tipo + ')';
+                    this.codefensoraBadgeStatus.style.background = 'rgba(198, 63, 149, 0.2)';
+                    this.codefensoraBadgeStatus.style.color = '#F472B6';
+                }
                 if (this.codefensoraHint) {
                     this.codefensoraHint.style.color = '#94A3B8';
-                    this.codefensoraHint.textContent = 'Sugerida automáticamente por turno del canal "' + modo + '". (Puede modificarla manualmente si es necesario).';
+                    this.codefensoraHint.textContent = 'Sugerida automáticamente por turno rotativo del canal "' + tipo + '". (Puede modificarla manualmente si es necesario).';
                 }
             }
         }
@@ -3694,6 +3827,9 @@ const bundleContent = `/* ======================================================
             if (!dto) return;
 
             this.linkedHistoryDto = dto;
+
+            if (this.btnQuickContinuarCausa) this.btnQuickContinuarCausa.classList.add('active');
+            if (this.btnQuickNuevaCausa) this.btnQuickNuevaCausa.classList.remove('active');
 
             const banner = document.getElementById('linkedHistoryBanner');
             const bannerText = document.getElementById('linkedHistoryBannerText');
@@ -3707,18 +3843,27 @@ const bundleContent = `/* ======================================================
             const expte = dto.expte || '';
 
             if (banner && bannerText) {
-                const label = 'Continuando Trámite Previo (Atención N° ' + dto.id + ' | ' + defensoria + (codefensora ? ' | Dra. ' + codefensora.replace(/^Dra\.\s*/i, '') : '') + (expte ? ' | Expte: ' + expte : '') + ')';
+                const label = 'Continuando Trámite Previo (Atención N° ' + dto.id + ' | ' + defensoria + (codefensora ? ' | Dra. ' + codefensora.replace(/^Dra\\.\\s*/i, '') : '') + (expte ? ' | Expte: ' + expte : '') + ')';
                 bannerText.textContent = label;
                 banner.style.display = 'flex';
             }
 
             if (this.newDefensoriaSelect) {
                 this.newDefensoriaSelect.value = defensoria;
-                if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = (defensoria === 'CO-DEF. FAMILIA') ? 'flex' : 'none';
             }
 
-            if (this.newModoDerivacionFamilia) {
-                this.newModoDerivacionFamilia.value = 'Causa en Trámite';
+            this.handleFueroChange();
+
+            if (defensoria === 'CO-DEF. FAMILIA') {
+                if (this.newTipoTramiteFamilia) {
+                    this.newTipoTramiteFamilia.value = 'Causa en Trámite';
+                }
+                if (dto.motivo) {
+                    const matchMateria = dto.motivo.match(/\[(.*?)\]/);
+                    if (matchMateria && matchMateria[1] && this.newMateriaFamilia) {
+                        this.setSelectValueNormalized(this.newMateriaFamilia, matchMateria[1]);
+                    }
+                }
             }
 
             if (this.newExpteInput && expte) {
@@ -3729,7 +3874,6 @@ const bundleContent = `/* ======================================================
                 this.setSelectValueNormalized(this.newCodefensoraAsignada, codefensora);
             }
 
-            this.updateFamiliaFormDynamism();
             this.updateFamiliaAssignmentLogic();
 
             const obsInput = document.getElementById('newObservaciones');
@@ -3745,10 +3889,12 @@ const bundleContent = `/* ======================================================
             const banner = document.getElementById('linkedHistoryBanner');
             if (banner) banner.style.display = 'none';
 
-            if (this.newModoDerivacionFamilia) {
-                this.newModoDerivacionFamilia.value = 'Asesoramiento General';
+            if (this.btnQuickNuevaCausa) this.btnQuickNuevaCausa.classList.add('active');
+            if (this.btnQuickContinuarCausa) this.btnQuickContinuarCausa.classList.remove('active');
+
+            if (this.newTipoTramiteFamilia) {
+                this.newTipoTramiteFamilia.value = 'Causa Nueva';
             }
-            this.updateFamiliaFormDynamism();
             this.updateFamiliaAssignmentLogic();
 
             showToast('Vinculación de trámite removida. Modo restablecido a Trámite Nuevo.', 'info');
@@ -3757,10 +3903,10 @@ const bundleContent = `/* ======================================================
         async openNewModal() {
             this.editingRecordId = null;
             this.linkedHistoryDto = null;
-            const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
-            if (modalTitle) modalTitle.textContent = 'Registrar Nueva Atención';
-            const submitBtn = this.newRecordForm ? this.newRecordForm.querySelector('button[type="submit"]') : null;
-            if (submitBtn) submitBtn.innerHTML = '<i class="ri-save-line"></i> Guardar Registro';
+            const modalTitle = document.getElementById('newRecordModalTitle');
+            if (modalTitle) modalTitle.textContent = 'Registrar Nueva Atención Ciudadana';
+            const submitBtn = document.getElementById('btnSubmitRecord');
+            if (submitBtn) submitBtn.innerHTML = '<i class="ri-save-line"></i> Guardar e Incorporar Atención';
 
             if (this.newRecordForm) this.newRecordForm.reset();
 
@@ -3768,24 +3914,19 @@ const bundleContent = `/* ======================================================
             const elFecha = document.getElementById('newFecha');
             if (elFecha) elFecha.value = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
 
-            const elActividad = document.getElementById('newActividad');
-            if (elActividad) elActividad.value = '';
-
+            if (this.newActividadSelect) this.newActividadSelect.value = '';
             if (this.newDefensoriaSelect) this.newDefensoriaSelect.value = '';
-
-            const elMotivo = document.getElementById('newMotivo');
-            if (elMotivo) elMotivo.value = '';
-
-            const elResultado = document.getElementById('newResultado');
-            if (elResultado) elResultado.value = '';
+            if (this.newExpteInput) this.newExpteInput.value = '';
+            if (this.newResultadoSelect) this.newResultadoSelect.value = '';
 
             if (this.newTareaPendiente) this.newTareaPendiente.checked = false;
             if (this.newDetallePendiente) this.newDetallePendiente.value = '';
             if (this.dniStatusBadge) {
+                this.dniStatusBadge.style.display = 'none';
                 this.dniStatusBadge.className = 'badge badge-otro';
-                this.dniStatusBadge.textContent = 'Ingrese DNI';
+                this.dniStatusBadge.textContent = '';
             }
-            if (this.citizenHistoryContainer) this.citizenHistoryContainer.style.display = 'none';
+            if (this.dniQuickActionsBar) this.dniQuickActionsBar.style.display = 'none';
 
             const banner = document.getElementById('linkedHistoryBanner');
             if (banner) banner.style.display = 'none';
@@ -3795,9 +3936,7 @@ const bundleContent = `/* ======================================================
                 this.newAtendidoPorInput.readOnly = (!this.currentUser || !this.currentUser.isAdmin());
             }
 
-            if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = 'none';
-            if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = 'none';
-            if (this.fechaVencimientoGroup) this.fechaVencimientoGroup.style.display = 'none';
+            this.handleFueroChange();
 
             // Reset panel de confección de escritos
             if (this.selectPlantillaEscrito) this.selectPlantillaEscrito.value = '';
@@ -3829,9 +3968,9 @@ const bundleContent = `/* ======================================================
             await this.loadPlantillasEscritos();
 
             this.editingRecordId = dto.id;
-            const modalTitle = this.newRecordModal ? this.newRecordModal.querySelector('h4') : null;
+            const modalTitle = document.getElementById('newRecordModalTitle');
             if (modalTitle) modalTitle.textContent = '✏️ Editar Atención N° ' + dto.id;
-            const submitBtn = this.newRecordForm ? this.newRecordForm.querySelector('button[type="submit"]') : null;
+            const submitBtn = document.getElementById('btnSubmitRecord');
             if (submitBtn) submitBtn.innerHTML = '<i class="ri-save-line"></i> Guardar Cambios';
 
             if (this.newDniInput) this.newDniInput.value = entity.dni.raw;
@@ -3848,36 +3987,45 @@ const bundleContent = `/* ======================================================
             const elExpte = document.getElementById('newExpte');
             if (elExpte) elExpte.value = entity.expte;
 
-            const elDefensoria = document.getElementById('newDefensoria');
-            if (elDefensoria) elDefensoria.value = entity.defensoriaCategory.name;
+            const defName = entity.defensoriaCategory ? entity.defensoriaCategory.name : (entity.defensoria || '');
+            if (this.newDefensoriaSelect) this.newDefensoriaSelect.value = defName;
 
-            const isFamilia = entity.defensoriaCategory.name === 'CO-DEF. FAMILIA';
-            if (this.familySubmotivoGroup) this.familySubmotivoGroup.style.display = isFamilia ? 'flex' : 'none';
-            if (this.familyDerivacionGroup) this.familyDerivacionGroup.style.display = isFamilia ? 'flex' : 'none';
+            this.handleFueroChange();
+
+            const isFamilia = defName === 'CO-DEF. FAMILIA';
+            const isPenal = defName === 'PENAL' || defName.includes('DEFENSORIA PENAL') || defName === 'EJECUCIÓN PENAL';
 
             if (isFamilia) {
-                if (this.newModoDerivacionFamilia) this.newModoDerivacionFamilia.value = entity.modoDerivacionFamilia || 'Asesoramiento General';
-                if (this.newCodefensoraAsignada) this.newCodefensoraAsignada.value = entity.codefensoraAsignada || '';
-                if (this.newFechaVencimientoContestacion) this.newFechaVencimientoContestacion.value = entity.fechaVencimientoContestacion || '';
-                if (this.fechaVencimientoGroup) {
-                    this.fechaVencimientoGroup.style.display = (entity.modoDerivacionFamilia === 'Contestación de Demanda') ? 'flex' : 'none';
+                if (this.newTipoTramiteFamilia) {
+                    this.newTipoTramiteFamilia.value = entity.modoDerivacionFamilia || 'Causa Nueva';
                 }
-            }
-
-            let rawMotivo = entity.motivo || '';
-            if (rawMotivo.startsWith('[')) {
-                const idx = rawMotivo.indexOf(']');
-                if (idx !== -1) {
-                    const sub = rawMotivo.substring(1, idx).trim();
-                    if (this.newFamilySubmotivoSelect) this.newFamilySubmotivoSelect.value = sub;
-                    rawMotivo = rawMotivo.substring(idx + 1).trim();
+                if (entity.motivo) {
+                    const matchMateria = entity.motivo.match(/\[(.*?)\]/);
+                    if (matchMateria && matchMateria[1] && this.newMateriaFamilia) {
+                        this.setSelectValueNormalized(this.newMateriaFamilia, matchMateria[1]);
+                    }
                 }
+                if (this.newCodefensoraAsignada) {
+                    this.setSelectValueNormalized(this.newCodefensoraAsignada, entity.codefensoraAsignada || '');
+                }
+                if (this.newFechaVencimientoContestacion) {
+                    this.newFechaVencimientoContestacion.value = entity.fechaVencimientoContestacion || '';
+                }
+                this.handleTipoTramiteFamiliaChange();
+            } else if (isPenal) {
+                if (this.newTramitePenal) this.setSelectValueNormalized(this.newTramitePenal, entity.motivo || '');
+            } else {
+                if (this.newTramiteCivil) this.setSelectValueNormalized(this.newTramiteCivil, entity.motivo || '');
             }
-            const elMotivo = document.getElementById('newMotivo');
-            if (elMotivo) elMotivo.value = rawMotivo;
 
             const elResultado = document.getElementById('newResultado');
-            if (elResultado) elResultado.value = entity.resultado;
+            if (elResultado) {
+                elResultado.value = entity.resultado || 'Resuelve en Mesa / Operador';
+            }
+            if (entity.resultado === 'Derivado a otra repartición' && this.newReparticionDetalle) {
+                this.newReparticionDetalle.value = entity.detalleReparticion || '';
+            }
+            this.handleResultadoChange();
 
             const elObs = document.getElementById('newObservaciones');
             if (elObs) elObs.value = entity.observaciones;
@@ -3971,7 +4119,10 @@ const bundleContent = `/* ======================================================
                 this.operatorBreakdownList.innerHTML = html;
             }
 
-            this.kpiTecnica.textContent = summary.derivacionesTecnica.toLocaleString();
+            if (this.kpiAsesoramiento) this.kpiAsesoramiento.textContent = (summary.totalAsesoramientos || 0).toLocaleString();
+            if (this.kpiAsesFamilia) this.kpiAsesFamilia.textContent = (summary.asesFamilia || 0).toLocaleString();
+            if (this.kpiAsesOtros) this.kpiAsesOtros.textContent = (summary.asesOtros || 0).toLocaleString();
+
             this.kpiEscritos.textContent = summary.escritosCount.toLocaleString();
             if (this.kpiPendientes) this.kpiPendientes.textContent = summary.pendientesCount.toLocaleString();
             if (this.kpiPendientesHoy) this.kpiPendientesHoy.textContent = summary.pendientesHoy.toLocaleString();
@@ -4045,42 +4196,62 @@ const bundleContent = `/* ======================================================
 
         toggleTecnicaPopover() {
             if (!this.tecnicaBreakdownPopover) return;
-            const current = this.tecnicaBreakdownPopover.style.display;
-            this.tecnicaBreakdownPopover.style.display = (current === 'none' || !current) ? 'block' : 'none';
+            const isVisible = this.tecnicaBreakdownPopover.style.display === 'block';
+            this.tecnicaBreakdownPopover.style.display = isVisible ? 'none' : 'block';
         }
 
         updateTecnicaFilterUI() {
-            if (this.cardDerivadasTecnica) {
-                if (this.activeTecnicaFilter) {
-                    this.cardDerivadasTecnica.classList.add('active-filter-card');
-                } else {
-                    this.cardDerivadasTecnica.classList.remove('active-filter-card');
+            if (!this.tecnicaFilterBadge) return;
+            if (this.activeTecnicaFilter) {
+                this.tecnicaFilterBadge.style.display = 'inline-flex';
+                if (this.tecnicaFilterBadgeText) {
+                    this.tecnicaFilterBadgeText.textContent = this.activeTecnicaCategory 
+                        ? ('Filtrado: ' + this.activeTecnicaCategory) 
+                        : 'Filtrado: Derivadas a Asist. Técnica';
+                }
+                if (this.cardDerivadasTecnica) {
+                    this.cardDerivadasTecnica.style.border = '1px solid #EC4899';
+                    this.cardDerivadasTecnica.style.boxShadow = '0 0 15px rgba(236, 72, 153, 0.4)';
+                }
+            } else {
+                this.tecnicaFilterBadge.style.display = 'none';
+                if (this.cardDerivadasTecnica) {
+                    this.cardDerivadasTecnica.style.border = '';
+                    this.cardDerivadasTecnica.style.boxShadow = '';
                 }
             }
-            if (this.tecnicaFilterBadge) {
-                if (this.activeTecnicaFilter) {
-                    this.tecnicaFilterBadge.style.display = 'flex';
-                    let label = 'Filtro: Asistencia Técnica';
-                    if (this.activeTecnicaCategory) {
-                        label = 'Filtro: A. Técnica (' + this.activeTecnicaCategory + ')';
-                    }
-                    if (this.tecnicaFilterBadgeText) this.tecnicaFilterBadgeText.textContent = label;
-                } else {
-                    this.tecnicaFilterBadge.style.display = 'none';
-                }
-            }
+        }
+
+        formatDateTime(dateVal) {
+            return DateTimeFormatter.format(dateVal);
+        }
+
+        getDefensoriaBadgeClass(name) {
+            if (!name) return 'badge-otro';
+            const norm = name.toUpperCase();
+            if (norm.includes('FAMILIA')) return 'badge-familia';
+            if (norm.includes('CIVIL')) return 'badge-civil';
+            if (norm.includes('PENAL')) return 'badge-penal';
+            return 'badge-otro';
+        }
+
+        getResultadoBadgeClass(res) {
+            if (!res) return 'badge-otro';
+            if (res.includes('Resuelve')) return 'badge-civil';
+            if (res.includes('Entrevista') || res.includes('Defensor')) return 'badge-familia';
+            if (res.includes('Asesoramiento')) return 'badge-familia';
+            if (res.includes('Derivad')) return 'badge-penal';
+            return 'badge-otro';
         }
 
         renderPaginatedTable() {
             const total = this.currentDTOs.length;
             const maxPages = Math.ceil(total / this.pageSize) || 1;
-
             if (this.currentPage > maxPages) this.currentPage = maxPages;
             if (this.currentPage < 1) this.currentPage = 1;
 
             const startIndex = (this.currentPage - 1) * this.pageSize;
             const endIndex = Math.min(startIndex + this.pageSize, total);
-
             const pageDTOs = this.currentDTOs.slice(startIndex, endIndex);
 
             if (this.totalRecordsCount) this.totalRecordsCount.textContent = total.toLocaleString();
@@ -4225,7 +4396,7 @@ const bundleContent = `/* ======================================================
                     '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Defensoría</span><p><span class="badge ' + (dto.defensoriaBadgeClass || 'badge-otro') + '">' + (dto.defensoriaName || 'General') + '</span></p></div>' +
                     '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">' + dto.resultado + '</p></div>' +
                     '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">' + (dto.atendidoPor || 'Secretaría') + '</p></div>' +
-                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? '<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. ' + dto.codefensoraAsignada.replace(/^Dra\.\s*/i, '') + '</p></div>' : '') +
+                    (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? '<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. ' + dto.codefensoraAsignada.replace(/^Dra\\.\\s*/i, '') + '</p></div>' : '') +
                     (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.modoDerivacionFamilia ? '<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">' + dto.modoDerivacionFamilia + '</p></div>' : '') +
                     (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.fechaVencimientoContestacion ? '<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> ' + dto.fechaVencimientoContestacion + '</p></div>' : '') +
                 '</div>' +
@@ -4475,5 +4646,5 @@ const bundleContent = `/* ======================================================
 })();
 `;
 
-fs.writeFileSync(path.join(__dirname, 'dashboard-bundle.js'), bundleContent, 'utf8');
+fs.writeFileSync(path.join(__dirname, '../public/js', 'dashboard-bundle.js'), bundleContent, 'utf8');
 console.log('✅ Bundle actualizado con Módulo Completo de Tareas Pendientes.');

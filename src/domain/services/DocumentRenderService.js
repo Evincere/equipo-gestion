@@ -29,6 +29,16 @@ class DocumentRenderService {
             defensorCargo = 'Defensor Oficial - 3ª Defensoría Penal';
             codefensora = 'Dra. Sofia Camerucci';
             codefensoraCargo = 'Codefensora - 3ª Defensoría Penal';
+        } else if (defStr.includes('JUVENIL') || defStr.includes('MENOR')) {
+            defensor = 'Dr. Facundo Rodriguez';
+            defensorCargo = 'Defensor Oficial - Defensoría Penal Juvenil';
+            codefensora = 'Dra. Silvina Agüero';
+            codefensoraCargo = 'Codefensora - Defensoría Penal Juvenil';
+        } else if (defStr.includes('EJECUCI')) {
+            defensor = 'Dr. Facundo Rodriguez';
+            defensorCargo = 'Defensor Oficial - Ejecución Penal';
+            codefensora = '';
+            codefensoraCargo = '';
         }
 
         let funcionarioTexto = `${defensor}, en mi carácter de ${defensorCargo}`;
@@ -165,7 +175,7 @@ class DocumentRenderService {
             <!-- Membrete Oficial MPD -->
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0b1329; padding-bottom: 12px; margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; gap: 14px;">
-                    <img src="Logo sin fondo 3-recortado.PNG" alt="MPD Logo" style="height: 60px; object-fit: contain;" onerror="this.onerror=null;this.src='logo_horizontal.png';">
+                    <img src="assets/images/Logo sin fondo 3-recortado.PNG" alt="MPD Logo" style="height: 60px; object-fit: contain;" onerror="this.onerror=null;this.src='assets/images/logo_horizontal.png';">
                     <div>
                         <div style="font-size: 13pt; font-weight: bold; letter-spacing: 0.5px; color: #0b1329; text-transform: uppercase;">Ministerio Público de la Defensa</div>
                         <div style="font-size: 10.5pt; font-weight: 600; color: #334155;">Poder Judicial de la Provincia de Mendoza</div>

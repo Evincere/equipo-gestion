@@ -5,7 +5,7 @@ const { DatabaseSync } = require('node:sqlite');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = __dirname;
+const PUBLIC_DIR = path.join(__dirname, 'public');
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'atenciones.db');
 const CSV_BACKUP_PATH = path.join(__dirname, 'data', 'atenciones.csv');
 
@@ -305,12 +305,11 @@ if (checkCatalogos.count === 0) {
         { cat: 'defensoria', val: '1° DEFENSORIA PENAL', ord: 2 },
         { cat: 'defensoria', val: '2° DEFENSORIA PENAL', ord: 3 },
         { cat: 'defensoria', val: '3° DEFENSORIA PENAL', ord: 4 },
-        { cat: 'defensoria', val: 'PENAL', ord: 5 },
+        { cat: 'defensoria', val: 'DEFENSORÍA PENAL JUVENIL', ord: 5 },
         { cat: 'defensoria', val: 'DEF. CIVIL', ord: 6 },
-        { cat: 'defensoria', val: 'DEF. EJECUCION', ord: 7 },
-        { cat: 'defensoria', val: 'ASESORIA DE NIÑEZ', ord: 8 },
-        { cat: 'defensoria', val: 'ASISTENCIA TECNICA', ord: 9 },
-        { cat: 'defensoria', val: 'Otro', ord: 10 },
+        { cat: 'defensoria', val: 'EJECUCIÓN PENAL', ord: 7 },
+        { cat: 'defensoria', val: 'PENAL', ord: 8 },
+        { cat: 'defensoria', val: 'Otro', ord: 9 },
 
         { cat: 'motivo', val: 'Espontánea', ord: 1 },
         { cat: 'motivo', val: 'Causa Trámite', ord: 2 },
@@ -336,10 +335,9 @@ if (checkCatalogos.count === 0) {
         { cat: 'submotivo_familia', val: 'Guarda Judicial / Tutela / Adopción', ord: 6 },
         { cat: 'submotivo_familia', val: 'Medidas de Protección ETI / Vulnerabilidad', ord: 7 },
         { cat: 'submotivo_familia', val: 'Cuidado Personal / Régimen de Contacto', ord: 8 },
-        { cat: 'submotivo_familia', val: 'Determinación de Capacidad', ord: 9 },
-        { cat: 'submotivo_familia', val: 'Reintegro', ord: 10 },
-        { cat: 'submotivo_familia', val: 'Restitución Internacional', ord: 11 },
-        { cat: 'submotivo_familia', val: 'Otro / Asesoramiento General', ord: 12 },
+        { cat: 'submotivo_familia', val: 'Reintegro', ord: 9 },
+        { cat: 'submotivo_familia', val: 'Restitución Internacional', ord: 10 },
+        { cat: 'submotivo_familia', val: 'Otro / Asesoramiento General', ord: 11 },
 
         { cat: 'modo_derivacion_familia', val: 'Asesoramiento General', ord: 1 },
         { cat: 'modo_derivacion_familia', val: 'Causa Nueva', ord: 2 },
@@ -355,9 +353,6 @@ if (checkCatalogos.count === 0) {
         { cat: 'derivado_a', val: 'S. Camerucci', ord: 5 },
         { cat: 'derivado_a', val: 'A. Sanchez', ord: 6 },
         { cat: 'derivado_a', val: 'ETI / Medidas de Protección', ord: 7 },
-        { cat: 'derivado_a', val: 'Psicología / Trabajo Social', ord: 8 },
-        { cat: 'derivado_a', val: 'Asesoría de Niñez / Capacidad', ord: 9 },
-        { cat: 'derivado_a', val: 'Otras Asistencias Técnicas', ord: 10 }
     ];
     defaultCatalogos.forEach(item => {
         seedCatStmt.run(item.cat, item.val, item.ord);
@@ -554,7 +549,7 @@ const server = http.createServer((req, res) => {
     const pathname = parsedUrl.pathname;
 
     if (pathname === '/favicon.ico') {
-        const iconPath = path.join(PUBLIC_DIR, 'logo_icon.png');
+        const iconPath = path.join(PUBLIC_DIR, 'assets', 'images', 'logo_icon.png');
         if (fs.existsSync(iconPath)) {
             res.writeHead(200, { 'Content-Type': 'image/png' });
             res.end(fs.readFileSync(iconPath));
@@ -704,10 +699,15 @@ const server = http.createServer((req, res) => {
         decodedPathname = decodeURIComponent(pathname);
     } catch (e) {}
 
-    let filePath = path.join(PUBLIC_DIR, decodedPathname === '/' ? 'dashboard.html' : decodedPathname);
+    let filePath;
+    if (decodedPathname.startsWith('/data/')) {
+        filePath = path.join(__dirname, decodedPathname);
+    } else {
+        filePath = path.join(PUBLIC_DIR, decodedPathname === '/' ? 'index.html' : decodedPathname);
+    }
     filePath = path.normalize(filePath);
 
-    if (!filePath.startsWith(PUBLIC_DIR)) {
+    if (!filePath.startsWith(PUBLIC_DIR) && !filePath.startsWith(path.join(__dirname, 'data'))) {
         res.writeHead(403);
         res.end('403 Prohibido');
         return;

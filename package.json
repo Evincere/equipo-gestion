@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "node build-bundle.js"
+    "build": "node scripts/build-bundle.js"
   },
   "keywords": [
     "defensoria",

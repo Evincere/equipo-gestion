@@ -1,5 +1,5 @@
 const { DatabaseSync } = require('node:sqlite');
-const db = new DatabaseSync('e:/Apps/equipo-gestion/data/atenciones.db');
+const db = new DatabaseSync(require("path").join(__dirname, "../data", "atenciones.db"));
 
 // Ver todos los registros del 05/08/2026 de CO-DEF. FAMILIA con datos completos
 const rows = db.prepare(

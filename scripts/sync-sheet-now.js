@@ -1,11 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const { DatabaseSync } = require('node:sqlite');
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1palZNvG2-2RiIOibQiNcAeXqcdmPGoqK6tW3_01Nj1Y/export?format=csv&gid=41703451';
-const DB_PATH = path.join(__dirname, 'data', 'atenciones.db');
-const CSV_PATH = path.join(__dirname, 'data', 'atenciones.csv');
+const CSV_PATH = path.join(__dirname, "../data", "atenciones.csv");
 
 function fetchCSV(url) {
     return new Promise((resolve, reject) => {
@@ -39,6 +37,19 @@ function normalizeDNI(dniStr) {
     return dniStr.replace(/\D/g, '');
 }
 
+function normalizeFecha(fechaStr) {
+    if (!fechaStr) return '';
+    const parts = fechaStr.trim().split('/');
+    if (parts.length === 3) {
+        const day = parts[0].padStart(2, '0');
+        const month = parts[1].padStart(2, '0');
+        let year = parts[2];
+        if (year.length === 2) year = '20' + year;
+        return `${day}/${month}/${year}`;
+    }
+    return fechaStr.trim();
+}
+
 function fixMojibake(str) {
     if (!str) return '';
     return str
@@ -48,28 +59,36 @@ function fixMojibake(str) {
 }
 
 async function run() {
-    console.log('📡 Descargando planilla en vivo desde Google Sheets...');
+    console.log('📡 Descargando Google Sheet en vivo para sincronización...');
     const rawCSV = await fetchCSV(SHEET_URL);
-    const lines = rawCSV.split(/\r\n|\n/);
-    console.log(`📄 Total de líneas obtenidas del Google Sheet: ${lines.length}`);
+    const sheetLines = rawCSV.split(/\r\n|\n/);
 
-    const db = new DatabaseSync(DB_PATH);
+    const localContent = fs.readFileSync(CSV_PATH, 'utf8');
+    const localLines = localContent.split(/\r\n|\n/);
     
-    // Obtener DNI y Fecha de registros existentes en SQLite
-    const existing = db.prepare('SELECT fecha, dni, apellidos, nombres, expte, motivo FROM atenciones').all();
+    // Crear conjunto de llaves existentes en local atenciones.csv
     const existingSet = new Set();
-    existing.forEach(r => {
-        const cleanDni = normalizeDNI(r.dni);
-        const key = `${r.fecha}|${cleanDni}|${(r.apellidos||'').toUpperCase()}|${(r.expte||r.motivo||'').toUpperCase()}`;
-        existingSet.add(key);
-        if (cleanDni) existingSet.add(`${r.fecha}|${cleanDni}`);
+    localLines.forEach(l => {
+        if (!l.trim()) return;
+        const cols = parseCSVLine(l);
+        const fecha = normalizeFecha(cols[0] ? cols[0].replace(/"/g, '') : '');
+        const dni = cols[2] ? normalizeDNI(cols[2]) : '';
+        const apellidos = cols[3] ? cols[3].replace(/"/g, '').trim().toUpperCase() : '';
+        const expteOrMotivo = (cols[6] || cols[7] || '').replace(/"/g, '').trim().toUpperCase();
+
+        if (fecha || dni || apellidos) {
+            if (dni && apellidos) existingSet.add(`${fecha}|${dni}|${apellidos}`);
+            if (dni && expteOrMotivo) existingSet.add(`${fecha}|${dni}|${expteOrMotivo}`);
+            if (apellidos && expteOrMotivo) existingSet.add(`${fecha}|${apellidos}|${expteOrMotivo}`);
+            if (dni) existingSet.add(`${fecha}|${dni}`);
+        }
     });
 
-    const newRecords = [];
+    const newRows = [];
     let buffer = '';
 
-    for (let i = 1; i < lines.length; i++) {
-        const rawLine = lines[i];
+    for (let i = 1; i < sheetLines.length; i++) {
+        const rawLine = sheetLines[i];
         if (buffer) buffer += '\n' + rawLine;
         else buffer = rawLine;
 
@@ -83,7 +102,8 @@ async function run() {
         const cols = parseCSVLine(lineToParse);
         if (cols.length < 4) continue;
 
-        const fecha = cols[0] ? cols[0].trim() : '';
+        const fechaRaw = cols[0] ? cols[0].trim() : '';
+        const fecha = normalizeFecha(fechaRaw);
         const actividad = cols[1] ? cols[1].trim() : 'Atención Personal';
         const dniRaw = cols[2] ? cols[2].trim() : '';
         const apellidos = cols[3] ? fixMojibake(cols[3].trim()).toUpperCase() : '';
@@ -98,51 +118,36 @@ async function run() {
         const derivadoA = cols[12] ? cols[12].trim() : '';
         const escritos = cols[13] ? cols[13].trim() : '';
 
-        if (!fecha && !dniRaw && !apellidos) continue;
+        // Ignorar filas totalmente vacías de datos personales y de expediente
+        if (!dniRaw && !apellidos && !nombres && !expte && !motivo && !observaciones) {
+            continue;
+        }
 
         const cleanDni = normalizeDNI(dniRaw);
-        const key1 = `${fecha}|${cleanDni}|${apellidos}|${(expte||motivo||'').toUpperCase()}`;
-        const key2 = `${fecha}|${cleanDni}`;
+        const expteOrMotivo = (expte || motivo || '').toUpperCase();
+        const key1 = cleanDni && apellidos ? `${fecha}|${cleanDni}|${apellidos}` : '';
+        const key2 = cleanDni && expteOrMotivo ? `${fecha}|${cleanDni}|${expteOrMotivo}` : '';
+        const key3 = apellidos && expteOrMotivo ? `${fecha}|${apellidos}|${expteOrMotivo}` : '';
+        const key4 = cleanDni ? `${fecha}|${cleanDni}` : '';
 
-        if (cleanDni && existingSet.has(key2)) continue;
-        if (existingSet.has(key1)) continue;
+        if ((key4 && existingSet.has(key4)) || (key1 && existingSet.has(key1)) || (key2 && existingSet.has(key2)) || (key3 && existingSet.has(key3))) {
+            continue;
+        }
 
-        newRecords.push({
+        newRows.push({
             fecha, actividad, dni: dniRaw, apellidos, nombres, celular, expte,
             motivo, defensoria, resultado, observaciones, atendidoPor, derivadoA, escritos
         });
     }
 
-    console.log(`✨ Se encontraron ${newRecords.length} nuevos registros para sincronizar.`);
-
-    if (newRecords.length === 0) {
-        console.log('✅ Todos los registros ya están al día.');
-        return;
-    }
-
-    const insertStmt = db.prepare(`
-        INSERT INTO atenciones (
-            fecha, actividad, dni, apellidos, nombres, celular, expte, motivo,
-            defensoria, resultado, observaciones, atendido_por, derivado_a, escritos
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    db.exec('BEGIN TRANSACTION');
-    let csvAppend = '';
-
-    newRecords.forEach(r => {
-        insertStmt.run(
-            r.fecha, r.actividad, r.dni, r.apellidos, r.nombres, r.celular,
-            r.expte, r.motivo, r.defensoria, r.resultado, r.observaciones,
-            r.atendidoPor, r.derivadoA, r.escritos
-        );
-        csvAppend += `\n"${r.fecha}","${r.actividad}","${r.dni}","${r.apellidos}","${r.nombres}","${r.celular}","${r.expte}","${r.motivo}","${r.defensoria}","${r.resultado}","${r.observaciones}","${r.atendidoPor}","${r.derivadoA}","${r.escritos}"`;
+    console.log(`\n🎉 Insertando ${newRows.length} nuevos registros en atenciones.csv...`);
+    let appendStr = '';
+    newRows.forEach(r => {
+        appendStr += `\n"${r.fecha}","${r.actividad}","${r.dni}","${r.apellidos}","${r.nombres}","${r.celular}","${r.expte}","${r.motivo}","${r.defensoria}","${r.resultado}","${r.observaciones}","${r.atendidoPor}","${r.derivadoA}","${r.escritos}"`;
     });
 
-    db.exec('COMMIT');
-    fs.appendFileSync(CSV_PATH, csvAppend, 'utf8');
-
-    console.log(`🎉 ¡Sincronización exitosa! ${newRecords.length} registros insertados en SQLite y atenciones.csv.`);
+    fs.appendFileSync(CSV_PATH, appendStr, 'utf8');
+    console.log('✅ atenciones.csv actualizado correctamente.');
 }
 
-run().catch(err => console.error('❌ Error sincronizando:', err));
+run().catch(console.error);

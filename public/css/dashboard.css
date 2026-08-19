@@ -1632,4 +1632,275 @@ body {
     }
 }
 
+/* ==========================================================================
+   ESTILOS AERO GLASS: BLOQUES DE FORMULARIO DE REGISTRO & DRAWER DE HISTORIAL
+   ========================================================================== */
+
+.aero-form-block {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 1.15rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.aero-form-block:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.aero-form-block.block-citizen {
+    border-left: 3px solid var(--mpd-cyan);
+}
+
+.aero-form-block.block-legal {
+    border-left: 3px solid var(--mpd-magenta, #EC4899);
+}
+
+.aero-form-block.block-resolution {
+    border-left: 3px solid #10B981;
+}
+
+.aero-form-block.block-escrito {
+    border-left: 3px solid var(--mpd-gold, #F59E0B);
+}
+
+.block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.block-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.block-number {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(0, 180, 216, 0.2);
+    border: 1px solid var(--mpd-cyan);
+    color: var(--mpd-cyan);
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.block-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #F1F5F9;
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Botonera de Acción Rápida para DNI Recurrente */
+.dni-quick-actions {
+    background: rgba(0, 180, 216, 0.08);
+    border: 1px solid rgba(0, 180, 216, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.85rem;
+    animation: fadeInSlideDown 0.25s ease forwards;
+}
+
+.btn-quick-action {
+    background: rgba(30, 41, 59, 0.8);
+    color: #CBD5E1;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.btn-quick-action:hover {
+    background: rgba(0, 180, 216, 0.2);
+    color: #FFFFFF;
+    border-color: var(--mpd-cyan);
+    transform: translateY(-1px);
+}
+
+.btn-quick-action.active {
+    background: linear-gradient(135deg, rgba(0, 180, 216, 0.35) 0%, rgba(14, 165, 233, 0.2) 100%);
+    color: #38BDF8;
+    border-color: #38BDF8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+/* Drawer Lateral Flotante de Antecedentes Históricos */
+.history-drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: 10050;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.history-drawer-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.history-drawer {
+    position: fixed;
+    top: 0;
+    right: -480px;
+    width: 460px;
+    max-width: 90vw;
+    height: 100vh;
+    background: rgba(11, 19, 41, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(0, 180, 216, 0.35);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    z-index: 10051;
+    transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.history-drawer-overlay.active .history-drawer {
+    right: 0;
+}
+
+.history-drawer-header {
+    padding: 1.15rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.6);
+    flex-shrink: 0;
+}
+
+.history-drawer-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Tarjetas de Registro en el Historial */
+.history-item-card {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.history-item-card:hover {
+    border-color: rgba(0, 180, 216, 0.4);
+    background: rgba(15, 23, 42, 0.9);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.history-item-card.is-family {
+    border-left: 3px solid #EC4899;
+}
+
+.history-item-card.is-penal {
+    border-left: 3px solid #EF4444;
+}
+
+.history-item-card.is-civil {
+    border-left: 3px solid #38BDF8;
+}
+
+.history-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-card-date {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    font-family: var(--font-mono);
+}
+
+.history-card-meta {
+    font-size: 0.82rem;
+    color: #F1F5F9;
+    font-weight: 600;
+}
+
+.history-card-expte {
+    font-size: 0.78rem;
+    color: var(--mpd-gold);
+    font-family: var(--font-mono);
+}
+
+.history-card-obs {
+    font-size: 0.76rem;
+    color: #94A3B8;
+    line-height: 1.4;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    margin-top: 0.25rem;
+}
+
+.btn-select-history-card {
+    background: rgba(0, 180, 216, 0.15);
+    color: #38BDF8;
+    border: 1px solid rgba(0, 180, 216, 0.35);
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    transition: all 0.2s ease;
+}
+
+.btn-select-history-card:hover {
+    background: var(--mpd-cyan);
+    color: #0B1329;
+    border-color: var(--mpd-cyan);
+    font-weight: 700;
+}
+
+@keyframes fadeInSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
 
