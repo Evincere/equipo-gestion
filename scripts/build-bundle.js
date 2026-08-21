@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const csvContent = fs.readFileSync(path.join(__dirname, '../data', 'atenciones.csv'), 'utf8');
+const dataDir = path.join(__dirname, '../data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+const csvPath = path.join(dataDir, 'atenciones.csv');
+const csvContent = fs.existsSync(csvPath) ? fs.readFileSync(csvPath, 'utf8') : '';
 
 const bundleContent = `/* ==========================================================================
    JUSTICIA & GESTIÓN - BUNDLE AUTÓNOMO CON MÓDULO DE TAREAS PENDIENTES Y CUMPLIMIENTO

@@ -9,6 +9,11 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'atenciones.db');
 const CSV_BACKUP_PATH = path.join(__dirname, 'data', 'atenciones.csv');
 
+const DB_DIR = path.dirname(DB_PATH);
+if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
+}
+
 console.log(`\n==================================================`);
 console.log(`🏛️ Conectando a Base de Datos SQLite: ${DB_PATH}`);
 console.log(`==================================================`);
