@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Atenciones - Ministerio Público de la Defensa (Mendoza)</title>
+    <!-- Remix Icons CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+    <!-- Ventana Principal Windows Aero -->
+    <div class="aero-window">
+        
+        <!-- Barra de Título Aero -->
+        <div class="aero-titlebar">
+            <div class="window-title">
+                <img src="assets/images/logo_horizontal.png" alt="Ministerio Público de la Defensa">
+                <span>Gestión de Atenciones - Defensoría Pública (Mendoza)</span>
+            </div>
+            <div class="caption-buttons">
+                <!-- Widget Unificado Operarios Conectados y Chat en Barra de Título -->
+                <div style="position: relative; display: inline-flex; align-items: center;" id="containerOnlineUsers">
+                    <button class="caption-btn online-users-titlebar-btn" id="btnOnlineUsers" title="Operarios conectados / Abrir Chat" style="position: relative; width: auto; padding: 0 0.65rem; height: 26px; display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.35); color: #4ADE80; border-radius: 4px; cursor: pointer;">
+                        <span class="presence-pulse-dot" style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 6px #4ADE80;"></span>
+                        <span id="onlineUsersCountText" style="font-weight: 600; font-size: 0.76rem;">1 Conectado</span>
+                        <span id="btnIconChatTrigger" style="display: inline-flex; align-items: center; justify-content: center; padding: 2px 4px; border-radius: 3px; cursor: pointer; color: #38BDF8; transition: background 0.15s ease;" title="Abrir panel de Chat">
+                            <i class="ri-chat-3-line" style="font-size: 0.92rem;"></i>
+                        </span>
+                        <span class="badge" id="chatGlobalUnreadBadge" style="display: none; font-size: 0.62rem; padding: 0.1rem 0.35rem; background: #EF4444; color: #FFF; border-radius: 10px; font-weight: 700;">0</span>
+                    </button>
+                    <div class="online-users-popover" id="onlineUsersPopover" style="display: none; position: absolute; top: 120%; right: 0; width: 280px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(12px); z-index: 99999;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                            <strong style="color: #FFF; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i class="ri-team-line" style="color: #4ADE80;"></i> Operarios Conectados
+                            </strong>
+                            <span class="badge" style="background: rgba(74, 222, 128, 0.2); color: #4ADE80; font-size: 0.72rem;" id="onlineUsersBadgeCount">1 En línea</span>
+                        </div>
+                        <div id="onlineUsersList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 240px; overflow-y: auto;">
+                            <!-- Renderizado dinámico de usuarios en línea -->
+                        </div>
+                    </div>
+                </div>
+                <button class="caption-btn" title="Minimizar"><i class="ri-subtract-line"></i></button>
+                <button class="caption-btn" title="Maximizar"><i class="ri-checkbox-blank-line"></i></button>
+                <button class="caption-btn btn-close" id="btnCloseApp" title="Cerrar Sesión / Salir"><i class="ri-close-line"></i></button>
+            </div>
+        </div>
+
+        <!-- Contenedor de la Aplicación -->
+        <div class="app-container">
+            
+            <!-- Sidebar / Menú Lateral -->
+            <aside class="sidebar">
+                <div class="brand-section" style="position: relative;">
+                    <button class="sidebar-toggle-btn" id="btnToggleSidebar" title="Contraer / Expandir Menú Lateral">
+                        <i class="ri-menu-fold-line" id="sidebarToggleIcon"></i>
+                    </button>
+                    <img src="assets/images/logo_icon.png" alt="Logo MPD" class="brand-logo">
+                    <span class="brand-subtitle">Defensoría Pública</span>
+                </div>
+
+                <nav class="nav-menu">
+                    <a href="#" class="nav-item active" id="navItemDashboard" data-tab="dashboard" title="Dashboard">
+                        <i class="ri-dashboard-3-line"></i> <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btnNavNuevaAtencion" data-tab="nueva" title="Nueva Atención">
+                        <i class="ri-add-circle-line"></i> <span>Nueva Atención</span>
+                    </a>
+                    <a href="#" class="nav-item" id="btnExportPDF" title="Reportes / PDF">
+                        <i class="ri-file-pdf-line"></i> <span>Reportes / PDF</span>
+                    </a>
+                    
+                    <!-- Menú Exclusivo Administrador (Sergio M. Pereyra) -->
+                    <a href="#" class="nav-item" id="navItemConfig" data-tab="config" style="display: none;" title="Configuración (Admin)">
+                        <i class="ri-settings-3-line"></i> <span>Configuración (Admin)</span>
+                    </a>
+                    
+                    <a href="#" class="nav-item" id="navItemAudit" data-tab="audit" style="display: none;" title="Auditoría">
+                        <i class="ri-shield-check-line"></i> <span>Auditoría</span>
+                    </a>
+                </nav>
+
+                <div class="user-profile">
+                    <div class="avatar" id="userAvatar">OP</div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName">Operador</span>
+                        <span class="user-role" id="userRole">Mesa de Entradas</span>
+                    </div>
+                    <button class="btn-logout" id="btnLogoutUser" title="Cerrar Sesión">
+                        <i class="ri-logout-box-r-line"></i>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Área Principal de Contenido -->
+            <main class="main-content">
+                
+                <!-- Vista Dashboard Principal -->
+                <div id="viewDashboardSection">
+                    <!-- Barra Superior -->
+                    <header class="topbar">
+                        <div class="topbar-title">
+                            <h2>Resumen de Actividad General</h2>
+                            <p>Registro unificado de atenciones, tareas pendientes y derivaciones</p>
+                        </div>
+                        
+                        <div id="currentDateTimeDisplay" style="color: var(--mpd-gold); font-size: 0.95rem; font-weight: 600; text-align: center; display: flex; flex-direction: column; justify-content: center; margin: 0 1rem;">
+                            <span id="currentDateText">Cargando fecha...</span>
+                            <span id="currentTimeText" style="color: #94A3B8; font-size: 0.85rem; font-weight: 400;">Cargando hora...</span>
+                        </div>
+
+                        <div class="topbar-actions">
+                            <div class="search-box">
+                                <i class="ri-search-line search-icon"></i>
+                                <input type="search" id="searchInput" class="search-input" placeholder="Buscar por DNI, Nombre, Expte o Tarea...">
+                            </div>
+                            <button class="btn btn-primary" id="btnNewRecord">
+                                <i class="ri-add-line"></i> Nueva Atención
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Panel de Asistencia / Presentismo Co-Defensoría de Familia (Marquee Compacto) -->
+                    <div class="presence-marquee-container">
+                        <div class="presence-marquee-header">
+                            <span class="presence-marquee-title"><i class="ri-user-follow-line"></i> Turnos & Presentismo</span>
+                        </div>
+                        <div class="presence-marquee-wrapper" id="presenceMarqueeWrapper">
+                            <div class="presence-marquee-track" id="presenceMarqueeTrack">
+                                <span style="font-size: 0.8rem; color: #94A3B8; padding: 0.25rem 0.5rem;">Cargando estado de asistencia y turnos...</span>
+                            </div>
+                        </div>
+                        <button class="btn-expand-presence" id="btnExpandPresence" title="Ver todo el equipo en cuadrícula">
+                            <i class="ri-grid-fill"></i>
+                        </button>
+                    </div>
+
+
+                    <!-- Tarjetas KPI / Estadísticas (4 Tarjetas) -->
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));">
+                        <div class="stat-card stat-red" style="position: relative; overflow: visible !important; cursor: pointer;" id="cardTotalAtenciones" title="Pasa el mouse para ver la discriminación por operador (Diario, Semanal, Mensual)">
+                            <div class="stat-header">
+                                <span class="stat-label">Total Año en Curso</span>
+                                <div class="stat-icon"><i class="ri-user-voice-line"></i></div>
+                            </div>
+                            <div class="stat-value" id="kpiTotal" style="font-size: 1.8rem; font-weight: 700; color: #FFF;">...</div>
+                            <div style="display: flex; gap: 0.5rem; font-size: 0.76rem; color: #94A3B8; margin-top: 0.35rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <span>Mes: <strong id="kpiMes" style="color: #38BDF8;">...</strong></span>
+                                <span>•</span>
+                                <span>Sem: <strong id="kpiSemana" style="color: #FBBF24;">...</strong></span>
+                                <span>•</span>
+                                <span>Hoy: <strong id="kpiHoy" style="color: #4ADE80;">...</strong></span>
+                            </div>
+                            <!-- Tooltip desplegable con pestañas para la discriminación por operador -->
+                            <div id="operatorTooltip" style="display: none; position: absolute; top: 100%; left: 0; background: rgba(15, 22, 36, 0.96); border: 1px solid var(--mpd-red); border-radius: 8px; padding: 0.85rem 1rem; width: 100%; min-width: 270px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.6); backdrop-filter: blur(12px); margin-top: 0.5rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem;">
+                                    <h5 id="operatorTooltipTitle" style="color: #FFF; font-size: 0.82rem; margin: 0; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
+                                        <i class="ri-user-follow-line" style="color: var(--mpd-red);"></i> Por Operador
+                                    </h5>
+                                    <span id="operatorTooltipTotalBadge" style="font-size: 0.72rem; color: #4ADE80; font-weight: 700; background: rgba(74, 222, 128, 0.15); padding: 0.15rem 0.45rem; border-radius: 4px; border: 1px solid rgba(74, 222, 128, 0.3);">Total: ...</span>
+                                </div>
+                                <!-- Pestañas Segmented Control -->
+                                <div class="operator-tooltip-tabs" id="operatorTooltipTabs" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; background: rgba(0, 0, 0, 0.4); padding: 3px; border-radius: 6px; margin-bottom: 0.65rem; border: 1px solid rgba(255, 255, 255, 0.06);">
+                                    <button type="button" class="btn-op-tab active" data-period="today" style="background: var(--mpd-red); color: #FFF; border: none; border-radius: 4px; padding: 4px 0; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center;">Diario</button>
+                                    <button type="button" class="btn-op-tab" data-period="week" style="background: transparent; color: #94A3B8; border: none; border-radius: 4px; padding: 4px 0; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center;">Semanal</button>
+                                    <button type="button" class="btn-op-tab" data-period="month" style="background: transparent; color: #94A3B8; border: none; border-radius: 4px; padding: 4px 0; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center;">Mensual</button>
+                                </div>
+                                <div id="operatorBreakdownList" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 180px; overflow-y: auto; padding-right: 2px;">
+                                    <span style="color: #94A3B8; font-size: 0.8rem;">Cargando...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card stat-gold" style="position: relative; overflow: visible !important; cursor: pointer;" id="cardTareasPendientes" title="Haga clic para filtrar tareas pendientes | Pasa el mouse para ver desglose por operador">
+                            <div class="stat-header">
+                                <span class="stat-label">Tareas Pendientes</span>
+                                <div class="stat-icon" style="color: #F59E0B;"><i class="ri-time-line"></i></div>
+                            </div>
+                            <div class="stat-value" id="kpiPendientes" style="color: #FBBF24;">...</div>
+                            <div style="display: flex; gap: 0.5rem; font-size: 0.76rem; color: #94A3B8; margin-top: 0.35rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <span>Hoy: <strong id="kpiPendientesHoy" style="color: #4ADE80;">...</strong></span>
+                                <span>•</span>
+                                <span>Sem: <strong id="kpiPendientesSemana" style="color: #FBBF24;">...</strong></span>
+                                <span>•</span>
+                                <span>Ant: <strong id="kpiPendientesAntiguas" style="color: #F87171;">...</strong></span>
+                            </div>
+                            <!-- Tooltip oculto para la discriminación por operador de tareas pendientes -->
+                            <div id="pendingOperatorTooltip" style="display: none; position: absolute; top: 100%; left: 0; background: rgba(15, 22, 36, 0.95); border: 1px solid #F59E0B; border-radius: 8px; padding: 1rem; width: 100%; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); backdrop-filter: blur(10px); margin-top: 0.5rem;">
+                                <h5 style="color: #FFF; font-size: 0.85rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.25rem;">Pendientes por Operador</h5>
+                                <div id="pendingOperatorBreakdownList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 150px; overflow-y: auto;">
+                                    <span style="color: #94A3B8; font-size: 0.8rem;">Cargando...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card stat-magenta" id="cardAsesoramientoGeneral" style="cursor: pointer; position: relative;">
+                            <div class="stat-header">
+                                <span class="stat-label">Asesoramientos Generales</span>
+                                <div class="stat-icon"><i class="ri-user-shared-line"></i></div>
+                            </div>
+                            <div class="stat-value" id="kpiAsesoramiento">...</div>
+                            <div style="display: flex; gap: 0.5rem; font-size: 0.76rem; color: #94A3B8; margin-top: 0.35rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <span>Familia: <strong id="kpiAsesFamilia" style="color: #F472B6;">...</strong></span>
+                                <span>•</span>
+                                <span>Otros: <strong id="kpiAsesOtros" style="color: #38BDF8;">...</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card stat-gold">
+                            <div class="stat-header">
+                                <span class="stat-label">Escritos Realizados</span>
+                                <div class="stat-icon"><i class="ri-draft-line"></i></div>
+                            </div>
+                            <div class="stat-value" id="kpiEscritos">...</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla y Filtros -->
+                    <section class="records-section">
+                        <div class="section-header">
+                            <h3>Listado de Atenciones (Ordenadas por Reciente)</h3>
+                            
+                            <div class="filters-bar">
+                                <select id="filterDefensoria" class="filter-select">
+                                    <option value="">Todas las Defensorías</option>
+                                    <option value="CO-DEF. FAMILIA">Co-Defensoría Familia</option>
+                                    <option value="DEF. CIVIL">Defensoría Civil</option>
+                                    <option value="PENAL">Penal (General)</option>
+                                    <option value="1° DEFENSORIA PENAL">1° Defensoría Penal</option>
+                                    <option value="2° DEFENSORIA PENAL">2° Defensoría Penal</option>
+                                    <option value="3° DEFENSORIA PENAL">3° Defensoría Penal</option>
+                                    <option value="EJECUCIÓN PENAL">Ejecución Penal</option>
+                                    <option value="DEFENSORÍA PENAL JUVENIL">Defensoría Penal Juvenil</option>
+                                </select>
+
+                                <select id="filterResultado" class="filter-select">
+                                    <option value="">Todos los Estados</option>
+                                    <option value="PENDIENTE">⚠️ Solo Tareas Pendientes</option>
+                                    <option value="Resuelve en Mesa / Operador">Resuelve en Mesa / Operador</option>
+                                    <option value="Entrevista con Defensor/a">Entrevista con Defensor/a</option>
+                                    <option value="Asesoramiento General">Asesoramiento General</option>
+                                    <option value="Derivado a otra repartición">Derivado a otra repartición</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de Datos -->
+                        <div class="table-container">
+                            <table class="data-table" id="recordsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Ciudadano / DNI</th>
+                                        <th>N° Expte / Motivo</th>
+                                        <th>Defensoría</th>
+                                        <th>Resultado / Tarea</th>
+                                        <th>Atendido Por / Asignado A</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; padding: 2rem;">Cargando atenciones desde la base de datos...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginador de Tabla Aero Glass (25 - 50 - 100) -->
+                        <div class="pagination-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(15, 22, 36, 0.6); border-top: 1px solid rgba(255,255,255,0.08); border-radius: 0 0 10px 10px; margin-top: 0.5rem;">
+                            <div class="pagination-info" style="font-size: 0.85rem; color: #94A3B8;">
+                                Mostrando <strong id="pageStart" style="color: var(--mpd-gold);">1</strong> a <strong id="pageEnd" style="color: var(--mpd-gold);">25</strong> de <strong id="totalRecordsCount" style="color: #FFF;">0</strong> registros
+                            </div>
+
+                            <div class="pagination-controls" style="display: flex; align-items: center; gap: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <label style="font-size: 0.8rem; color: #94A3B8;">Mostrar:</label>
+                                    <select id="pageSizeSelect" class="filter-select" style="padding: 0.25rem 0.5rem; font-size: 0.82rem;">
+                                        <option value="25" selected>25 filas</option>
+                                        <option value="50">50 filas</option>
+                                        <option value="100">100 filas</option>
+                                    </select>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <button class="btn btn-secondary" id="btnPrevPage" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;" disabled>
+                                        <i class="ri-arrow-left-s-line"></i> Anterior
+                                    </button>
+                                    <span id="pageIndicator" style="font-weight: 600; font-size: 0.85rem; color: #FFF; min-width: 90px; text-align: center;">Página 1 de 1</span>
+                                    <button class="btn btn-secondary" id="btnNextPage" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;">
+                                        Siguiente <i class="ri-arrow-right-s-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Vista Exclusiva de Configuración (Administrador Sergio M. Pereyra) -->
+                <div id="viewConfigSection" style="display: none; flex-direction: column; gap: 2rem;">
+                    <div class="topbar-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="color: var(--mpd-gold);"><i class="ri-shield-keyhole-line"></i> Panel de Configuración de Administración</h2>
+                            <p>Reservado exclusivamente para Sergio M. Pereyra (Gestión de usuarios, copias de seguridad y auditoría)</p>
+                        </div>
+                        <div>
+                            <button id="btnDownloadBackup" class="btn btn-primary" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); border: none; font-weight: 600; padding: 0.65rem 1.25rem; border-radius: 6px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <i class="ri-database-2-line" style="font-size: 1.15rem;"></i> Descargar Backup SQLite (.db)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Gestión de Operarios -->
+                    <div class="records-section">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3><i class="ri-user-settings-line"></i> Gestión de Usuarios y Operarios</h3>
+                            <span class="badge badge-familia" id="adminUserFormMode">Alta de Usuario</span>
+                        </div>
+
+                        <form id="adminUserForm" class="form-grid" style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <input type="hidden" id="adminUserId" value="">
+                            <div class="form-group">
+                                <label>Usuario (Username)</label>
+                                <input type="text" id="adminUsername" class="form-control" placeholder="Ej: spereyra" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre Completo</label>
+                                <input type="text" id="adminNombreCompleto" class="form-control" placeholder="Ej: Sergio M. Pereyra" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Rol de Permisos</label>
+                                <select id="adminRol" class="form-control">
+                                    <option value="OPERADOR">OPERADOR</option>
+                                    <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Contraseña</label>
+                                <input type="password" id="adminPassword" class="form-control" placeholder="Nueva clave o vacía para mantener">
+                            </div>
+                            <div class="form-group full-width" style="display: flex; gap: 0.75rem;">
+                                <button type="submit" class="btn btn-primary" id="btnSaveUser" style="flex: 1; justify-content: center;">
+                                    <i class="ri-user-add-line"></i> Guardar / Actualizar Usuario
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btnCancelEditUser" style="display: none;">
+                                    Cancelar Edición
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Nombre Completo</th>
+                                        <th>Rol</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminUsersTableBody">
+                                    <tr><td colspan="5" style="text-align: center;">Cargando usuarios...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gestión de Rotación de Turnos (Co-Defensorías de Familia) -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <h3><i class="ri-refresh-line"></i> Gestión de Rotación de Turnos (Co-Defensorías de Familia)</h3>
+                                <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.25rem;">Ajuste el turno inicial o corrija desviaciones de distribución circular para cada canal. Las Co-Defensoras ausentes son omitidas automáticamente.</p>
+                            </div>
+                            <button type="button" class="btn btn-secondary" id="btnResetRotacion" style="background: rgba(239, 68, 68, 0.2); color: #F87171; border-color: #EF4444; font-size: 0.85rem;">
+                                <i class="ri-history-line"></i> Reiniciar Rotación a Cero
+                            </button>
+                        </div>
+                        <div class="grid-form" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-top: 1rem;" id="rotacionCanalesContainer">
+                            <div style="color: #94A3B8; font-size: 0.85rem;">Cargando estado de canales...</div>
+                        </div>
+                    </div>
+
+                    <!-- Gestión Dinámica de Campos del Formulario -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
+                        <div class="section-header">
+                            <h3><i class="ri-list-settings-line"></i> Gestión Dinámica de Campos del Formulario de Registro</h3>
+                            <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.25rem;">Permite al Administrador agregar o eliminar opciones de los desplegables del sistema en tiempo real.</p>
+                        </div>
+
+                        <!-- Selector de Categoría de Catálogo -->
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem;" id="catalogCategoryTabs">
+                            <button class="btn btn-secondary catalog-tab-btn active" data-cat="actividad" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-run-line"></i> Tipo de Actividad</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="defensoria" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-building-4-line"></i> Defensoría / Área</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="motivo" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-file-list-3-line"></i> Motivo General</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="resultado" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-checkbox-circle-line"></i> Resultado</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="submotivo_familia" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-heart-pulse-line"></i> Supuesto Especial (Familia)</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="modo_derivacion_familia" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-git-merge-line"></i> Modo Derivación Familia</button>
+                            <button class="btn btn-secondary catalog-tab-btn" data-cat="derivado_a" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;"><i class="ri-user-shared-line"></i> Asistente Técnico</button>
+                        </div>
+
+                        <!-- Formulario para agregar nueva opción al catálogo activo -->
+                        <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 8px; border: 1px solid var(--mpd-cyan-glow); margin-bottom: 1rem; display: flex; gap: 0.75rem; align-items: center;">
+                            <input type="text" id="newCatalogOptionInput" class="form-control" placeholder="Escriba el nombre de la nueva opción a incorporar..." style="flex: 1;">
+                            <button type="button" class="btn btn-primary" id="btnAddCatalogOptionBtn" style="white-space: nowrap;">
+                                <i class="ri-add-line"></i> Agregar Opción
+                            </button>
+                        </div>
+
+                        <!-- Lista de Opciones Actuales -->
+                        <div id="catalogOptionsListContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;">
+                            <div style="color: #94A3B8; font-size: 0.85rem;">Cargando opciones...</div>
+                        </div>
+                    </div>
+
+                    <!-- Gestión de Plantillas de Escritos Judiciales -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
+                        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <h3><i class="ri-file-paper-2-line"></i> Gestión de Plantillas de Escritos Judiciales</h3>
+                                <p style="font-size: 0.8rem; color: #94A3B8; margin-top: 0.25rem;">Cree, modifique o desactive plantillas judiciales con placeholders dinámicos ({{CIUDADANO_NOMBRE}}, {{DNI}}, {{EXPTE}}, etc.).</p>
+                            </div>
+                            <button type="button" class="btn btn-primary" id="btnAdminNuevaPlantilla" style="font-size: 0.85rem;">
+                                <i class="ri-add-circle-line"></i> Nueva Plantilla
+                            </button>
+                        </div>
+
+                        <!-- Formulario de Creación / Edición de Plantilla -->
+                        <form id="adminPlantillaForm" style="display: none; margin-bottom: 1.5rem; background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px; border: 1px solid rgba(0, 180, 216, 0.35);" class="form-grid">
+                            <input type="hidden" id="adminPlantillaId" value="">
+                            <div class="form-group">
+                                <label>Código Identificador (único)</label>
+                                <input type="text" id="adminPlantillaCodigo" class="form-control" placeholder="Ej: cambio_domicilio_penal" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Título de la Plantilla</label>
+                                <input type="text" id="adminPlantillaTitulo" class="form-control" placeholder="Ej: Informar Cambio de Domicilio Real" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Categoría / Área</label>
+                                <select id="adminPlantillaCategoria" class="form-control">
+                                    <option value="PENAL">PENAL</option>
+                                    <option value="FAMILIA">FAMILIA</option>
+                                    <option value="CIVIL">CIVIL</option>
+                                    <option value="GENERAL">GENERAL</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sumario por Defecto</label>
+                                <input type="text" id="adminPlantillaSumario" class="form-control" placeholder="Ej: INFORMA NUEVO DOMICILIO REAL">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Destinatario por Defecto</label>
+                                <input type="text" id="adminPlantillaDestinatario" class="form-control" placeholder="Ej: SEÑOR/A DEFENSOR/A OFICIAL / JUZGADO PENAL COLEGIADO">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Cuerpo / Estructura de la Plantilla (Placeholders disponibles: {{CIUDADANO_NOMBRE}}, {{DNI}}, {{EXPTE}}, {{DEFENSORIA}}, {{FECHA_LEGAL}})</label>
+                                <textarea id="adminPlantillaCuerpo" class="form-control" rows="8" placeholder="Escriba la estructura del escrito con sus placeholders..." required></textarea>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Campos Dinámicos Requeridos (JSON)</label>
+                                <textarea id="adminPlantillaCampos" class="form-control" rows="3" placeholder='[{"key":"NUEVO_DOMICILIO","label":"Nuevo Domicilio","type":"text","required":true}]'></textarea>
+                                <small style="color: #94A3B8; font-size: 0.72rem;">Defina los campos dinámicos en formato JSON con clave, etiqueta y tipo (text / textarea).</small>
+                            </div>
+                            <div class="form-group full-width" style="display: flex; gap: 0.75rem;">
+                                <button type="submit" class="btn btn-primary" id="btnSavePlantilla" style="flex: 1; justify-content: center;">
+                                    <i class="ri-save-line"></i> Guardar Plantilla
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btnCancelEditPlantilla">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Título</th>
+                                        <th>Categoría</th>
+                                        <th>Sumario</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminPlantillasTableBody">
+                                    <tr><td colspan="6" style="text-align: center;">Cargando plantillas...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Auditoría de Acciones -->
+                    <div class="records-section" style="margin-top: 1.5rem;">
+                        <div class="section-header">
+                            <h3><i class="ri-history-line"></i> Historial de Auditoría de Acciones del Sistema</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha / Hora</th>
+                                        <th>Usuario Operador</th>
+                                        <th>Acción Realizada</th>
+                                        <th>Detalle de la Operación</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminAuditTableBody">
+                                    <tr><td colspan="4" style="text-align: center;">Cargando auditoría...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Elegante Aero Glass para Confirmación de Logout -->
+    <div class="modal-overlay" id="confirmLogoutModal" style="background: rgba(11, 19, 41, 0.88); backdrop-filter: blur(20px);">
+        <div class="modal-content" style="max-width: 400px; text-align: center; border: 1px solid rgba(232, 17, 35, 0.4); box-shadow: 0 0 35px rgba(232, 17, 35, 0.3);">
+            <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(232, 17, 35, 0.2); display: flex; align-items: center; justify-content: center; color: #F87171; font-size: 1.6rem; margin-bottom: 0.5rem;">
+                    <i class="ri-logout-box-r-line"></i>
+                </div>
+            </div>
+            <div class="modal-body" style="padding-top: 0;">
+                <h4 style="font-size: 1.15rem; color: #FFF; margin-bottom: 0.5rem;">¿Cerrar Sesión Activa?</h4>
+                <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1.5rem;">Se cerrará el acceso del operador actual y se solicitarán credenciales de ingreso nuevamente.</p>
+                <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                    <button type="button" class="btn btn-secondary" id="btnCancelLogout" style="flex: 1; justify-content: center;">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmLogout" style="flex: 1; justify-content: center; background: linear-gradient(135deg, #E81123, #B91C1C); border: none;">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla / Modal de Autenticación (Login) -->
+    <div class="modal-overlay active" id="loginModal" style="background: rgba(11, 19, 41, 0.92); backdrop-filter: blur(25px);">
+        <div class="modal-content" style="max-width: 440px; border: 1px solid var(--mpd-gold); box-shadow: 0 0 40px rgba(0,0,0,0.8);">
+            <div class="modal-header" style="text-align: center; justify-content: center; flex-direction: column; gap: 0.5rem;">
+                <img src="assets/images/logo_icon.png" alt="Logo MPD" style="height: 60px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
+                <h4 style="color: var(--mpd-gold); font-size: 1.2rem;">Inicio de Sesión de Operador</h4>
+                <p style="font-size: 0.8rem; color: #94A3B8;">Ministerio Público de la Defensa (Mendoza)</p>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Seleccionar Usuario Operador</label>
+                        <select id="loginUserSelect" class="form-control" style="font-weight: 600;">
+                            <option value="spereyra">👑 Sergio M. Pereyra (ADMINISTRADOR)</option>
+                            <option value="jppapini">J.P. Papini (OPERADOR)</option>
+                            <option value="aalonso">A. Alonso (OPERADOR)</option>
+                            <option value="imolina">I. Molina (OPERADOR)</option>
+                            <option value="scamerucci">S. Camerucci (OPERADOR)</option>
+                            <option value="cgimenez">C. Gimenez (OPERADOR)</option>
+                            <option value="asanchez">A. Sanchez (OPERADOR)</option>
+                            <option value="lalvarado">L. Alvarado (OPERADOR)</option>
+                            <option value="mguerrero">Martin Guerrero (OPERADOR)</option>
+                            <option value="mtosetto">Marcos Tosetto (OPERADOR)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Ingresa tu clave..." required>
+                    </div>
+
+                    <div id="loginErrorMessage" style="color: #F87171; font-size: 0.82rem; text-align: center; display: none;"></div>
+
+                    <button type="submit" class="btn btn-primary" style="justify-content: center; margin-top: 0.5rem; font-size: 1rem; padding: 0.75rem;">
+                        <i class="ri-login-box-line"></i> Ingresar al Sistema
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalle de Atención -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>Ficha de Atención Ciudadana</h4>
+                <button class="modal-close-btn" id="btnCloseDetailModal"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-body" id="detailModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Atención (Bloques Visuales Aero Glass) -->
+    <div class="modal-overlay" id="newRecordModal">
+        <div class="modal-content" style="max-width: 840px; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(0, 180, 216, 0.15); border: 1px solid var(--mpd-cyan); display: flex; align-items: center; justify-content: center; color: var(--mpd-cyan);">
+                        <i class="ri-user-add-line" style="font-size: 1.25rem;"></i>
+                    </div>
+                    <div>
+                        <h4 id="newRecordModalTitle" style="margin: 0; font-size: 1.15rem; color: #FFF;">Registrar Nueva Atención Ciudadana</h4>
+                        <p style="margin: 0; font-size: 0.76rem; color: #94A3B8;">Complete los bloques secuenciales. Los campos se adaptan según el fuero.</p>
+                    </div>
+                </div>
+                <button class="modal-close-btn" id="btnCloseNewModal"><i class="ri-close-line"></i></button>
+            </div>
+            
+            <div class="modal-body" style="overflow-y: auto; padding-right: 0.5rem;">
+                <form id="newRecordForm" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    
+                    <!-- BLOQUE 1: IDENTIFICACIÓN DEL CIUDADANO -->
+                    <div class="aero-form-block block-citizen">
+                        <div class="block-header">
+                            <div class="block-title">
+                                <span class="block-number">1</span>
+                                <span class="block-name"><i class="ri-user-search-line"></i> Identificación del Ciudadano</span>
+                            </div>
+                            <span class="badge badge-otro" id="dniStatusBadge" style="display: none;"></span>
+                        </div>
+
+                        <div class="block-body">
+                            <!-- Fila de Búsqueda por DNI -->
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: center;">
+                                <div style="flex: 1; position: relative;">
+                                    <input type="text" id="newDni" class="form-control" placeholder="Tipee DNI..." style="font-size: 1.1rem; font-weight: 700; font-family: var(--font-mono); letter-spacing: 1px; border-color: var(--mpd-cyan);" required>
+                                </div>
+                                <button type="button" id="btnSearchDni" class="btn btn-secondary" style="white-space: nowrap; padding: 0.6rem 1rem;">
+                                    <i class="ri-search-2-line"></i> Consultar
+                                </button>
+                            </div>
+
+                            <!-- Botonera de Acción Rápida (Aparece cuando el ciudadano ya existe) -->
+                            <div id="dniQuickActionsBar" class="dni-quick-actions" style="display: none;">
+                                <div style="font-size: 0.78rem; color: #CBD5E1; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem;">
+                                    <i class="ri-history-line" style="color: var(--mpd-gold);"></i> Antecedentes detectados para este ciudadano:
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-sm btn-quick-action active" id="btnQuickNuevaCausa" title="Iniciar un trámite o consulta nueva (limpia fuero y aplica turno rotativo)">
+                                        <i class="ri-add-circle-line"></i> ✨ Nueva Consulta / Asunto
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-quick-action" id="btnQuickContinuarCausa" title="Continuar el trámite abierto más reciente">
+                                        <i class="ri-link-m"></i> 🔗 Continuar Trámite Previo
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-quick-action" id="btnQuickVerHistorial" title="Abrir panel lateral con todos los antecedentes">
+                                        <i class="ri-file-list-3-line"></i> 📜 Ver Historial Completo (<span id="quickHistoryCount">0</span>)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Banner de Trámite Vinculado Activo -->
+                            <div id="linkedHistoryBanner" style="display: none; background: rgba(0, 180, 216, 0.15); border: 1px solid #00B4D8; border-radius: 6px; padding: 0.5rem 0.85rem; margin-top: 0.6rem; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; color: #38BDF8; font-weight: 600; font-size: 0.82rem;">
+                                    <i class="ri-link-m" style="font-size: 1.1rem;"></i>
+                                    <span id="linkedHistoryBannerText">Continuando trámite anterior...</span>
+                                </div>
+                                <button type="button" id="btnUnlinkHistory" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer;">
+                                    <i class="ri-close-line"></i> Desvincular
+                                </button>
+                            </div>
+
+                            <!-- Datos Personales del Ciudadano -->
+                            <div class="form-grid" style="margin-top: 0.75rem;">
+                                <div class="form-group">
+                                    <label>Apellidos <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newApellidos" class="form-control" placeholder="Ej: GONZALEZ" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nombres <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newNombres" class="form-control" placeholder="Ej: ARIEL" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Celular / Teléfono de Contacto</label>
+                                    <input type="text" id="newCelular" class="form-control" placeholder="Ej: 2604560475">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha de Atención <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newFecha" class="form-control" placeholder="DD/MM/YYYY" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Canal / Tipo de Atención <span style="color: #F87171;">*</span></label>
+                                    <select id="newActividad" class="form-control" required>
+                                        <option value="" disabled selected>-- Seleccionar Modalidad --</option>
+                                        <option value="Atención Personal">Mesa de Entradas (Atención Personal)</option>
+                                        <option value="Atención Telefónica">Atención Telefónica</option>
+                                        <option value="Atención Whatsapp">Atención Whatsapp</option>
+                                        <option value="Atención Teléfonica DETENIDO">Atención Teléfonica DETENIDO</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 2: FUERO Y CLASIFICACIÓN JURÍDICA -->
+                    <div class="aero-form-block block-legal">
+                        <div class="block-header">
+                            <div class="block-title">
+                                <span class="block-number">2</span>
+                                <span class="block-name"><i class="ri-scales-3-line"></i> Fuero y Clasificación Jurídica</span>
+                            </div>
+                            <span class="badge badge-civil" id="fueroActiveBadge">Seleccione Fuero</span>
+                        </div>
+
+                        <div class="block-body">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Defensoría / Fuero <span style="color: #F87171;">*</span></label>
+                                    <select id="newDefensoria" class="form-control" style="font-weight: 600;" required>
+                                        <option value="" disabled selected>-- Seleccionar Defensoría / Fuero --</option>
+                                        <option value="CO-DEF. FAMILIA">CO-DEF. FAMILIA</option>
+                                        <option value="DEF. CIVIL">DEF. CIVIL</option>
+                                        <option value="1° DEFENSORIA PENAL">1° DEFENSORIA PENAL</option>
+                                        <option value="2° DEFENSORIA PENAL">2° DEFENSORIA PENAL</option>
+                                        <option value="3° DEFENSORIA PENAL">3° DEFENSORIA PENAL</option>
+                                        <option value="DEFENSORÍA PENAL JUVENIL">DEFENSORÍA PENAL JUVENIL</option>
+                                        <option value="EJECUCIÓN PENAL">EJECUCIÓN PENAL</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>N° Expediente Judicial (si posee)</label>
+                                    <input type="text" id="newExpte" class="form-control" placeholder="Ej: P-138253/26 o S/N°">
+                                </div>
+                            </div>
+
+                            <!-- SUB-SECCIÓN CONTEXTUAL: FAMILIA -->
+                            <div id="fueroFamiliaSection" style="display: none; margin-top: 1rem; background: rgba(198, 63, 149, 0.08); border: 1px solid rgba(198, 63, 149, 0.3); padding: 1rem; border-radius: 8px;">
+                                <h5 style="color: #EC4899; margin: 0 0 0.75rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-heart-pulse-line"></i> Parámetros de Co-Defensoría de Familia
+                                </h5>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label style="color: #F472B6;">Tipo de Trámite <span style="color: #F87171;">*</span></label>
+                                        <select id="newTipoTramiteFamilia" class="form-control" style="font-weight: 600; border-color: #DB2777;">
+                                            <option value="Causa Nueva">Causa Nueva</option>
+                                            <option value="Causa en Trámite">Causa en Trámite</option>
+                                            <option value="Contestación de Demanda">Contestación de Demanda</option>
+                                            <option value="Asesoramiento General">Asesoramiento General</option>
+                                            <option value="Guarda Judicial / Tutela / Adopción">Guarda Judicial / Tutela / Adopción</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="color: #F472B6;">Materia / Submotivo <span style="color: #F87171;">*</span></label>
+                                        <select id="newMateriaFamilia" class="form-control" style="font-weight: 600; border-color: #DB2777;">
+                                            <option value="Alimentos / Liquidación / Cese">Alimentos / Liquidación / Cese</option>
+                                            <option value="Cuidado Personal / Régimen de Contacto">Cuidado Personal / Régimen de Contacto</option>
+                                            <option value="Prohibición de Acercamiento / Exclusión">Prohibición de Acercamiento / Exclusión</option>
+                                            <option value="Filiación / Presunta Filiación">Filiación / Presunta Filiación</option>
+                                            <option value="Impugnación / Supresión de Apellido">Impugnación / Supresión de Apellido</option>
+                                            <option value="Guarda Judicial / Tutela / Adopción">Guarda Judicial / Tutela / Adopción</option>
+                                            <option value="Medidas de Protección ETI / Vulnerabilidad">Medidas de Protección ETI / Vulnerabilidad</option>
+                                            <option value="Mediación">Mediación</option>
+                                            <option value="Reintegro">Reintegro</option>
+                                            <option value="Otro / Asesoramiento General">Otro / Asesoramiento General</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group full-width" id="fechaVencimientoGroup" style="display: none;">
+                                        <label style="color: #F87171;"><i class="ri-calendar-event-line"></i> Fecha Límite / Vencimiento de Contestación <span style="color: #F87171;">*</span></label>
+                                        <input type="date" id="newFechaVencimientoContestacion" class="form-control" style="border-color: #EF4444; background: rgba(239, 68, 68, 0.1); color: #FFF; font-weight: 600;">
+                                    </div>
+
+                                    <div class="form-group full-width" id="codefensoraAsignadaGroup">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                            <label style="color: #C63F95; margin: 0;"><i class="ri-user-star-line"></i> Co-Defensora Asignada Receptora</label>
+                                            <span class="badge" id="codefensoraBadgeStatus" style="font-size: 0.7rem; background: rgba(198, 63, 149, 0.2); color: #F472B6;">Sugerencia Automática</span>
+                                        </div>
+                                        <select id="newCodefensoraAsignada" class="form-control" style="font-weight: 600;">
+                                            <option value="">-- Seleccione o confirme Co-Defensora --</option>
+                                            <option value="Andrea Lombard">Dra. Andrea Lombard</option>
+                                            <option value="Claudia Perruzzi">Dra. Claudia Perruzzi</option>
+                                            <option value="Luz Perez">Dra. Luz Perez</option>
+                                            <option value="Mariela Fokszek">Dra. Mariela Fokszek</option>
+                                        </select>
+                                        <span id="codefensoraHint" style="font-size: 0.75rem; color: #94A3B8; margin-top: 0.3rem; display: block;"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SUB-SECCIÓN CONTEXTUAL: PENAL -->
+                            <div id="fueroPenalSection" style="display: none; margin-top: 1rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1rem; border-radius: 8px;">
+                                <h5 style="color: #F87171; margin: 0 0 0.75rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-shield-user-line"></i> Parámetros de Defensoría Penal
+                                </h5>
+                                <div class="form-grid">
+                                    <div class="form-group full-width">
+                                        <label style="color: #FCA5A5;">Trámite / Motivo Penal <span style="color: #F87171;">*</span></label>
+                                        <select id="newTramitePenal" class="form-control" style="font-weight: 600; border-color: #EF4444;">
+                                            <option value="Audiencia de Imputación">Audiencia de Imputación</option>
+                                            <option value="Audiencia Fijada">Audiencia Fijada</option>
+                                            <option value="Consulta Detenido / Comisaría">Consulta Detenido / Comisaría</option>
+                                            <option value="Causa en Trámite">Causa en Trámite</option>
+                                            <option value="Presentación de Escrito Judicial">Presentación de Escrito Judicial</option>
+                                            <option value="Turno">Turno</option>
+                                            <option value="Espontánea">Espontánea</option>
+                                            <option value="Ejecución Penal / Beneficios">Ejecución Penal / Beneficios</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SUB-SECCIÓN CONTEXTUAL: CIVIL / OTROS -->
+                            <div id="fueroCivilSection" style="display: none; margin-top: 1rem; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); padding: 1rem; border-radius: 8px;">
+                                <h5 style="color: #38BDF8; margin: 0 0 0.75rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-file-list-line"></i> Parámetros Fuero Civil / Menores
+                                </h5>
+                                <div class="form-grid">
+                                    <div class="form-group full-width">
+                                        <label style="color: #7DD3FC;">Trámite / Materia Civil <span style="color: #F87171;">*</span></label>
+                                        <select id="newTramiteCivil" class="form-control" style="font-weight: 600; border-color: #0284C7;">
+                                            <option value="Espontánea">Espontánea</option>
+                                            <option value="Causa en Trámite">Causa en Trámite</option>
+                                            <option value="Asesoramiento General">Asesoramiento General</option>
+                                            <option value="Determinación de Capacidad">Determinación de Capacidad</option>
+                                            <option value="Medidas Cautelares">Medidas Cautelares</option>
+                                            <option value="Divorcio">Divorcio</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 3: RESOLUCIÓN, TAREAS Y OBSERVACIONES -->
+                    <div class="aero-form-block block-resolution">
+                        <div class="block-header">
+                            <div class="block-title">
+                                <span class="block-number">3</span>
+                                <span class="block-name"><i class="ri-checkbox-circle-line"></i> Resolución, Seguimiento y Observaciones</span>
+                            </div>
+                        </div>
+
+                        <div class="block-body">
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label>Resultado de la Atención <span style="color: #F87171;">*</span></label>
+                                    <select id="newResultado" class="form-control" style="font-weight: 600;" required>
+                                        <option value="" disabled selected>-- Seleccionar Resultado --</option>
+                                        <option value="Resuelve en Mesa / Operador">Resuelve en Mesa / Operador</option>
+                                        <option value="Entrevista con Defensor/a">Entrevista con Defensor/a</option>
+                                        <option value="Asesoramiento General">Asesoramiento General</option>
+                                        <option value="Derivado a otra repartición">Derivado a otra repartición</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group full-width" id="reparticionDetalleGroup" style="display: none;">
+                                    <label style="color: #38BDF8;"><i class="ri-building-line"></i> Especificar Repartición a la que se Derivó <span style="color: #F87171;">*</span></label>
+                                    <input type="text" id="newReparticionDetalle" class="form-control" placeholder="Ej: ETI, Registro Civil, Juzgado de Paz, Defensoría de Pobres...">
+                                </div>
+
+                                <!-- SECCIÓN: TAREA PENDIENTE -->
+                                <div class="form-group full-width" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.85rem 1rem; border-radius: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem;">
+                                        <input type="checkbox" id="newTareaPendiente" style="width: 18px; height: 18px; cursor: pointer;">
+                                        <label for="newTareaPendiente" style="font-weight: 700; color: #FBBF24; cursor: pointer; margin: 0; font-size: 0.88rem;">
+                                            <i class="ri-time-line"></i> ¿Esta atención requiere cumplir una Tarea Pendiente posterior?
+                                        </label>
+                                    </div>
+                                    <input type="text" id="newDetallePendiente" class="form-control" placeholder="Detalle sintético de la tarea a realizar (Ej: Requerir informe a ETI, Esperar partida de nacimiento)..." style="font-size: 0.85rem;">
+                                </div>
+
+                                <div class="form-group full-width">
+                                    <label>Operador de Mesa que Atiende</label>
+                                    <input type="text" id="newAtendidoPor" class="form-control" value="Sergio M. Pereyra" readonly style="background: rgba(255,255,255,0.05); color: #C9B07A; font-weight: 600;">
+                                </div>
+
+                                <div class="form-group full-width">
+                                    <label>Observaciones del Caso</label>
+                                    <textarea id="newObservaciones" class="form-control" rows="3" placeholder="Detalle sintético del trámite, documentación aportada o instrucciones dadas al ciudadano..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 4: CONFECCIÓN DE ESCRITO JUDICIAL (ACORDEÓN PLEGABLE) -->
+                    <div class="aero-form-block block-escrito" id="sectionConfeccionEscrito" style="background: rgba(11, 19, 41, 0.75); border: 1px solid rgba(0, 180, 216, 0.35); border-radius: 10px; padding: 1rem 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" id="toggleEscritoPanel">
+                            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(0, 180, 216, 0.2); display: flex; align-items: center; justify-content: center; color: var(--mpd-cyan);">
+                                    <i class="ri-file-edit-line" style="font-size: 1.15rem;"></i>
+                                </div>
+                                <div>
+                                    <h5 style="margin: 0; color: var(--mpd-cyan); font-size: 0.92rem; font-weight: 700;">
+                                        Confección de Escrito Judicial (Plantillas Opcionales)
+                                    </h5>
+                                    <p style="margin: 0; font-size: 0.74rem; color: #94A3B8;">
+                                        Redacte escritos oficiales con membrete o genere PDF
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="badge" id="escritoStatusBadge" style="background: rgba(148, 163, 184, 0.15); color: #94A3B8; font-size: 0.72rem;">Sin plantilla</span>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btnToggleEscrito" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                                    <i class="ri-arrow-down-s-line" id="escritoChevronIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Contenido desplegable de redacción -->
+                        <div id="escritoPanelContent" style="display: none; margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1rem;">
+                            <!-- Selector de Plantilla -->
+                            <div style="margin-bottom: 1rem;">
+                                <label style="color: var(--mpd-cyan); font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+                                    <i class="ri-file-list-3-line"></i> Seleccionar Plantilla de Trámite Predefinida
+                                </label>
+                                <select id="selectPlantillaEscrito" class="form-control" style="font-weight: 600; border-color: rgba(0, 180, 216, 0.5);">
+                                    <option value="">-- No confeccionar escrito en este momento --</option>
+                                </select>
+                            </div>
+
+                            <!-- Contenedor dinámico para variables de la plantilla -->
+                            <div id="escritoCamposDinamicosWrapper" style="display: none; margin-bottom: 1rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); padding: 0.85rem; border-radius: 6px;">
+                                <div style="font-size: 0.78rem; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="ri-input-field"></i> Variables Específicas de la Plantilla
+                                </div>
+                                <div class="form-grid" id="escritoCamposDinamicosContainer"></div>
+                            </div>
+
+                            <!-- Vista Previa / Editor del Documento Judicial -->
+                            <div id="escritoPreviewSection" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <label style="color: #FBBF24; font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem;">
+                                        <i class="ri-article-line"></i> Vista Previa Editable del Escrito
+                                    </label>
+                                </div>
+
+                                <div class="paper-preview-box" style="background: #FFFFFF; color: #0F172A; border-radius: 6px; padding: 1.25rem; box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 0.75rem; border: 1px solid #E2E8F0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B1329; padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                            <img src="assets/images/Logo sin fondo 3-recortado.PNG" alt="MPD" style="height: 42px; object-fit: contain;" onerror="this.src='assets/images/logo_horizontal.png';">
+                                            <div>
+                                                <div style="font-size: 0.82rem; font-weight: 800; color: #0B1329; text-transform: uppercase; font-family: 'Times New Roman', serif;">Ministerio Público de la Defensa</div>
+                                                <div style="font-size: 0.7rem; font-weight: 600; color: #475569; font-family: 'Times New Roman', serif;">Poder Judicial de Mendoza - 2ª Circunscripción</div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right; font-size: 0.7rem; color: #334155; font-family: 'Times New Roman', serif;">
+                                            <div id="previewHeaderExpte"><strong>Expte:</strong> S/N°</div>
+                                            <div id="previewHeaderDefensoria"><strong>Defensoría:</strong> Oficial</div>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+                                        <div id="previewSumarioBadge" style="border: 1px solid #0F172A; background: #F8FAFC; padding: 0.2rem 0.6rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; font-family: 'Times New Roman', serif;">
+                                            SUMARIO: ESCRITO JUDICIAL
+                                        </div>
+                                    </div>
+
+                                    <textarea id="escritoTextoEditor" rows="10" style="width: 100%; border: 1px dashed #CBD5E1; background: #FAFAFA; color: #1E293B; font-family: 'Times New Roman', Times, serif; font-size: 0.92rem; line-height: 1.5; padding: 0.75rem; border-radius: 4px; resize: vertical; outline: none;"></textarea>
+                                </div>
+
+                                <div class="escrito-actions-toolbar" style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary escrito-action-btn" id="btnCopiarTextoEscrito"><i class="ri-file-copy-line"></i> Copiar</button>
+                                    <button type="button" class="btn btn-info-action escrito-action-btn" id="btnImprimirEscrito"><i class="ri-printer-line"></i> Imprimir</button>
+                                    <button type="button" class="btn btn-success-action escrito-action-btn" id="btnDescargarPdfEscrito"><i class="ri-file-pdf-line"></i> Descargar PDF</button>
+                                    <button type="button" class="btn btn-warning-action escrito-action-btn" id="btnMarcarPendienteEscrito"><i class="ri-time-line"></i> Dejar Pendiente</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón Principal de Envío -->
+                    <div style="padding-top: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" id="btnSubmitRecord" style="width: 100%; justify-content: center; font-size: 1.05rem; font-weight: 700; padding: 0.85rem; border-radius: 6px; box-shadow: 0 4px 15px rgba(0, 180, 216, 0.4);">
+                            <i class="ri-save-line"></i> Guardar e Incorporar Atención
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER LATERAL DE ANTECEDENTES HISTÓRICOS 360° -->
+    <div class="history-drawer-overlay" id="citizenHistoryDrawerOverlay">
+        <div class="history-drawer" id="citizenHistoryDrawer">
+            <div class="history-drawer-header">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(245, 158, 11, 0.2); color: var(--mpd-gold); display: flex; align-items: center; justify-content: center;">
+                        <i class="ri-history-line" style="font-size: 1.2rem;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: #FFF;" id="drawerCitizenName">Historial Ciudadano</h4>
+                        <span style="font-size: 0.74rem; color: var(--mpd-cyan);" id="drawerCitizenDni">DNI: -</span>
+                    </div>
+                </div>
+                <button class="modal-close-btn" id="btnCloseHistoryDrawer"><i class="ri-close-line"></i></button>
+            </div>
+            
+            <div class="history-drawer-body">
+                <div id="drawerHistoryList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <!-- Se inyectan las tarjetas cronológicas desde JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer Lateral Flotante de Chat 1-a-1 -->
+    <div class="chat-drawer-overlay" id="chatDrawerOverlay">
+        <div class="chat-drawer" id="chatDrawer">
+            <div class="chat-drawer-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="ri-chat-3-fill" style="color: var(--mpd-cyan); font-size: 1.25rem;"></i>
+                    <h4 style="margin: 0; font-size: 1rem; color: #FFF;" id="chatDrawerTitle">Chat Interno Operarios</h4>
+                </div>
+                <button class="modal-close-btn" id="btnCloseChatDrawer"><i class="ri-close-line"></i></button>
+            </div>
+
+            <div class="chat-drawer-body">
+                <!-- Sub-panel 1: Lista de Operarios -->
+                <div class="chat-contacts-list" id="chatContactsList">
+                    <div style="color: #94A3B8; font-size: 0.85rem; text-align: center; padding: 1rem;">Cargando contactos...</div>
+                </div>
+
+                <!-- Sub-panel 2: Ventana de Conversación Directa -->
+                <div class="chat-conversation-view" id="chatConversationView" style="display: none;">
+                    <div class="chat-conv-header">
+                        <button class="btn btn-secondary" id="btnBackToContacts" style="padding: 0.25rem 0.55rem; font-size: 0.78rem;">
+                            <i class="ri-arrow-left-line"></i> Volver
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div class="avatar" id="activeChatAvatar" style="width: 28px; height: 28px; font-size: 0.7rem; font-weight: 700;">OP</div>
+                            <span id="activeChatName" style="font-weight: 600; font-size: 0.88rem; color: #FFF;">Operador</span>
+                        </div>
+                    </div>
+
+                    <div class="chat-messages-area" id="chatMessagesArea">
+                        <!-- Burbujas de mensajes -->
+                    </div>
+
+                    <!-- Input y Adjuntar Archivo -->
+                    <div class="chat-input-bar">
+                        <input type="file" id="chatFileInput" style="display: none;" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.zip">
+                        <button type="button" class="btn-chat-attach" id="btnAttachFile" title="Adjuntar Archivo (PDF, Img, Doc, Zip - Máx 15MB)">
+                            <i class="ri-attachment-line"></i>
+                        </button>
+                        <input type="text" id="chatTextInput" placeholder="Escribe un mensaje privado..." class="form-control" style="font-size: 0.85rem;">
+                        <button type="button" class="btn btn-primary" id="btnSendChatMessage" style="padding: 0.5rem 0.75rem;">
+                            <i class="ri-send-plane-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librería para Descarga Directa de PDF sin pasar por ventana de impresión -->
+    <script src="js/html2pdf.bundle.min.js"></script>
+    <!-- Script de Inicialización -->
+    <script src="js/dashboard-bundle.js?v=9"></script>
+    <!-- Modal Confirmación Genérico -->
+    <div class="modal-overlay" id="confirmModal" style="z-index: 10000;">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 1.75rem;">
+            <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); color: #EF4444; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1rem auto; border: 1px solid rgba(239, 68, 68, 0.3);">
+                <i class="ri-alert-line"></i>
+            </div>
+            <h4 id="confirmModalTitle" style="color: #FFF; margin-bottom: 0.5rem; font-size: 1.15rem;">¿Confirmar Acción?</h4>
+            <p id="confirmModalMessage" style="color: #94A3B8; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Vista de Operaciones (Presentismo & Reordenamiento Drag & Drop) -->
+    <div class="modal-overlay" id="presenceGridModal">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #FFF; font-size: 1.1rem;">
+                        <i class="ri-team-line" style="color: var(--mpd-red);"></i> Panel de Gestión de Turnos & Presentismo
+                    </h4>
+                    <button class="modal-close-btn" id="btnClosePresenceGridModal"><i class="ri-close-line"></i></button>
+                </div>
+                
+                <!-- Pestañas Segmentadas -->
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" id="tabPresenceGrid" data-target="presenceGridSection">
+                        <i class="ri-grid-fill"></i> Control Asistencia
+                    </button>
+                    <button class="modal-tab-btn" id="tabPresenceReorder" data-target="presenceReorderSection">
+                        <i class="ri-shuffle-line"></i> Reordenar Prioridad
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <!-- Región Viva ARIA para accesibilidad del Drag and Drop -->
+                <div id="dndLiveRegion" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+                <!-- Sección 1: Cuadrícula de Asistencia -->
+                <div id="presenceGridSection" class="modal-tab-section active">
+                    <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 1rem;">
+                        Haga clic sobre cualquier profesional para cambiar su estado de asistencia (Presente / Ausente).
+                    </p>
+                    <div id="presenceGridContainer" class="presence-masonry-container" style="max-height: 440px; overflow-y: auto; padding-right: 0.25rem;">
+                        <!-- Se inyectan las tarjetas ejecutivas Masonry desde JS -->
+                    </div>
+                </div>
+
+                <!-- Sección 2: Configuración & Reordenamiento de Turnos -->
+                <div id="presenceReorderSection" class="modal-tab-section" style="display: none; max-height: 460px; overflow-y: auto; padding-right: 0.25rem;">
+                    <!-- Bloque 1: Asignación Directa Kanban -->
+                    <div style="margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 1rem;">
+                        <h4 style="font-size: 0.88rem; color: #38BDF8; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="ri-drag-drop-line"></i> Asignación Directa del Próximo Turno
+                        </h4>
+                        <p style="font-size: 0.78rem; color: #94A3B8; margin-bottom: 0.85rem;">
+                            Arrastre cualquier ficha de especialidad y suéltela sobre la tarjeta de la defensora que desea asignar como próximo turno.
+                        </p>
+                        <div id="kanbanCategoryContainer" class="kanban-category-grid">
+                            <!-- Se inyectan tarjetas de defensora con chips arrastrables desde JS -->
+                        </div>
+                    </div>
+
+                    <!-- Bloque 2: Secuencia de Precedencia Rotativa -->
+                    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 1rem;">
+                        <h4 style="font-size: 0.88rem; color: #F59E0B; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="ri-sort-asc"></i> Secuencia de Precedencia Rotativa
+                        </h4>
+                        <p style="font-size: 0.78rem; color: #94A3B8; margin-bottom: 0.85rem;">
+                            Seleccione el motivo de derivación para ajustar su orden de precedencia específico (1°, 2°, 3°...).
+                        </p>
+
+                        <!-- Segmented Control Estilo Nativo -->
+                        <div class="segmented-control-container" style="margin-bottom: 1rem;">
+                            <button class="segmented-control-btn active" data-canal="ASESORAMIENTO_GENERAL">Asesoramiento General</button>
+                            <button class="segmented-control-btn" data-canal="CAUSA_NUEVA">Causa Nueva</button>
+                            <button class="segmented-control-btn" data-canal="CONTESTACION_DEMANDA">Contestación</button>
+                            <button class="segmented-control-btn" data-canal="ADOPCION">Adopción / Guarda</button>
+                        </div>
+
+                        <div id="presenceReorderContainer" class="dnd-list-container">
+                            <!-- Se inyectan las filas ordenables según la pestaña activa -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Contenedor oculto para renderizado e impresión de escritos oficiales -->
+    <div id="printEscritoContainer" style="display: none;"></div>
+</body>
+</html>

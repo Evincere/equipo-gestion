@@ -10,6 +10,9 @@ RUN npm install --omit=dev
 # Copiar el resto del código de la aplicación y base de datos
 COPY . .
 
+# Compilar bundle de cliente
+RUN npm run build
+
 # Exponer el puerto 3000
 EXPOSE 3000
 

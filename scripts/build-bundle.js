@@ -4723,4 +4723,11 @@ const bundleContent = `/* ======================================================
 `;
 
 fs.writeFileSync(path.join(__dirname, '../public/js', 'dashboard-bundle.js'), bundleContent, 'utf8');
-console.log('✅ Bundle actualizado con Módulo Completo de Tareas Pendientes.');
+
+const indexHtmlPath = path.join(__dirname, '../public', 'index.html');
+const dashboardHtmlPath = path.join(__dirname, '../public', 'dashboard.html');
+if (fs.existsSync(indexHtmlPath)) {
+    fs.copyFileSync(indexHtmlPath, dashboardHtmlPath);
+}
+
+console.log('✅ Bundle actualizado con Módulo Completo de Tareas Pendientes y dashboard.html sincronizado.');

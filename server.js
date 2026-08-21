@@ -703,7 +703,8 @@ const server = http.createServer((req, res) => {
     if (decodedPathname.startsWith('/data/')) {
         filePath = path.join(__dirname, decodedPathname);
     } else {
-        filePath = path.join(PUBLIC_DIR, decodedPathname === '/' ? 'index.html' : decodedPathname);
+        const isDashboardAlias = (decodedPathname === '/' || decodedPathname === '/dashboard.html' || decodedPathname === '/dashboard');
+        filePath = path.join(PUBLIC_DIR, isDashboardAlias ? 'index.html' : decodedPathname);
     }
     filePath = path.normalize(filePath);
 
@@ -726,7 +727,15 @@ const server = http.createServer((req, res) => {
                 res.end(`Error del Servidor: ${err.code}`);
             }
         } else {
-            res.writeHead(200, { 'Content-Type': contentType });
+            const headers = { 'Content-Type': contentType };
+            if (ext === '.html') {
+                headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                headers['Pragma'] = 'no-cache';
+                headers['Expires'] = '0';
+            } else if (ext === '.js' || ext === '.css') {
+                headers['Cache-Control'] = 'no-cache, must-revalidate';
+            }
+            res.writeHead(200, headers);
             res.end(content, 'utf-8');
         }
     });
