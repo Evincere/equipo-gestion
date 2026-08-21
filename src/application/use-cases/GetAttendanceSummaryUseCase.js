@@ -15,34 +15,80 @@
         return dateStr;
     }
 
+function parseDate(dateStr) {
+    if (!dateStr) return 0;
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+        let year = parseInt(parts[2], 10);
+        if (year < 100) year += 2000;
+        return new Date(year, parseInt(parts[1], 10) - 1, parseInt(parts[0], 10)).getTime();
+    }
+    return 0;
+}
+
 export class GetAttendanceSummaryUseCase {
     execute(attendances) {
-        const total = attendances.length;
-        const derivacionesTecnica = attendances.filter(a => a.isDerivacionTecnica()).length;
-        const escritosCount = attendances.filter(a => a.hasEscritos()).length;
+        const now = new Date();
+        const todayStr = normalizeDateStr(now.toLocaleDateString('es-AR'));
 
-        // Calcular atenciones del día
-        const todayStr = normalizeDateStr(new Date().toLocaleDateString('es-AR'));
-        
-        const todayAttendances = attendances.filter(a => normalizeDateStr(a.fecha) === todayStr);
-        const totalToday = todayAttendances.length;
+        const currentDay = now.getDay();
+        const distanceToMonday = (currentDay === 0 ? 6 : currentDay - 1);
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday);
+        startOfWeek.setHours(0, 0, 0, 0);
 
-        // Discriminar por operador
-        const operatorBreakdown = {};
-        todayAttendances.forEach(a => {
-            const operator = a.atendidoPor || 'Secretaría';
-            operatorBreakdown[operator] = (operatorBreakdown[operator] || 0) + 1;
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        startOfYear.setHours(0, 0, 0, 0);
+
+        let totalToday = 0;
+        let totalWeek = 0;
+        let totalMonth = 0;
+        let totalYear = 0;
+
+        const operatorBreakdownToday = {};
+        const operatorBreakdownWeek = {};
+        const operatorBreakdownMonth = {};
+
+        attendances.forEach(a => {
+            const isToday = normalizeDateStr(a.fecha) === todayStr;
+            const op = a.atendidoPor || 'Secretaría';
+
+            if (isToday) {
+                totalToday++;
+                operatorBreakdownToday[op] = (operatorBreakdownToday[op] || 0) + 1;
+            }
+
+            const ts = parseDate(a.fecha);
+            if (ts > 0) {
+                const dateObj = new Date(ts);
+                if (dateObj >= startOfWeek) {
+                    totalWeek++;
+                    operatorBreakdownWeek[op] = (operatorBreakdownWeek[op] || 0) + 1;
+                }
+                if (dateObj >= startOfMonth && dateObj.getFullYear() === now.getFullYear() && dateObj.getMonth() === now.getMonth()) {
+                    totalMonth++;
+                    operatorBreakdownMonth[op] = (operatorBreakdownMonth[op] || 0) + 1;
+                }
+                if (dateObj >= startOfYear && dateObj.getFullYear() === now.getFullYear()) {
+                    totalYear++;
+                }
+            }
         });
 
-        // O también podríamos considerar las pendientes (eso ya estaba en otra parte, bundle lo calculaba así o no, wait...)
-        // Pendientes no estaba acá.
-
         return {
-            total,
-            derivacionesTecnica,
-            escritosCount,
+            total: attendances.length,
+            totalYear,
+            totalMonth,
+            totalWeek,
             totalToday,
-            operatorBreakdown
+            derivacionesTecnica: attendances.filter(a => a.isDerivacionTecnica && a.isDerivacionTecnica()).length,
+            escritosCount: attendances.filter(a => a.hasEscritos && a.hasEscritos()).length,
+            operatorBreakdown: operatorBreakdownToday,
+            operatorBreakdownToday,
+            operatorBreakdownWeek,
+            operatorBreakdownMonth
         };
     }
 }

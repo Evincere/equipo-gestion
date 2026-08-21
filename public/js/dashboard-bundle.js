@@ -470,7 +470,9 @@
             let totalWeek = 0;
             let totalMonth = 0;
             let totalYear = 0;
-            const operatorBreakdown = {};
+            const operatorBreakdownToday = {};
+            const operatorBreakdownWeek = {};
+            const operatorBreakdownMonth = {};
 
             let pendientesHoy = 0;
             let pendientesSemana = 0;
@@ -479,10 +481,11 @@
 
             attendances.forEach(a => {
                 const isToday = normalizeDateStr(a.fecha) === todayStr;
+                const op = a.atendidoPor || 'Secretaría';
+
                 if (isToday) {
                     totalToday++;
-                    const operator = a.atendidoPor || 'Secretaría';
-                    operatorBreakdown[operator] = (operatorBreakdown[operator] || 0) + 1;
+                    operatorBreakdownToday[op] = (operatorBreakdownToday[op] || 0) + 1;
                 }
 
                 const ts = parseDate(a.fecha);
@@ -490,9 +493,11 @@
                     const dateObj = new Date(ts);
                     if (dateObj >= startOfWeek) {
                         totalWeek++;
+                        operatorBreakdownWeek[op] = (operatorBreakdownWeek[op] || 0) + 1;
                     }
                     if (dateObj >= startOfMonth && dateObj.getFullYear() === now.getFullYear() && dateObj.getMonth() === now.getMonth()) {
                         totalMonth++;
+                        operatorBreakdownMonth[op] = (operatorBreakdownMonth[op] || 0) + 1;
                     }
                     if (dateObj >= startOfYear && dateObj.getFullYear() === now.getFullYear()) {
                         totalYear++;
@@ -554,7 +559,10 @@
                 pendientesHoy,
                 pendientesSemana,
                 pendientesAntiguas,
-                operatorBreakdown,
+                operatorBreakdown: operatorBreakdownToday,
+                operatorBreakdownToday,
+                operatorBreakdownWeek,
+                operatorBreakdownMonth,
                 pendingOperatorBreakdown,
                 tecnicaBreakdown
             };
@@ -922,7 +930,10 @@
             this.kpiHoy = document.getElementById('kpiHoy');
             this.cardTotalAtenciones = document.getElementById('cardTotalAtenciones');
             this.operatorTooltip = document.getElementById('operatorTooltip');
+            this.operatorTooltipTotalBadge = document.getElementById('operatorTooltipTotalBadge');
             this.operatorBreakdownList = document.getElementById('operatorBreakdownList');
+            this.selectedOperatorPeriod = 'today';
+            this.latestSummary = null;
             
             this.kpiAsesoramiento = document.getElementById('kpiAsesoramiento');
             this.kpiAsesFamilia = document.getElementById('kpiAsesFamilia');
@@ -1323,6 +1334,29 @@
                 });
                 this.cardTotalAtenciones.addEventListener('mouseleave', () => {
                     this.operatorTooltip.style.display = 'none';
+                });
+
+                this.operatorTooltip.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+
+                const tabButtons = this.operatorTooltip.querySelectorAll('.btn-op-tab');
+                tabButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const period = btn.getAttribute('data-period');
+                        if (period) {
+                            this.selectedOperatorPeriod = period;
+                            tabButtons.forEach(b => {
+                                const isActive = b === btn;
+                                b.classList.toggle('active', isActive);
+                                b.style.background = isActive ? 'var(--mpd-red)' : 'transparent';
+                                b.style.color = isActive ? '#FFF' : '#94A3B8';
+                            });
+                            this.renderOperatorBreakdown();
+                        }
+                    });
                 });
             }
 
@@ -4102,17 +4136,8 @@
             if (this.kpiSemana) this.kpiSemana.textContent = summary.totalWeek.toLocaleString();
             if (this.kpiHoy) this.kpiHoy.textContent = summary.totalToday.toLocaleString();
             
-            if (this.operatorBreakdownList) {
-                let html = '';
-                if (Object.keys(summary.operatorBreakdown).length === 0) {
-                    html = '<span style="color: #94A3B8; font-size: 0.8rem;">Sin atenciones hoy</span>';
-                } else {
-                    for (const [operator, count] of Object.entries(summary.operatorBreakdown)) {
-                        html += '<div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #E2E8F0;"><span style="font-weight: 600;">' + operator + '</span> <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--mpd-gold);">' + count + '</span></div>';
-                    }
-                }
-                this.operatorBreakdownList.innerHTML = html;
-            }
+            this.latestSummary = summary;
+            this.renderOperatorBreakdown();
 
             if (this.kpiAsesoramiento) this.kpiAsesoramiento.textContent = (summary.totalAsesoramientos || 0).toLocaleString();
             if (this.kpiAsesFamilia) this.kpiAsesFamilia.textContent = (summary.asesFamilia || 0).toLocaleString();
@@ -4160,6 +4185,57 @@
             }
 
             this.renderPaginatedTable();
+        }
+
+        renderOperatorBreakdown() {
+            if (!this.operatorBreakdownList || !this.latestSummary) return;
+            const summary = this.latestSummary;
+            const period = this.selectedOperatorPeriod || 'today';
+
+            let breakdown = {};
+            let totalPeriod = 0;
+            let periodBadgeColor = '#4ADE80';
+
+            if (period === 'week') {
+                breakdown = summary.operatorBreakdownWeek || {};
+                totalPeriod = summary.totalWeek || 0;
+                periodBadgeColor = '#FBBF24';
+            } else if (period === 'month') {
+                breakdown = summary.operatorBreakdownMonth || {};
+                totalPeriod = summary.totalMonth || 0;
+                periodBadgeColor = '#38BDF8';
+            } else {
+                breakdown = summary.operatorBreakdownToday || summary.operatorBreakdown || {};
+                totalPeriod = summary.totalToday || 0;
+                periodBadgeColor = '#4ADE80';
+            }
+
+            if (this.operatorTooltipTotalBadge) {
+                this.operatorTooltipTotalBadge.textContent = 'Total: ' + totalPeriod.toLocaleString();
+                this.operatorTooltipTotalBadge.style.color = periodBadgeColor;
+                this.operatorTooltipTotalBadge.style.borderColor = periodBadgeColor + '55';
+                this.operatorTooltipTotalBadge.style.background = periodBadgeColor + '22';
+            }
+
+            const entries = Object.entries(breakdown).sort((a, b) => b[1] - a[1]);
+
+            if (entries.length === 0) {
+                this.operatorBreakdownList.innerHTML = '<span style="color: #94A3B8; font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">Sin atenciones en este período</span>';
+                return;
+            }
+
+            let html = '';
+            for (const [operator, count] of entries) {
+                const pct = totalPeriod > 0 ? ((count / totalPeriod) * 100).toFixed(1) : '0.0';
+                html += '<div class="operator-breakdown-row" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #E2E8F0; padding: 0.25rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.03);">' +
+                            '<span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="' + operator + '">' + operator + '</span>' +
+                            '<div style="display: flex; align-items: center; gap: 0.45rem;">' +
+                                '<span style="font-size: 0.72rem; color: #94A3B8; font-weight: 500;">' + pct + '%</span>' +
+                                '<span style="background: rgba(251, 191, 36, 0.15); color: var(--mpd-gold, #FBBF24); font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.78rem; min-width: 24px; text-align: center; border: 1px solid rgba(251, 191, 36, 0.3);">' + count + '</span>' +
+                            '</div>' +
+                        '</div>';
+            }
+            this.operatorBreakdownList.innerHTML = html;
         }
 
         toggleTecnicaFilter() {

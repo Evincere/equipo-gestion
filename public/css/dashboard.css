@@ -1174,6 +1174,21 @@ body {
 .stat-card.active-filter-card { border: 2px solid #EC4899 !important; box-shadow: 0 0 14px rgba(236, 72, 153, 0.45) !important; }
 .stat-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); }
 #cardTotalAtenciones:hover #operatorTooltip { display: block !important; }
+.btn-op-tab:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #F1F5F9 !important;
+}
+.btn-op-tab.active {
+    background: var(--mpd-red) !important;
+    color: #FFF !important;
+    box-shadow: 0 2px 6px rgba(225, 29, 72, 0.35);
+}
+.operator-breakdown-row {
+    transition: background 0.15s ease;
+}
+.operator-breakdown-row:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
 
 .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
 .stat-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary); }
