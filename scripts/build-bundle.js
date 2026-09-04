@@ -1119,6 +1119,8 @@ const bundleContent = `/* ======================================================
             this.newMateriaFamilia = document.getElementById('newMateriaFamilia');
             this.newTramitePenal = document.getElementById('newTramitePenal');
             this.newTramiteCivil = document.getElementById('newTramiteCivil');
+            this.newDefensoraCivil = document.getElementById('newDefensoraCivil');
+            this.defensoraCivilBadgeStatus = document.getElementById('defensoraCivilBadgeStatus');
 
             this.codefensoraBadgeStatus = document.getElementById('codefensoraBadgeStatus');
             this.newCodefensoraAsignada = document.getElementById('newCodefensoraAsignada');
@@ -1512,6 +1514,19 @@ const bundleContent = `/* ======================================================
                 });
             }
 
+            if (this.newDefensoraCivil) {
+                this.newDefensoraCivil.addEventListener('change', () => {
+                    if (this.defensoraCivilBadgeStatus) {
+                        if (this.newDefensoraCivil.value) {
+                            this.defensoraCivilBadgeStatus.textContent = 'Asignación Manual';
+                            this.defensoraCivilBadgeStatus.style.display = 'inline-block';
+                        } else {
+                            this.defensoraCivilBadgeStatus.style.display = 'none';
+                        }
+                    }
+                });
+            }
+
             const elResultadoSelect = document.getElementById('newResultado');
             if (elResultadoSelect) {
                 elResultadoSelect.addEventListener('change', () => {
@@ -1703,6 +1718,10 @@ const bundleContent = `/* ======================================================
                 }
 
                 this.renderCitizenHistoryDrawer(foundHistory, personalData);
+
+                if (this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'DEF. CIVIL') {
+                    this.updateCivilAssignmentLogic();
+                }
             } else {
                 this.currentCitizenHistory = [];
                 if (this.dniStatusBadge) {
@@ -4008,6 +4027,8 @@ const bundleContent = `/* ======================================================
             if (isFamilia) {
                 this.handleTipoTramiteFamiliaChange();
                 this.updateFamiliaAssignmentLogic();
+            } else if (isCivil) {
+                this.updateCivilAssignmentLogic();
             }
         }
 
@@ -4179,6 +4200,42 @@ const bundleContent = `/* ======================================================
             }
         }
 
+        updateCivilAssignmentLogic() {
+            if (!this.newDefensoraCivil) return;
+
+            if (this.linkedHistoryDto) {
+                const linkedDef = this.linkedHistoryDto.defensoria || (this.linkedHistoryDto.defensoriaCategory && this.linkedHistoryDto.defensoriaCategory.name) || '';
+                const linkedCodef = this.linkedHistoryDto.codefensora_asignada || this.linkedHistoryDto.codefensoraAsignada;
+                if ((linkedDef.includes('CIVIL') || linkedDef === 'DEF. CIVIL') && linkedCodef) {
+                    this.setSelectValueNormalized(this.newDefensoraCivil, linkedCodef);
+                    if (this.defensoraCivilBadgeStatus) {
+                        this.defensoraCivilBadgeStatus.textContent = 'Sugerida por Historial';
+                        this.defensoraCivilBadgeStatus.style.display = 'inline-block';
+                    }
+                    return;
+                }
+            }
+
+            if (!this.currentCitizenHistory || this.currentCitizenHistory.length === 0) {
+                return;
+            }
+
+            // Buscar en el historial previo el último registro de DEF. CIVIL que tenga codefensora asignada
+            const prevCivil = this.currentCitizenHistory.find(r => {
+                const defName = r.defensoria || (r.defensoriaCategory && r.defensoriaCategory.name) || '';
+                return (defName.includes('CIVIL') || defName === 'DEF. CIVIL') && (r.codefensora_asignada || r.codefensoraAsignada);
+            });
+
+            if (prevCivil) {
+                const suggested = prevCivil.codefensora_asignada || prevCivil.codefensoraAsignada;
+                this.setSelectValueNormalized(this.newDefensoraCivil, suggested);
+                if (this.defensoraCivilBadgeStatus) {
+                    this.defensoraCivilBadgeStatus.textContent = 'Sugerida por Historial';
+                    this.defensoraCivilBadgeStatus.style.display = 'inline-block';
+                }
+            }
+        }
+
         selectHistoryRecordToContinue(dto) {
             if (!dto) return;
 
@@ -4274,6 +4331,8 @@ const bundleContent = `/* ======================================================
             if (this.newDefensoriaSelect) this.newDefensoriaSelect.value = '';
             if (this.newExpteInput) this.newExpteInput.value = '';
             if (this.newResultadoSelect) this.newResultadoSelect.value = '';
+            if (this.newDefensoraCivil) this.newDefensoraCivil.value = '';
+            if (this.defensoraCivilBadgeStatus) this.defensoraCivilBadgeStatus.style.display = 'none';
 
             if (this.newTareaPendiente) this.newTareaPendiente.checked = false;
             if (this.newDetallePendiente) this.newDetallePendiente.value = '';
@@ -4350,6 +4409,7 @@ const bundleContent = `/* ======================================================
 
             const isFamilia = defName === 'CO-DEF. FAMILIA';
             const isPenal = defName === 'PENAL' || defName.includes('DEFENSORIA PENAL') || defName === 'EJECUCIÓN PENAL';
+            const isCivil = defName === 'DEF. CIVIL';
 
             if (isFamilia) {
                 if (this.newTipoTramiteFamilia) {
@@ -4370,6 +4430,12 @@ const bundleContent = `/* ======================================================
                 this.handleTipoTramiteFamiliaChange();
             } else if (isPenal) {
                 if (this.newTramitePenal) this.setSelectValueNormalized(this.newTramitePenal, entity.motivo || '');
+            } else if (isCivil) {
+                if (this.newTramiteCivil) this.setSelectValueNormalized(this.newTramiteCivil, entity.motivo || '');
+                if (this.newDefensoraCivil) {
+                    this.setSelectValueNormalized(this.newDefensoraCivil, entity.codefensoraAsignada || entity.codefensora_asignada || '');
+                    if (this.defensoraCivilBadgeStatus) this.defensoraCivilBadgeStatus.style.display = 'none';
+                }
             } else {
                 if (this.newTramiteCivil) this.setSelectValueNormalized(this.newTramiteCivil, entity.motivo || '');
             }
@@ -4931,8 +4997,14 @@ const bundleContent = `/* ======================================================
                 const taskDetail = this.newDetallePendiente ? this.newDetallePendiente.value : '';
 
                 const isFamilia = this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'CO-DEF. FAMILIA';
+                const isCivil = this.newDefensoriaSelect && this.newDefensoriaSelect.value === 'DEF. CIVIL';
                 const modoFamilia = (isFamilia && this.newModoDerivacionFamilia) ? this.newModoDerivacionFamilia.value : '';
-                const codefensora = (isFamilia && this.newCodefensoraAsignada) ? this.newCodefensoraAsignada.value : '';
+                let codefensora = '';
+                if (isFamilia && this.newCodefensoraAsignada) {
+                    codefensora = this.newCodefensoraAsignada.value;
+                } else if (isCivil && this.newDefensoraCivil) {
+                    codefensora = this.newDefensoraCivil.value;
+                }
                 const vencimientoContestacion = (isFamilia && this.newFechaVencimientoContestacion) ? this.newFechaVencimientoContestacion.value : '';
 
                 if (isFamilia && modoFamilia === 'Contestación de Demanda' && !vencimientoContestacion) {
@@ -4999,6 +5071,8 @@ const bundleContent = `/* ======================================================
                 this.editingRecordId = null;
                 this.newRecordModal.classList.remove('active');
                 if (this.newRecordForm) this.newRecordForm.reset();
+                if (this.newDefensoraCivil) this.newDefensoraCivil.value = '';
+                if (this.defensoraCivilBadgeStatus) this.defensoraCivilBadgeStatus.style.display = 'none';
                 if (this.selectPlantillaEscrito) this.selectPlantillaEscrito.value = '';
                 this.activePlantilla = null;
                 this.escritoDynamicValues = {};
