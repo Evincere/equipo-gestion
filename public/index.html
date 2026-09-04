@@ -1009,7 +1009,12 @@
                     <i class="ri-chat-3-fill" style="color: var(--mpd-cyan); font-size: 1.25rem;"></i>
                     <h4 style="margin: 0; font-size: 1rem; color: #FFF;" id="chatDrawerTitle">Chat Interno Operarios</h4>
                 </div>
-                <button class="modal-close-btn" id="btnCloseChatDrawer"><i class="ri-close-line"></i></button>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <button class="modal-close-btn" id="btnToggleChatSound" title="Sonido activado (Clic para silenciar)" style="font-size: 1.1rem; color: var(--mpd-cyan);">
+                        <i class="ri-volume-up-line" id="iconChatSound"></i>
+                    </button>
+                    <button class="modal-close-btn" id="btnCloseChatDrawer" title="Cerrar"><i class="ri-close-line"></i></button>
+                </div>
             </div>
 
             <div class="chat-drawer-body">

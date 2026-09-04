@@ -37,6 +37,148 @@ const bundleContent = `/* ======================================================
             .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ãš/g, 'Ú').replace(/NÂ°/g, 'N°').replace(/Â°/g, '°');
     }
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatChatTime(dateInput) {
+        if (!dateInput) return '';
+        try {
+            const d = new Date(dateInput);
+            if (isNaN(d.getTime())) return '';
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return hours + ':' + minutes + ' hs';
+        } catch (e) {
+            return '';
+        }
+    }
+
+    class SoundNotificationService {
+        constructor() {
+            this._audioCtx = null;
+            this._muted = localStorage.getItem('mpd_chat_sound_muted') === 'true';
+        }
+
+        _getAudioContext() {
+            if (!this._audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    this._audioCtx = new AudioContextClass();
+                }
+            }
+            if (this._audioCtx && this._audioCtx.state === 'suspended') {
+                this._audioCtx.resume();
+            }
+            return this._audioCtx;
+        }
+
+        isMuted() {
+            return this._muted;
+        }
+
+        toggleMute() {
+            this._muted = !this._muted;
+            localStorage.setItem('mpd_chat_sound_muted', String(this._muted));
+            return this._muted;
+        }
+
+        playMessageReceived() {
+            if (this._muted) return;
+            try {
+                const ctx = this._getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                
+                // Tono 1: 587.33 Hz (D5)
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(587.33, now);
+                gain1.gain.setValueAtTime(0, now);
+                gain1.gain.linearRampToValueAtTime(0.18, now + 0.02);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.22);
+
+                // Tono 2: 880 Hz (A5)
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(880, now + 0.08);
+                gain2.gain.setValueAtTime(0, now + 0.08);
+                gain2.gain.linearRampToValueAtTime(0.22, now + 0.10);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.start(now + 0.08);
+                osc2.stop(now + 0.40);
+            } catch (e) {
+                console.warn('Error al reproducir sonido recibido:', e.message);
+            }
+        }
+
+        playMessageSent() {
+            if (this._muted) return;
+            try {
+                const ctx = this._getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(660, now + 0.08);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.015);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } catch (e) {
+                console.warn('Error al reproducir sonido enviado:', e.message);
+            }
+        }
+
+        playFileAttached() {
+            if (this._muted) return;
+            try {
+                const ctx = this._getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } catch (e) {
+                console.warn('Error al reproducir sonido archivo:', e.message);
+            }
+        }
+    }
+
     function showToast(message, type = 'success', duration = 3500) {
         let container = document.getElementById('toastContainer');
         if (!container) {
@@ -850,6 +992,7 @@ const bundleContent = `/* ======================================================
 
             this.currentPage = 1;
             this.pageSize = 25;
+            this.soundService = new SoundNotificationService();
 
             this.initDOM();
         }
@@ -1757,8 +1900,11 @@ const bundleContent = `/* ======================================================
             } else if (type === 'CHAT_RECEIVE_MESSAGE') {
                 if (payload) {
                     const isForMe = this.currentUser && payload.receptor_username === this.currentUser.username;
-                    if (isForMe && (!this.activeChatUsername || this.activeChatUsername !== payload.emisor_username)) {
-                        showToast('💬 Nuevo mensaje de ' + payload.emisor_username, 'info');
+                    if (isForMe && payload.emisor_username !== this.currentUser.username) {
+                        this.soundService.playMessageReceived();
+                        if (!this.activeChatUsername || this.activeChatUsername !== payload.emisor_username) {
+                            showToast('💬 Nuevo mensaje de ' + payload.emisor_username, 'info');
+                        }
                     }
                     if (this.activeChatUsername && (payload.emisor_username === this.activeChatUsername || payload.receptor_username === this.activeChatUsername)) {
                         await this.loadChatMessages();
@@ -1916,6 +2062,8 @@ const bundleContent = `/* ======================================================
         initChatModule() {
             this.btnOpenChatDrawer = document.getElementById('btnOpenChatDrawer');
             this.btnCloseChatDrawer = document.getElementById('btnCloseChatDrawer');
+            this.btnToggleChatSound = document.getElementById('btnToggleChatSound');
+            this.iconChatSound = document.getElementById('iconChatSound');
             this.chatDrawerOverlay = document.getElementById('chatDrawerOverlay');
             this.chatContactsList = document.getElementById('chatContactsList');
             this.chatConversationView = document.getElementById('chatConversationView');
@@ -1927,6 +2075,17 @@ const bundleContent = `/* ======================================================
             this.chatFileInput = document.getElementById('chatFileInput');
             this.chatGlobalUnreadBadge = document.getElementById('chatGlobalUnreadBadge');
             this.activeChatUsername = null;
+
+            this.updateSoundToggleUI();
+
+            if (this.btnToggleChatSound && !this.btnToggleChatSound.dataset.bound) {
+                this.btnToggleChatSound.dataset.bound = "true";
+                this.btnToggleChatSound.addEventListener('click', () => {
+                    const muted = this.soundService.toggleMute();
+                    this.updateSoundToggleUI();
+                    showToast(muted ? '🔇 Sonido de chat silenciado' : '🔔 Sonido de chat activado', 'info', 2000);
+                });
+            }
 
             if (this.btnOpenChatDrawer && !this.btnOpenChatDrawer.dataset.bound) {
                 this.btnOpenChatDrawer.dataset.bound = "true";
@@ -1968,6 +2127,20 @@ const bundleContent = `/* ======================================================
             }
         }
 
+        updateSoundToggleUI() {
+            if (!this.iconChatSound || !this.btnToggleChatSound) return;
+            const isMuted = this.soundService.isMuted();
+            if (isMuted) {
+                this.iconChatSound.className = 'ri-volume-mute-line';
+                this.btnToggleChatSound.style.color = '#94A3B8';
+                this.btnToggleChatSound.title = 'Sonido silenciado (Clic para activar)';
+            } else {
+                this.iconChatSound.className = 'ri-volume-up-line';
+                this.btnToggleChatSound.style.color = 'var(--mpd-cyan)';
+                this.btnToggleChatSound.title = 'Sonido activado (Clic para silenciar)';
+            }
+        }
+
         async openChatDrawer() {
             if (this.chatDrawerOverlay) this.chatDrawerOverlay.classList.add('active');
             await this.loadChatContacts();
@@ -1989,9 +2162,11 @@ const bundleContent = `/* ======================================================
                             this.chatGlobalUnreadBadge.textContent = total;
                             this.chatGlobalUnreadBadge.style.display = 'inline-block';
                             if (this.btnOnlineUsers) this.btnOnlineUsers.classList.add('has-unread');
+                            document.title = '(' + total + ') 💬 Chat MPD - Gestión de Atenciones';
                         } else {
                             this.chatGlobalUnreadBadge.style.display = 'none';
                             if (this.btnOnlineUsers) this.btnOnlineUsers.classList.remove('has-unread');
+                            document.title = 'MPD - Sistema de Gestión de Atenciones';
                         }
                     }
                 }
@@ -2082,17 +2257,19 @@ const bundleContent = `/* ======================================================
                         json.data.forEach(m => {
                             const isSent = this.currentUser && m.emisor_username === this.currentUser.username;
                             const bubbleClass = isSent ? 'sent' : 'received';
+                            const timeStr = formatChatTime(m.created_at);
 
                             let contentHtml = '';
                             if (m.tipo === 'FILE') {
+                                const safeName = escapeHtml(m.archivo_nombre || 'archivo_adjunto');
                                 if (m.descargado) {
                                     contentHtml = '<div style="display: flex; align-items: center; gap: 0.4rem; color: #E2E8F0; font-size: 0.8rem;">' +
                                         '<i class="ri-checkbox-circle-fill" style="color: #4ADE80; font-size: 1.1rem;"></i>' +
-                                        '<span>Archivo <strong>' + m.archivo_nombre + '</strong> descargado y purgado.</span>' +
+                                        '<span>Archivo <strong>' + safeName + '</strong> descargado y purgado.</span>' +
                                     '</div>';
                                 } else {
                                     contentHtml = '<div style="display: flex; flex-direction: column; gap: 0.35rem;">' +
-                                        '<div style="font-weight: 600; font-size: 0.85rem;"><i class="ri-file-download-line"></i> ' + m.archivo_nombre + '</div>' +
+                                        '<div style="font-weight: 600; font-size: 0.85rem;"><i class="ri-file-download-line"></i> ' + safeName + '</div>' +
                                         '<div style="font-size: 0.72rem; opacity: 0.85;">Tamaño: ' + (m.archivo_tamano / 1024).toFixed(1) + ' KB</div>' +
                                         '<a href="' + getApiUrl('/api/chat/descargar/' + m.id) + '" target="_blank" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.5rem; text-decoration: none; margin-top: 0.25rem; display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: #FFF;">' +
                                             '<i class="ri-download-line"></i> Descargar (Borrado Automático)' +
@@ -2100,11 +2277,12 @@ const bundleContent = `/* ======================================================
                                     '</div>';
                                 }
                             } else {
-                                contentHtml = m.mensaje;
+                                contentHtml = escapeHtml(m.mensaje);
                             }
 
                             html += '<div class="chat-bubble ' + bubbleClass + '">' +
                                 contentHtml +
+                                (timeStr ? '<div class="chat-bubble-time" style="font-size: 0.65rem; opacity: 0.75; text-align: right; margin-top: 0.25rem;">' + timeStr + '</div>' : '') +
                             '</div>';
                         });
                         this.chatMessagesArea.innerHTML = html || '<div style="color: #64748B; font-size: 0.8rem; text-align: center; padding: 1rem;">No hay mensajes en esta conversación.</div>';
@@ -2126,6 +2304,7 @@ const bundleContent = `/* ======================================================
             };
 
             this.socket.send(JSON.stringify({ type: 'CHAT_SEND_MESSAGE', payload }));
+            this.soundService.playMessageSent();
             this.chatTextInput.value = '';
         }
 
@@ -2163,6 +2342,7 @@ const bundleContent = `/* ======================================================
                             archivoMime: upData.archivoMime
                         };
                         this.socket.send(JSON.stringify({ type: 'CHAT_SEND_MESSAGE', payload }));
+                        this.soundService.playFileAttached();
                         showToast('Archivo adjuntado correctamente', 'success');
                     }
                 }

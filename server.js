@@ -103,6 +103,7 @@ db.exec(`
     );
 
     CREATE INDEX IF NOT EXISTS idx_chat_users ON chat_mensajes(emisor_username, receptor_username);
+    CREATE INDEX IF NOT EXISTS idx_chat_unread ON chat_mensajes(receptor_username, leido);
 `);
 
 const CHAT_UPLOADS_DIR = path.join(__dirname, 'data', 'uploads', 'chat');
@@ -1539,9 +1540,10 @@ function handleGetChatHistorial(req, res, parsedUrl) {
             SELECT * FROM chat_mensajes 
             WHERE (emisor_username = ? AND receptor_username = ?)
                OR (emisor_username = ? AND receptor_username = ?)
-            ORDER BY id ASC LIMIT 200
+            ORDER BY id DESC LIMIT 100
         `);
         const rows = stmt.all(user1, user2, user2, user1);
+        rows.reverse();
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
         res.end(JSON.stringify({ success: true, data: rows }));
