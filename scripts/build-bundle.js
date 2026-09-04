@@ -177,6 +177,67 @@ const bundleContent = `/* ======================================================
                 console.warn('Error al reproducir sonido archivo:', e.message);
             }
         }
+
+        playIcqUhOh() {
+            if (this._muted) return;
+            try {
+                const ctx = this._getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                // --- 1. "UH" (~0.0s a ~0.16s) ---
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                const filter1 = ctx.createBiquadFilter();
+                
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(295, now);
+                osc1.frequency.exponentialRampToValueAtTime(255, now + 0.15);
+
+                filter1.type = 'bandpass';
+                filter1.frequency.setValueAtTime(750, now);
+                filter1.Q.setValueAtTime(3.0, now);
+
+                gain1.gain.setValueAtTime(0, now);
+                gain1.gain.linearRampToValueAtTime(0.30, now + 0.02);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+                osc1.connect(filter1);
+                filter1.connect(gain1);
+                gain1.connect(ctx.destination);
+
+                osc1.start(now);
+                osc1.stop(now + 0.16);
+
+                // --- 2. "OH!" (~0.22s a ~0.55s) ---
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                const filter2 = ctx.createBiquadFilter();
+
+                osc2.type = 'sawtooth';
+                osc2.frequency.setValueAtTime(435, now + 0.22);
+                osc2.frequency.linearRampToValueAtTime(585, now + 0.36);
+                osc2.frequency.exponentialRampToValueAtTime(520, now + 0.52);
+
+                filter2.type = 'bandpass';
+                filter2.frequency.setValueAtTime(1100, now + 0.22);
+                filter2.frequency.linearRampToValueAtTime(1400, now + 0.36);
+                filter2.Q.setValueAtTime(2.5, now + 0.22);
+
+                gain2.gain.setValueAtTime(0, now + 0.22);
+                gain2.gain.linearRampToValueAtTime(0.35, now + 0.25);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+                osc2.connect(filter2);
+                filter2.connect(gain2);
+                gain2.connect(ctx.destination);
+
+                osc2.start(now + 0.22);
+                osc2.stop(now + 0.55);
+            } catch (e) {
+                console.warn('Error al reproducir sonido ICQ Uh-oh:', e.message);
+            }
+        }
     }
 
     function showToast(message, type = 'success', duration = 3500) {
@@ -1914,10 +1975,38 @@ const bundleContent = `/* ======================================================
                         await this.loadChatContacts();
                     }
                 }
+            } else if (type === 'CHAT_RECEIVE_NUDGE') {
+                if (payload) {
+                    const isForMe = this.currentUser && payload.receptor_username === this.currentUser.username;
+                    if (isForMe && payload.emisor_username !== this.currentUser.username) {
+                        this.soundService.playIcqUhOh();
+                        this.triggerDrawerShake();
+                        showToast('⚡ ¡' + (payload.emisor_username || 'Un operador') + ' te ha enviado una alerta ICQ (Uh-oh)!', 'warning', 4500);
+                    }
+                    if (this.activeChatUsername && (payload.emisor_username === this.activeChatUsername || payload.receptor_username === this.activeChatUsername)) {
+                        await this.loadChatMessages();
+                    }
+                    await this.updateChatGlobalUnreadBadge();
+                    if (this.chatContactsList && this.chatContactsList.style.display !== 'none') {
+                        await this.loadChatContacts();
+                    }
+                }
             } else if (type === 'CHAT_FILE_PURGED') {
                 if (this.activeChatUsername) {
                     await this.loadChatMessages();
                 }
+            }
+        }
+
+        triggerDrawerShake() {
+            const drawer = document.getElementById('chatDrawer');
+            if (drawer) {
+                drawer.classList.remove('icq-shaking');
+                void drawer.offsetWidth;
+                drawer.classList.add('icq-shaking');
+                setTimeout(() => {
+                    drawer.classList.remove('icq-shaking');
+                }, 550);
             }
         }
 
@@ -2125,6 +2214,44 @@ const bundleContent = `/* ======================================================
                 this.btnAttachFile.addEventListener('click', () => this.chatFileInput.click());
                 this.chatFileInput.addEventListener('change', () => this.handleFileSelected());
             }
+            this.btnSendNudge = document.getElementById('btnSendNudge');
+            if (this.btnSendNudge && !this.btnSendNudge.dataset.bound) {
+                this.btnSendNudge.dataset.bound = "true";
+                this.btnSendNudge.addEventListener('click', () => this.sendChatNudge());
+            }
+        }
+
+        async sendChatNudge() {
+            if (!this.activeChatUsername || !this.socket || !this.currentUser) return;
+            const now = Date.now();
+            if (this._lastNudgeTime && (now - this._lastNudgeTime < 5000)) {
+                const remaining = Math.ceil((5000 - (now - this._lastNudgeTime)) / 1000);
+                showToast('Espera ' + remaining + 's para enviar otra alerta ICQ', 'info', 2000);
+                return;
+            }
+
+            this._lastNudgeTime = now;
+            const payload = {
+                emisor: this.currentUser.username,
+                receptor: this.activeChatUsername
+            };
+
+            this.socket.send(JSON.stringify({ type: 'CHAT_SEND_NUDGE', payload }));
+            this.soundService.playMessageSent();
+            this.triggerDrawerShake();
+            showToast('⚡ Alerta ICQ (Uh-oh!) enviada a ' + this.activeChatUsername, 'success', 3000);
+
+            if (this.btnSendNudge) {
+                this.btnSendNudge.disabled = true;
+                const origHtml = this.btnSendNudge.innerHTML;
+                this.btnSendNudge.innerHTML = '<i class="ri-loader-4-line" style="animation: spin 1s infinite linear;"></i> <span>Enviado</span>';
+                setTimeout(() => {
+                    if (this.btnSendNudge) {
+                        this.btnSendNudge.disabled = false;
+                        this.btnSendNudge.innerHTML = origHtml;
+                    }
+                }, 5000);
+            }
         }
 
         updateSoundToggleUI() {
@@ -2260,7 +2387,17 @@ const bundleContent = `/* ======================================================
                             const timeStr = formatChatTime(m.created_at);
 
                             let contentHtml = '';
-                            if (m.tipo === 'FILE') {
+                            if (m.tipo === 'NUDGE') {
+                                const authorLabel = isSent ? 'Enviaste una alerta ICQ (Uh-oh!)' : escapeHtml(m.emisor_username) + ' envió una alerta ICQ (Uh-oh!)';
+                                html += '<div style="display: flex; justify-content: center; margin: 0.5rem 0;">' +
+                                    '<div class="chat-nudge-pill" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #FCD34D; font-size: 0.75rem; padding: 0.3rem 0.75rem; border-radius: 20px; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
+                                        '<i class="ri-flashlight-fill" style="color: #FBBF24; font-size: 0.85rem;"></i> ' +
+                                        '<span>' + authorLabel + '</span>' +
+                                        (timeStr ? '<span style="font-size: 0.65rem; opacity: 0.75; margin-left: 0.3rem;">' + timeStr + '</span>' : '') +
+                                    '</div>' +
+                                '</div>';
+                                return;
+                            } else if (m.tipo === 'FILE') {
                                 const safeName = escapeHtml(m.archivo_nombre || 'archivo_adjunto');
                                 if (m.descargado) {
                                     contentHtml = '<div style="display: flex; align-items: center; gap: 0.4rem; color: #E2E8F0; font-size: 0.8rem;">' +

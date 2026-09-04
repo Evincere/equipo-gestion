@@ -1917,5 +1917,49 @@ body {
     }
 }
 
+/* ==========================================================================
+   ALERTA / ZUMBIDO ESTILO ICQ ("UH-OH!")
+   ========================================================================== */
+@keyframes icqShake {
+    0%, 100% { transform: translateX(0); }
+    15%, 45%, 75% { transform: translateX(-8px) rotate(-1deg); }
+    30%, 60%, 90% { transform: translateX(8px) rotate(1deg); }
+}
+
+.icq-shaking {
+    animation: icqShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+}
+
+.btn-chat-nudge {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #FBBF24;
+    border-radius: 6px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s ease;
+}
+
+.btn-chat-nudge:hover:not(:disabled) {
+    background: #F59E0B;
+    color: #0B1329;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    transform: scale(1.04);
+}
+
+.btn-chat-nudge:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(100, 116, 139, 0.2);
+    border-color: rgba(100, 116, 139, 0.3);
+    color: #94A3B8;
+}
+
+
 
 

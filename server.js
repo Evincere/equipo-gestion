@@ -2198,6 +2198,43 @@ wss.on('connection', (ws) => {
                         }
                     });
                 }
+            } else if (data.type === 'CHAT_SEND_NUDGE') {
+                const payload = data.payload || {};
+                const { emisor, receptor } = payload;
+
+                if (emisor && receptor) {
+                    const stmt = db.prepare(`
+                        INSERT INTO chat_mensajes (
+                            emisor_username, receptor_username, mensaje, tipo,
+                            archivo_nombre, archivo_ruta, archivo_tamano, archivo_mime, descargado, leido
+                        ) VALUES (?, ?, ?, 'NUDGE', NULL, NULL, NULL, NULL, 0, 0)
+                    `);
+                    const res = stmt.run(emisor, receptor, '⚡ Alerta / Zumbido ICQ');
+
+                    const insertedMsg = {
+                        id: Number(res.lastInsertRowid),
+                        emisor_username: emisor,
+                        receptor_username: receptor,
+                        mensaje: '⚡ Alerta / Zumbido ICQ',
+                        tipo: 'NUDGE',
+                        archivo_nombre: null,
+                        archivo_ruta: null,
+                        archivo_tamano: null,
+                        archivo_mime: null,
+                        descargado: 0,
+                        leido: 0,
+                        created_at: new Date().toISOString()
+                    };
+
+                    wss.clients.forEach(client => {
+                        if (client.readyState === 1 && (client.username === receptor || client.username === emisor)) {
+                            client.send(JSON.stringify({
+                                type: 'CHAT_RECEIVE_NUDGE',
+                                payload: insertedMsg
+                            }));
+                        }
+                    });
+                }
             }
         } catch (e) {}
     });

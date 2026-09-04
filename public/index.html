@@ -1025,14 +1025,17 @@
 
                 <!-- Sub-panel 2: Ventana de Conversación Directa -->
                 <div class="chat-conversation-view" id="chatConversationView" style="display: none;">
-                    <div class="chat-conv-header">
-                        <button class="btn btn-secondary" id="btnBackToContacts" style="padding: 0.25rem 0.55rem; font-size: 0.78rem;">
-                            <i class="ri-arrow-left-line"></i> Volver
-                        </button>
+                    <div class="chat-conv-header" style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <button class="btn btn-secondary" id="btnBackToContacts" style="padding: 0.25rem 0.55rem; font-size: 0.78rem;">
+                                <i class="ri-arrow-left-line"></i> Volver
+                            </button>
                             <div class="avatar" id="activeChatAvatar" style="width: 28px; height: 28px; font-size: 0.7rem; font-weight: 700;">OP</div>
                             <span id="activeChatName" style="font-weight: 600; font-size: 0.88rem; color: #FFF;">Operador</span>
                         </div>
+                        <button type="button" class="btn-chat-nudge" id="btnSendNudge" title="Enviar Zumbido / Alerta Sonora ICQ (Uh-oh!)">
+                            <i class="ri-flashlight-fill"></i> <span>Alerta ICQ</span>
+                        </button>
                     </div>
 
                     <div class="chat-messages-area" id="chatMessagesArea">
