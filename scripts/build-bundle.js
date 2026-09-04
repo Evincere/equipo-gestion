@@ -4764,7 +4764,9 @@ const bundleContent = `/* ======================================================
                     '<td>' +
                         (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada 
                             ? '<span style="color:#F472B6; font-weight:600;">' + dto.codefensoraAsignada + '</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: ' + dto.atendidoPor + '</span>' 
-                            : dto.atendidoPor) +
+                            : ((dto.defensoriaName === 'DEF. CIVIL' || (dto.defensoriaName && dto.defensoriaName.includes('CIVIL'))) && dto.codefensoraAsignada
+                                ? '<span style="color:#38BDF8; font-weight:600;">Dra. ' + dto.codefensoraAsignada.trim().replace(/^dra\\.?\\s*/i, '') + '</span><br><span style="font-size:0.7rem; color:#94A3B8">Operador: ' + dto.atendidoPor + '</span>'
+                                : dto.atendidoPor)) +
                     '</td>' +
                     '<td onclick="event.stopPropagation();">' + actionBtn + editBtn + '</td>' +
                 '</tr>';
@@ -4861,6 +4863,7 @@ const bundleContent = `/* ======================================================
                     '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Resultado</span><p style="font-weight: 600;">' + dto.resultado + '</p></div>' +
                     '<div><span style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase;">Operador de Mesa (Atendió)</span><p style="font-weight: 600;">' + (dto.atendidoPor || 'Secretaría') + '</p></div>' +
                     (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.codefensoraAsignada ? '<div><span style="font-size: 0.75rem; color: #C63F95; text-transform: uppercase;">Co-Defensora Asignada</span><p style="font-weight: 700; color: #EC4899;">Dra. ' + dto.codefensoraAsignada.replace(/^Dra\\.\\s*/i, '') + '</p></div>' : '') +
+                    ((dto.defensoriaName === 'DEF. CIVIL' || (dto.defensoriaName && dto.defensoriaName.includes('CIVIL'))) && dto.codefensoraAsignada ? '<div><span style="font-size: 0.75rem; color: #38BDF8; text-transform: uppercase;">Defensora / Co-Defensora Civil</span><p style="font-weight: 700; color: #0284C7;">Dra. ' + dto.codefensoraAsignada.trim().replace(/^dra\\.?\\s*/i, '') + '</p></div>' : '') +
                     (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.modoDerivacionFamilia ? '<div><span style="font-size: 0.75rem; color: #F472B6; text-transform: uppercase;">Modo Derivación Familia</span><p style="font-weight: 600;">' + dto.modoDerivacionFamilia + '</p></div>' : '') +
                     (dto.defensoriaName === 'CO-DEF. FAMILIA' && dto.fechaVencimientoContestacion ? '<div><span style="font-size: 0.75rem; color: #F87171; text-transform: uppercase;">Plazo Contestación</span><p style="font-weight: 700; color: #EF4444;"><i class="ri-alarm-warning-line"></i> ' + dto.fechaVencimientoContestacion + '</p></div>' : '') +
                 '</div>' +
