@@ -931,8 +931,9 @@ function handlePostAtencion(req, res) {
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
             const detallePendiente = data.detallePendiente || '';
             const isFamilia = data.defensoria === 'CO-DEF. FAMILIA';
+            const isCivil = data.defensoria === 'DEF. CIVIL';
             const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
-            const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
+            const codefensora = (isFamilia || isCivil) ? (data.codefensoraAsignada || '') : '';
             const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
             const detalleReparticion = data.resultado === 'Derivado a otra repartición' ? (data.detalleReparticion || '') : '';
             const plantillaCodigo = data.plantillaCodigo || data.plantilla_codigo || '';
@@ -1059,8 +1060,9 @@ function handlePutAtencion(req, res) {
             const esPendiente = Boolean(data.tareaPendiente) ? 1 : 0;
             const detallePendiente = data.detallePendiente || '';
             const isFamilia = data.defensoria === 'CO-DEF. FAMILIA';
+            const isCivil = data.defensoria === 'DEF. CIVIL';
             const modoFamilia = isFamilia ? (data.modoDerivacionFamilia || '') : '';
-            const codefensora = isFamilia ? (data.codefensoraAsignada || '') : '';
+            const codefensora = (isFamilia || isCivil) ? (data.codefensoraAsignada || '') : '';
             const vencimiento = isFamilia ? (data.fechaVencimientoContestacion || '') : '';
             const detalleReparticion = data.resultado === 'Derivado a otra repartición' ? (data.detalleReparticion || '') : '';
             const plantillaCodigo = data.plantillaCodigo || data.plantilla_codigo || '';
