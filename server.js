@@ -802,8 +802,8 @@ function handleGetCiudadanoHistorial(req, res, parsedUrl) {
             return;
         }
 
-        const stmt = db.prepare("SELECT * FROM atenciones WHERE dni LIKE ? OR REPLACE(COALESCE(dni, ''), '.', '') = ? ORDER BY id DESC");
-        const rows = stmt.all(`%${cleanDni}%`, cleanDni);
+        const stmt = db.prepare("SELECT * FROM atenciones WHERE REPLACE(REPLACE(REPLACE(COALESCE(dni, ''), '.', ''), ' ', ''), '-', '') = ? ORDER BY id DESC");
+        const rows = stmt.all(cleanDni);
 
         if (rows.length > 0) {
             const latest = rows[0];
@@ -876,8 +876,8 @@ function handleGetHistorialFamilia(req, res, parsedUrl) {
         const conditions = [];
 
         if (cleanDni) {
-            conditions.push(`(dni LIKE ? OR REPLACE(dni, '.', '') = ?)`);
-            params.push(`%${cleanDni}%`, cleanDni);
+            conditions.push(`(REPLACE(REPLACE(REPLACE(COALESCE(dni, ''), '.', ''), ' ', ''), '-', '') = ?)`);
+            params.push(cleanDni);
         }
         if (cleanExpte) {
             conditions.push(`(expte LIKE ?)`);

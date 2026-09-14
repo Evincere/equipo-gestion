@@ -1454,12 +1454,17 @@ const bundleContent = `/* ======================================================
 
             if (this.newDniInput) {
                 this.newDniInput.addEventListener('input', () => {
-                    const clean = this.newDniInput.value.replace(/[^0-9]/g, '');
-                    if (clean.length >= 7 && clean.length <= 9) {
+                    if (this.dniStatusBadge) this.dniStatusBadge.style.display = 'none';
+                    if (this.dniQuickActionsBar) this.dniQuickActionsBar.style.display = 'none';
+                    if (this.linkedHistoryBanner) this.linkedHistoryBanner.style.display = 'none';
+                    this.currentCitizenHistory = [];
+                    this.linkedHistoryDto = null;
+                });
+
+                this.newDniInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
                         this.performDniLookup();
-                    } else if (clean.length === 0) {
-                        if (this.dniStatusBadge) this.dniStatusBadge.style.display = 'none';
-                        if (this.dniQuickActionsBar) this.dniQuickActionsBar.style.display = 'none';
                     }
                 });
             }
