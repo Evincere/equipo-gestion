@@ -567,6 +567,12 @@ const server = http.createServer((req, res) => {
         }
     }
 
+    if (pathname === '/health' || pathname === '/api/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() }));
+        return;
+    }
+
     // REST API Endpoints
     if (pathname === '/api/atenciones') {
         if (req.method === 'GET') return handleGetAtenciones(req, res, parsedUrl);
@@ -2248,8 +2254,16 @@ wss.on('connection', (ws) => {
     });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n==================================================`);
     console.log(`🚀 Servidor REST API + WebSocket Realtime Activo: http://localhost:${PORT}/dashboard.html`);
     console.log(`==================================================\n`);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ [CRITICAL] Excepción no capturada:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ [CRITICAL] Promesa rechazada no controlada:', reason);
 });
