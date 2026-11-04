@@ -21,7 +21,8 @@ const bundleContent = `/* ======================================================
         if (window.location.protocol === 'file:') {
             return 'http://localhost:3000' + endpoint;
         }
-        return endpoint;
+        const isGestion = window.location.pathname.startsWith('/gestion');
+        return (isGestion ? '/gestion' : '') + endpoint;
     }
 
     function fixMojibake(str) {
@@ -1915,11 +1916,13 @@ const bundleContent = `/* ======================================================
             }
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const isGestion = window.location.pathname.startsWith('/gestion');
+            const wsPrefix = isGestion ? '/gestion' : '';
             let wsUrl = '';
             if (window.location.protocol === 'file:') {
                 wsUrl = 'ws://localhost:3000';
             } else {
-                wsUrl = \`\${protocol}//\${window.location.host}\`;
+                wsUrl = \`\${protocol}//\${window.location.host}\${wsPrefix}\`;
             }
 
             try {
