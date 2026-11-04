@@ -1,0 +1,25 @@
+http:
+  routers:
+    equipogestion-gestion-web:
+      rule: Host(`vps-4778464-x.dattaweb.com`) && PathPrefix(`/gestion`)
+      service: equipogestion-dashboard-nmcufv-service-7
+      middlewares:
+        - redirect-to-https
+      entryPoints:
+        - web
+
+    equipogestion-gestion-websecure:
+      rule: Host(`vps-4778464-x.dattaweb.com`) && PathPrefix(`/gestion`)
+      service: equipogestion-dashboard-nmcufv-service-7
+      middlewares:
+        - equipogestion-strip-gestion
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    equipogestion-strip-gestion:
+      stripPrefix:
+        prefixes:
+          - "/gestion"
